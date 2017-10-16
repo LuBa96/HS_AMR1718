@@ -1,0 +1,52 @@
+#!/bin/sh
+
+if [ -d "/Library/Preferences/NIvisa" ] ; then
+   chflags -R nouchg "/Library/Preferences/NIvisa"
+fi
+
+if [ -d "/Library/Frameworks/VISA.framework" ] ; then
+   chflags -R nouchg "/Library/Frameworks/VISA.framework"
+fi
+
+strNIErrorsDir="/Library/Application Support/National Instruments/Errors"
+
+# Remove error files from NI-VISA 3.3 and earlier
+if [ -f "${strNIErrorsDir}/English/VISA-Eng-errors.txt" ] ; then
+   chflags nouchg "${strNIErrorsDir}/English/VISA-Eng-errors.txt"
+   rm -f "${strNIErrorsDir}/English/VISA-Eng-errors.txt"
+fi
+
+if [ -f "${strNIErrorsDir}/French/VISA-Fra-errors.txt" ] ; then
+   chflags nouchg "${strNIErrorsDir}/French/VISA-Fra-errors.txt"
+   rm -f "${strNIErrorsDir}/French/VISA-Fra-errors.txt"
+fi
+
+if [ -f "${strNIErrorsDir}/German/VISA-Deu-errors.txt" ] ; then
+   chflags nouchg "${strNIErrorsDir}/German/VISA-Deu-errors.txt"
+   rm -f "${strNIErrorsDir}/German/VISA-Deu-errors.txt"
+fi
+
+if [ -f "${strNIErrorsDir}/Japanese/VISA-Jpn-errors.txt" ] ; then
+   chflags nouchg "${strNIErrorsDir}/Japanese/VISA-Jpn-errors.txt"
+   rm -f "${strNIErrorsDir}/Japanese/VISA-Jpn-errors.txt"
+fi
+
+# Ensure that error files from NI-VISA 3.4 and later are not locked
+if [ -f "${strNIErrorsDir}/English/VISA-errors.txt" ] ; then
+   chflags nouchg "${strNIErrorsDir}/English/VISA-errors.txt"
+fi
+
+if [ -f "${strNIErrorsDir}/French/VISA-errors.txt" ] ; then
+   chflags nouchg "${strNIErrorsDir}/French/VISA-errors.txt"
+fi
+
+if [ -f "${strNIErrorsDir}/German/VISA-errors.txt" ] ; then
+   chflags nouchg "${strNIErrorsDir}/German/VISA-errors.txt"
+fi
+
+if [ -f "${strNIErrorsDir}/Japanese/VISA-errors.txt" ] ; then
+   chflags nouchg "${strNIErrorsDir}/Japanese/VISA-errors.txt"
+fi
+
+exit 0
+

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+   <key>./Library/Frameworks/VISA.framework/Versions/A/Resources/version.plist</key>
+   <dict>
+        <key>BuildVersion</key>
+        <string>0</string>
+        <key>CFBundleShortVersionString</key>
+        <string>5.4.0</string>
+        <key>SourceVersion</key>
+        <string>300000</string>
+   </dict>
+   <key>./Library/Frameworks/VISA.framework/Frameworks/UsbPassport.framework/Versions/A/Resources/version.plist</key>
+   <dict>
+        <key>BuildVersion</key>
+        <string>0</string>
+        <key>CFBundleShortVersionString</key>
+        <string>5.4.0</string>
+        <key>SourceVersion</key>
+        <string>300000</string>
+   </dict>
+   <key>./Library/Frameworks/VISA.framework/Frameworks/EnetPassport.framework/Versions/A/Resources/version.plist</key>
+   <dict>
+        <key>BuildVersion</key>
+        <string>0</string>
+        <key>CFBundleShortVersionString</key>
+        <string>5.3.0</string>
+        <key>SourceVersion</key>
+        <string>300000</string>
+   </dict>
+   <key>./Library/Frameworks/Fantom.framework/Versions/1/Resources/version.plist</key>
+   <dict>
+        <key>BuildVersion</key>
+        <string>0</string>
+        <key>CFBundleShortVersionString</key>
+        <string>1.2.0</string>
+        <key>SourceVersion</key>
+        <string>300004</string>
+   </dict>
+   <key>./System/Library/Extensions/Fantom.kext/Contents/</key>
+   <dict>
+   </dict>
+</dict>
+</plist>

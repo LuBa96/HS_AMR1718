@@ -1,0 +1,3 @@
+/* Localized versions of InstallationCheck error strings */
+
+"16" = "This software cannot be installed on this computer because it requires Mac OS X 10.3.9 or newer.";

@@ -1,0 +1,15 @@
+#!/usr/bin/perl
+#
+#  InstallationCheck
+#  This script fails automatically because on Mac OS X 10.3 if there are requirements
+#  in the Info.plist of the installer then this is not called.  If this is ever
+#  called then we know that we are on a pre 10.3 system and we don't support that.
+#
+#  © Copyright 2004,
+#  National Instruments Corporation.
+#  All Rights reserved.
+#
+#  originated:  9 June 2004
+#
+
+exit (( 3 << 5 ) + 16 );

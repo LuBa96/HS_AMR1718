@@ -1,0 +1,11 @@
+#!/bin/sh
+
+chmod 777 "/Library/Preferences/NIvisa"
+chmod 777 "/Library/Preferences/NIvisa/Passport"
+chmod 666 "/Library/Preferences/NIvisa/visaconf.ini"
+chmod 666 "/Library/Preferences/NIvisa/Passport/fantom.ini"
+
+kextload /System/Library/Extensions/Fantom.kext
+
+exit 0
+

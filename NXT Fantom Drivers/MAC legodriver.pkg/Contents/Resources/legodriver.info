@@ -1,0 +1,15 @@
+Title LEGO Driver
+Version 1.2.49155
+Description This package installs LEGO Driver for Mac OS X.
+DefaultLocation /
+
+### Package Flags
+
+NeedsAuthorization YES
+Required YES
+Relocatable NO
+RequiresReboot NO
+UseUserMask NO
+OverwritePermissions NO
+InstallFat NO
+RootVolumeOnly YES

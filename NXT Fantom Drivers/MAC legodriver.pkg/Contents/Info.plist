@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IFMajorVersion</key>
+	<integer>1</integer>
+	<key>IFMinorVersion</key>
+	<integer>2</integer>
+	<key>CFBundleGetInfoString</key>
+	<string>LEGO Driver 1.2.0</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.ni.pkg.legodriver</string>
+	<key>CFBundleName</key>
+	<string>Lego Driver</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.2.49155</string>
+	<key>IFPkgFlagAllowBackRev</key>
+	<false/>
+	<key>IFPkgFlagAuthorizationAction</key>
+	<string>AdminAuthorization</string>
+	<key>IFPkgFlagDefaultLocation</key>
+	<string>/</string>
+	<key>IFPkgFlagInstallFat</key>
+	<false/>
+	<key>IFPkgFlagIsRequired</key>
+	<true/>
+	<key>IFPkgFlagOverwritePermissions</key>
+	<false/>
+	<key>IFPkgFlagRelocatable</key>
+	<false/>
+	<key>IFPkgFlagRestartAction</key>
+	<string>NoRestart</string>
+	<key>IFPkgFlagRootVolumeOnly</key>
+	<true/>
+	<key>IFPkgFlagUpdateInstalledLanguages</key>
+	<false/>
+	<key>IFPkgFlagUseUserMask</key>
+	<false/>
+	<key>IFPkgFlagFollowLinks</key>
+	<true/>
+	<key>IFPkgFormatVersion</key>
+	<real>0.10000000149011612</real>
+	<key>IFRequirementDicts</key>
+	<array>
+		<dict>
+			<key>SpecType</key>
+			<string>plist</string>
+			<key>SpecArgument</key>
+			<string>/System/Library/CoreServices/SystemVersion.plist</string>
+			<key>SpecProperty</key>
+			<string>ProductVersion</string>
+			<key>TestOperator</key>
+			<string>ge</string>
+			<key>TestObject</key>
+			<string>10.3.9</string>
+			<key>LabelKey</key>
+			<string>PantherRequirementLabel</string>
+			<key>TitleKey</key>
+			<string>PantherRequirementTitle</string>
+			<key>MessageKey</key>
+			<string>PantherRequirementMessage</string>
+		</dict>
+	</array>
+</dict>
+</plist>

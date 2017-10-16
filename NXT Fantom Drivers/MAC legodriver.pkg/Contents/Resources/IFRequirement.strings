@@ -1,0 +1,5 @@
+/* Localized versions of IFRequirements keys */
+
+"PantherRequirementLabel" = "Mac OS X v10.3.9 or newer";
+"PantherRequirementTitle" = "This software cannot be installed on this computer because it requires Mac OS X 10.3.9 or newer.";
+"PantherRequirementMessage" = "You must upgrade to Mac OS X v10.3.9 before installing this software.";
