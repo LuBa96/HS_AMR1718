@@ -81,6 +81,10 @@ public class ControlRST implements IControl {
 
 	double currentDistance = 0.0;
 	double Distance = 0.0;
+	
+	//global Variables for PID
+	double esum; 		//static or final?????????????? esum has to be reserved in storage
+	double ealt;
 
 	/**
 	 * provides the reference transfer so that the class knows its corresponding
@@ -279,12 +283,9 @@ public class ControlRST implements IControl {
 	private void exec_LINECTRL_ALGO() {
 		leftMotor.forward();
 		rightMotor.forward();
-		int lowPower = 1; // Involve
-							// batterycharge
-							// for
-							// max-/min-power
-		int highPower = (int) (9000 / Battery.getVoltage()) * 30;
-		int medPower = (int) (9000 / Battery.getVoltage()) * 10;
+		int lowPower = 4; 
+		int highPower = 35;
+		int medPower = 10;
 
 		// MONITOR (example)
 		monitor.writeControlVar("LeftSensor", "" + this.lineSensorLeft);
@@ -357,20 +358,40 @@ public class ControlRST implements IControl {
 		leftMotor.forward();
 		rightMotor.forward();
 		
-		double e = 0;		//Regelabweichung
-		double eSigma = 0; 	//Summierte Regelabweichung 
-		//int soll = weissKali hier mŸsste die bei der Kalibrierung gemessene LichtstŠrke fŸr weiss rein
-		int deltae = 0.1*(100-weissKali); //Messunsicherheitsbudget, evtl. abhŠngig von LichtverhŠltnissen; (z.B.: 10% von 100-wertweiss oder so)
+		this.lineSensorRight = perception.getRightLineSensorValue();
+		this.lineSensorLeft = perception.getLeftLineSensorValue();
 		
-		//e = soll - LeftLineSensor.getValue
+		double errorRight = 0;
+		double errorLeft = 0;
+		double soll = 0;
+		double yRight=0;
+		double yLeft=0;									//Stellwert
 		
+		int maxPower = 30;
+		double rightPower = 0;
+		double leftPower = 0;
+		
+		errorRight = this.lineSensorRight - soll;		//Asumption: the calibrated value for white is 0 and every deviation
+		errorLeft = this.lineSensorLeft - soll;			//has to be corrected
+		
+		if(errorRight>=5){								//correct when deviation is greater than 5 Percent
+			yRight = PID_control(errorRight, 1, 1, 0, 5);
+					
+		}
+		else if(errorLeft>=5){
+			yLeft = PID_control(errorLeft, 1, 1, 0, 5);
+		}
+		
+		rightPower = maxPower -(yRight - yLeft);		//Sensors don't correspond with only one Motor each, but change the behavior
+		leftPower = maxPower -(yLeft - yRight);			//of both motors at the same time
+		rightMotor.setPower((int) rightPower);
+		leftMotor.setPower((int) leftPower);
 		
 		
 	}
 
-	private double PID_control(double e, double KP, double KI, double KD, double Ta) {
-		static double esum; 		//static or final?????????????? esum has to be reserved in storage
-		final double ealt;
+	private double PID_control(double e, double KP, double KI, double KD, double Ta) 
+	{
 
 		double y = 0;		//Stellwert
 		
