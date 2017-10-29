@@ -124,28 +124,7 @@ public class PerceptionPMP implements IPerception {
 		//return ((this.RightLineSensor-this.LSrblack)/(this.LSrwhite-this.LSrblack))*100;
 		return ((this.RightLineSensor-this.LSrblack) *100/(this.LSrwhite-this.LSrblack));
 	}
-	
-	//ACHTUNG Hier hat Luke rumgepfuscht!
 
-	public int getLeftCaliW()
-	{
-		return(LSlwhite);
-	}
-	
-	public int getLeftCaliB()
-	{
-		return(LSlblack);
-	}
-	public int getRightCaliW()
-	{
-		return(LSrwhite);
-	}
-	
-	public int getRightCaliB()
-	{
-		return(LSrblack);
-	}
-	//ACHTUNG  Hier hat Luke rumgepfuscht!
 	
 	public synchronized void calibrateLineSensors(){
 		LCD.clear();

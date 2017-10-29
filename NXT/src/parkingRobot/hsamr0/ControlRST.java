@@ -81,9 +81,10 @@ public class ControlRST implements IControl {
 
 	double currentDistance = 0.0;
 	double Distance = 0.0;
-	
-	//global Variables for PID
-	double esum; 		//static or final?????????????? esum has to be reserved in storage
+
+	// global Variables for PID
+	double esum; // static or final?????????????? esum has to be reserved in
+					// storage
 	double ealt;
 
 	/**
@@ -280,125 +281,165 @@ public class ControlRST implements IControl {
 	 * Werte 0,1,2 white = 0, black = 2, grey = 1
 	 */
 	// Verbesserung des Minimalbeispieles mit den drei diskreten Werten
+	// private void exec_LINECTRL_ALGO() {
+	// leftMotor.forward();
+	// rightMotor.forward();
+	// int lowPower = 4;
+	// int highPower = 35;
+	// int medPower = 10;
+	//
+	// // MONITOR (example)
+	// monitor.writeControlVar("LeftSensor", "" + this.lineSensorLeft);
+	// monitor.writeControlVar("RightSensor", "" + this.lineSensorRight);
+	//
+	// if (this.lineSensorLeft == 2 && (this.lineSensorRight == 1)) {
+	//
+	// // when left sensor is on the line, turn left
+	// leftMotor.setPower(lowPower);
+	// rightMotor.setPower(highPower);
+	//
+	// // MONITOR (example)
+	// monitor.writeControlComment("turn left");
+	//
+	// } else if (this.lineSensorRight == 2 && (this.lineSensorLeft == 1)) {
+	//
+	// // when right sensor is on the line, turn right
+	// leftMotor.setPower(highPower);
+	// rightMotor.setPower(lowPower);
+	//
+	// // MONITOR (example)
+	// monitor.writeControlComment("turn right");
+	// } else if (this.lineSensorLeft == 2 && (this.lineSensorRight == 0)) {
+	//
+	// // when left sensor is on the line, turn left
+	// leftMotor.setPower(lowPower);
+	// rightMotor.setPower(highPower);
+	//
+	// // MONITOR (example)
+	// monitor.writeControlComment("turn left");
+	//
+	// } else if (this.lineSensorRight == 2 && (this.lineSensorLeft == 0)) {
+	//
+	// // when right sensor is on the line, turn right
+	// leftMotor.setPower(highPower);
+	// rightMotor.setPower(lowPower);
+	//
+	// // MONITOR (example)
+	// monitor.writeControlComment("turn right");
+	// } else if (this.lineSensorLeft == 1 && this.lineSensorRight == 0) {
+	//
+	// // when left sensor is on the line, turn left
+	// leftMotor.setPower(medPower); // nicht zu stark korrigieren..
+	// rightMotor.setPower(highPower);
+	//
+	// // MONITOR (example)
+	// monitor.writeControlComment("turn left");
+	//
+	// } else if (this.lineSensorRight == 1 && this.lineSensorLeft == 0) {
+	//
+	// // when right sensor is on the line, turn right
+	// leftMotor.setPower(highPower);
+	// rightMotor.setPower(medPower);
+	//
+	// // MONITOR (example)
+	// monitor.writeControlComment("turn right");
+	// } else if (this.lineSensorLeft == 0 && this.lineSensorRight == 0) {
+	//
+	// // when both sensors are next to the line, go straight
+	// leftMotor.setPower(highPower);
+	// rightMotor.setPower(highPower);
+	//
+	// // MONITOR (example)
+	// monitor.writeControlComment("go straight");
+	// }
+	// }
+
 	private void exec_LINECTRL_ALGO() {
+		/**
+		 * Idea: the robot is on its correct path, when it is positioned
+		 * centrally on the line with both sensors returning their minimum value
+		 * (calibrated value for white)
+		 */
 		leftMotor.forward();
 		rightMotor.forward();
-		int lowPower = 4; 
-		int highPower = 35;
-		int medPower = 10;
 
-		// MONITOR (example)
-		monitor.writeControlVar("LeftSensor", "" + this.lineSensorLeft);
-		monitor.writeControlVar("RightSensor", "" + this.lineSensorRight);
-
-		if (this.lineSensorLeft == 2 && (this.lineSensorRight == 1)) {
-
-			// when left sensor is on the line, turn left
-			leftMotor.setPower(lowPower);
-			rightMotor.setPower(highPower);
-
-			// MONITOR (example)
-			monitor.writeControlComment("turn left");
-
-		} else if (this.lineSensorRight == 2 && (this.lineSensorLeft == 1)) {
-
-			// when right sensor is on the line, turn right
-			leftMotor.setPower(highPower);
-			rightMotor.setPower(lowPower);
-
-			// MONITOR (example)
-			monitor.writeControlComment("turn right");
-		} else if (this.lineSensorLeft == 2 && (this.lineSensorRight == 0)) {
-
-			// when left sensor is on the line, turn left
-			leftMotor.setPower(lowPower);
-			rightMotor.setPower(highPower);
-
-			// MONITOR (example)
-			monitor.writeControlComment("turn left");
-
-		} else if (this.lineSensorRight == 2 && (this.lineSensorLeft == 0)) {
-
-			// when right sensor is on the line, turn right
-			leftMotor.setPower(highPower);
-			rightMotor.setPower(lowPower);
-
-			// MONITOR (example)
-			monitor.writeControlComment("turn right");
-		} else if (this.lineSensorLeft == 1 && this.lineSensorRight == 0) {
-
-			// when left sensor is on the line, turn left
-			leftMotor.setPower(medPower); // nicht zu stark korrigieren..
-			rightMotor.setPower(highPower);
-
-			// MONITOR (example)
-			monitor.writeControlComment("turn left");
-
-		} else if (this.lineSensorRight == 1 && this.lineSensorLeft == 0) {
-
-			// when right sensor is on the line, turn right
-			leftMotor.setPower(highPower);
-			rightMotor.setPower(medPower);
-
-			// MONITOR (example)
-			monitor.writeControlComment("turn right");
-		} else if (this.lineSensorLeft == 0 && this.lineSensorRight == 0) {
-
-			// when both sensors are next to the line, go straight
-			leftMotor.setPower(highPower);
-			rightMotor.setPower(highPower);
-
-			// MONITOR (example)
-			monitor.writeControlComment("go straight");
-		}
-	}
-
-	private void exec_LINECTRL_ALGO_improved()
-	{
-		leftMotor.forward();
-		rightMotor.forward();
-		
 		this.lineSensorRight = perception.getRightLineSensorValue();
 		this.lineSensorLeft = perception.getLeftLineSensorValue();
-		
-		double errorRight = 0;
-		double errorLeft = 0;
-		double soll = 0;
-		double yRight=0;
-		double yLeft=0;									//Stellwert
-		
+
+		/**
+		 * if a sensor measures the calibrated value for e.g. white it returns
+		 * 0; black(calibrated)-->100 the values are therefore largely
+		 * uncorrelated to the actual brightness of the room but vary bright
+		 * days still have a different fragmentation; e.g. the difference
+		 * between 10 and 20 is greater when the brightness is high
+		 */
+
+		/**
+		 * error values
+		 */
+		int errorRight = 0;
+		int errorLeft = 0;
+		int e = 0; // control error
+		double delta = 0;// correcting factor
+		/**
+		 * correcting values
+		 */
+		double y = 0; // Stellwert
+
 		int maxPower = 30;
-		double rightPower = 0;
-		double leftPower = 0;
-		
-		errorRight = this.lineSensorRight - soll;		//Asumption: the calibrated value for white is 0 and every deviation
-		errorLeft = this.lineSensorLeft - soll;			//has to be corrected
-		
-		if(errorRight>=5){								//correct when deviation is greater than 5 Percent
-			yRight = PID_control(errorRight, 1, 1, 0, 5);
-					
+
+		errorRight = this.lineSensorRight; // Asumption: the calibrated value
+											// for white is 100 and every
+											// deviation
+		errorLeft = this.lineSensorLeft; // has to be corrected
+
+		/**
+		 * Definition for control deviation e: negative e -->too far left
+		 * positive e -->too far right e==0 --> all right
+		 */
+
+		e = errorRight - errorLeft;
+		if (e > 2 || e < -2)
+			y = PID_control(e, 15, 9, 1, 0.1);
+		else
+			y = 0;
+		/**
+		 * if the control deviation is negative the correcting value will be
+		 * negative aswell -->sign(y) ==-1 --> left turn -->sign(y) ==1 -->
+		 * right turn
+		 */
+		if (y < 0) {
+			y = -1 * y;
+			if (y > maxPower)
+				y = maxPower;
+			leftMotor.setPower((int) y);
+			if (e < 75) delta = 0;
+			else delta=0.5;
+				rightMotor.setPower((int) (y * delta)); // speed of slower motor depending on the curvuture
+
+		} else if (y > 0) {
+			if (y > maxPower)
+				y = maxPower;
+			rightMotor.setPower((int) y);
+			if (e > 75) delta = 0;
+			else delta=0.5;
+			leftMotor.setPower((int) (y * delta));
+
+		} else if (y == 0 || e == 0) {
+			leftMotor.setPower(maxPower);
+			rightMotor.setPower(maxPower);
 		}
-		else if(errorLeft>=5){
-			yLeft = PID_control(errorLeft, 1, 1, 0, 5);
-		}
-		
-		rightPower = maxPower -(yRight - yLeft);		//Sensors don't correspond with only one Motor each, but change the behavior
-		leftPower = maxPower -(yLeft - yRight);			//of both motors at the same time
-		rightMotor.setPower((int) rightPower);
-		leftMotor.setPower((int) leftPower);
-		
-		
+
 	}
 
-	private double PID_control(double e, double KP, double KI, double KD, double Ta) 
-	{
+	private double PID_control(double e, double KP, double KI, double KD,
+			double Ta) {
 
-		double y = 0;		//Stellwert
-		
+		double y = 0; // Stellwert
+
 		esum = esum + e;
-		y=KP*e + KI* esum* Ta + KD * (e-ealt)/Ta;
-		
-		ealt=e;
+		y = KP * e + KI * esum * Ta + KD * (e - ealt) / Ta;
+		ealt = e;
 		return y;
 	}
 
