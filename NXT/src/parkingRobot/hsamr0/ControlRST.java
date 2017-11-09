@@ -86,6 +86,12 @@ public class ControlRST implements IControl {
 	double esum = 0; // static or final?????????????? esum has to be reserved in
 					// storage
 	double ealt = 0;
+	/**
+	 * distinguish between straight driving and curving.
+	 * PID optimized for straight driving is not suitable
+	 * for curving and vice versa
+	 */
+	boolean curve = true;
 
 	/**
 	 * provides the reference transfer so that the class knows its corresponding
@@ -115,8 +121,8 @@ public class ControlRST implements IControl {
 
 		this.encoderLeft = perception.getControlLeftEncoder();
 		this.encoderRight = perception.getControlRightEncoder();
-		this.lineSensorRight = perception.getRightLineSensor();
-		this.lineSensorLeft = perception.getLeftLineSensor();
+		this.lineSensorRight = perception.getRightLineSensorValue();
+		this.lineSensorLeft = perception.getLeftLineSensorValue();
 
 		// WICHTIG eventuell †bergabe der kalibrierten Werte von Perception fŸr
 		// Die PID regelung der Linienverfolgung?
@@ -362,9 +368,10 @@ public class ControlRST implements IControl {
 		 */
 		leftMotor.forward();
 		rightMotor.forward();
-
+		
 		this.lineSensorRight = perception.getRightLineSensorValue();
 		this.lineSensorLeft = perception.getLeftLineSensorValue();
+	
 
 		/**
 		 * if a sensor measures the calibrated value for e.g. white it returns
@@ -380,13 +387,16 @@ public class ControlRST implements IControl {
 		int errorRight = 0;
 		int errorLeft = 0;
 		int e = 0; // control error
-		double delta = 0;// correcting factor
 		/**
 		 * correcting values
 		 */
 		double y = 0; // Stellwert
-
-		int maxPower = 100;
+		/**
+		 * Threshold and maxPower
+		 */
+		int upperThreshold = 30;
+		int lowerThreshold = 10;
+		int maxPower = 70;
 
 		errorRight = this.lineSensorRight; // Asumption: the calibrated value
 											// for white is 100 and every
@@ -399,37 +409,93 @@ public class ControlRST implements IControl {
 		 */
 
 		e = errorRight - errorLeft;
-		if (e > 5 || e < -5)
-			y = PID_control(e, 0.08, 0.02, 0.02, 1);
-		else if (e > 90 || e < -90)			//starke kurve
-			y = PID_control(e, 0.08, 0.02, 1, 1);
-		else
-			y = 0;
+		
 		/**
-		 * if the control deviation is negative the correcting value will be
-		 * negative aswell -->sign(y) ==-1 --> left turn -->sign(y) ==1 -->
-		 * right turn
+		 * As long as there is no sign of o curve, follow the straight routine
+		 * while is actually unnecessary, if would work as well
 		 */
-		if (y < 0) {
-			y = -1 * y;
-			if (y > maxPower/2)
-				y = maxPower/2;
-			leftMotor.setPower(maxPower/2 + (int) y);
-//			if (e < -75) delta = 0;
-//			else delta=0.5;
-				rightMotor.setPower(maxPower/2 - (int) y); // speed of slower motor depending on the curvuture
-
-		} else if (y > 0) {
-			if (y > maxPower/2)
-				y = maxPower/2;
-			rightMotor.setPower(maxPower/2 + (int) y);
-//			if (e > 75) delta = 0;
-//			else delta=0.5;
-			leftMotor.setPower(maxPower/2 -(int) (y));
-
-		} else if (y == 0 || e == 0) {
-			leftMotor.setPower(maxPower/2);
-			rightMotor.setPower(maxPower/2);
+		while (!curve)			
+			{
+			if((e > upperThreshold) || (e < -upperThreshold))			//strong curve (start-threshold == 60)
+				{	
+					curve = true;
+					if(e<0)											//begin right curve 
+					{
+						leftMotor.setPower(maxPower/2);
+						rightMotor.setPower(0);
+					}
+					else 											//begin left curve
+					{
+						leftMotor.setPower(0);
+						rightMotor.setPower(maxPower/2);	
+					}
+					break;													//leave normal routine
+				}
+			break;
+			}
+		/**
+		 * as long as e is greater than the lower threshold for exiting the curve mode continue in curve mode
+		 */
+		while (curve)
+		{
+			if((e < lowerThreshold) || (e > -lowerThreshold))			//end of strong curve
+			{	
+				//curve = false;
+				//if (e > 0 || e < 0)									//evtl. Schwellwert einfŸhren, damit nicht zu viel korrigiert wird
+					y = PID_control(e, 0.08, 0.02, 0.02, 1);		//<--choose different parameters to prevent oscillations
+				//else y = 0;
+				break;
+			}
+			else
+			{
+				if(e<0)											//continue right curve 
+				{
+					leftMotor.setPower(maxPower/2);
+					rightMotor.setPower(0);
+				}
+				else 											//continue left curve
+				{
+					leftMotor.setPower(0);
+					rightMotor.setPower(maxPower/2);	
+				}
+			}
+		break;					
+		}
+		while (!curve)												//this while is necessary
+		{
+			/**
+			 * normal routine for straight driving
+			 */
+			if (e > 0 || e < 0)										//evtl. Schwellwert einfŸhren, damit nicht zu viel korrigiert wird
+				y = PID_control(e, 0.08, 0.02, 0.02, 1);
+			else y = 0;
+			/**
+			 * correction to the right side
+			 */
+			if (y < 0) {
+				y = -1 * y;
+				if (y > maxPower/2)
+					y = maxPower/2;
+				leftMotor.setPower(maxPower/2 + (int) y);
+				rightMotor.setPower(maxPower/2 - (int) y); 			// speed of slower motor depending on the curve
+				
+			/**
+			 * correction to the left side
+			 */
+			} else if (y > 0) {
+				if (y > maxPower/2)
+					y = maxPower/2;
+				rightMotor.setPower(maxPower/2 + (int) y);
+				leftMotor.setPower(maxPower/2 -(int) (y));
+	
+			/**
+			 * Drive straight
+			 */
+			} else if (y == 0 || e == 0) {
+				leftMotor.setPower(maxPower/2);
+				rightMotor.setPower(maxPower/2);
+			}
+			break;
 		}
 		if (esum>200 || esum < -200) 
 			resetIntegralPID();
