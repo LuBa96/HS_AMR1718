@@ -84,12 +84,11 @@ public class ControlRST implements IControl {
 
 	// global Variables for PID
 	double esum = 0; // static or final?????????????? esum has to be reserved in
-					// storage
+						// storage
 	double ealt = 0;
 	/**
-	 * distinguish between straight driving and curving.
-	 * PID optimized for straight driving is not suitable
-	 * for curving and vice versa
+	 * distinguish between straight driving and curving. PID optimized for
+	 * straight driving is not suitable for curving and vice versa
 	 */
 	boolean curve = true;
 
@@ -286,79 +285,79 @@ public class ControlRST implements IControl {
 	 * DRIVING along black line Minimalbeispiel Linienverfolgung fuer gegebene
 	 * Werte 0,1,2 white = 0, black = 2, grey = 1
 	 */
-//	 //Verbesserung des Minimalbeispieles mit den drei diskreten Werten
-//	 private void exec_LINECTRL_ALGO() {
-//	 leftMotor.forward();
-//	 rightMotor.forward();
-//	 int lowPower = 0;
-//	 int highPower = 35;
-//	 int medPower = 10;
-//	
-//	 // MONITOR (example)
-//	 monitor.writeControlVar("LeftSensor", "" + this.lineSensorLeft);
-//	 monitor.writeControlVar("RightSensor", "" + this.lineSensorRight);
-//	
-//	 if (this.lineSensorLeft == 2 && (this.lineSensorRight == 1)) {
-//	
-//	 // when left sensor is on the line, turn left
-//	 leftMotor.setPower(lowPower);
-//	 rightMotor.setPower(highPower);
-//	
-//	 // MONITOR (example)
-//	 monitor.writeControlComment("turn left");
-//	
-//	 } else if (this.lineSensorRight == 2 && (this.lineSensorLeft == 1)) {
-//	
-//	 // when right sensor is on the line, turn right
-//	 leftMotor.setPower(highPower);
-//	 rightMotor.setPower(lowPower);
-//	
-//	 // MONITOR (example)
-//	 monitor.writeControlComment("turn right");
-//	 } else if (this.lineSensorLeft == 2 && (this.lineSensorRight == 0)) {
-//	
-//	 // when left sensor is on the line, turn left
-//	 leftMotor.setPower(lowPower);
-//	 rightMotor.setPower(highPower);
-//	
-//	 // MONITOR (example)
-//	 monitor.writeControlComment("turn left");
-//	
-//	 } else if (this.lineSensorRight == 2 && (this.lineSensorLeft == 0)) {
-//	
-//	 // when right sensor is on the line, turn right
-//	 leftMotor.setPower(highPower);
-//	 rightMotor.setPower(lowPower);
-//	
-//	 // MONITOR (example)
-//	 monitor.writeControlComment("turn right");
-//	 } else if (this.lineSensorLeft == 1 && this.lineSensorRight == 0) {
-//	
-//	 // when left sensor is on the line, turn left
-//	 leftMotor.setPower(medPower); // nicht zu stark korrigieren..
-//	 rightMotor.setPower(highPower);
-//	
-//	 // MONITOR (example)
-//	 monitor.writeControlComment("turn left");
-//	
-//	 } else if (this.lineSensorRight == 1 && this.lineSensorLeft == 0) {
-//	
-//	 // when right sensor is on the line, turn right
-//	 leftMotor.setPower(highPower);
-//	 rightMotor.setPower(medPower);
-//	
-//	 // MONITOR (example)
-//	 monitor.writeControlComment("turn right");
-//	 } else if (this.lineSensorLeft == 0 && this.lineSensorRight == 0) {
-//	
-//	 // when both sensors are next to the line, go straight
-//	 leftMotor.setPower(highPower);
-//	 rightMotor.setPower(highPower);
-//	
-//	 // MONITOR (example)
-//	 monitor.writeControlComment("go straight");
-//	 }
-//	 }
+	// //Verbesserung des Minimalbeispieles mit den drei diskreten Werten
+	// private void exec_LINECTRL_ALGO() {
+	// leftMotor.forward();
+	// rightMotor.forward();
+	// int lowPower = 0;
+	// int highPower = 35;
+	// int medPower = 10;
+	//
+	// // MONITOR (example)
+	// monitor.writeControlVar("LeftSensor", "" + this.lineSensorLeft);
+	// monitor.writeControlVar("RightSensor", "" + this.lineSensorRight);
+	//
+	// if (this.lineSensorLeft == 2 && (this.lineSensorRight == 1)) {
+	//
+	// // when left sensor is on the line, turn left
+	// leftMotor.setPower(lowPower);
+	// rightMotor.setPower(highPower);
+	//
+	// // MONITOR (example)
+	// monitor.writeControlComment("turn left");
+	//
+	// } else if (this.lineSensorRight == 2 && (this.lineSensorLeft == 1)) {
+	//
+	// // when right sensor is on the line, turn right
+	// leftMotor.setPower(highPower);
+	// rightMotor.setPower(lowPower);
+	//
+	// // MONITOR (example)
+	// monitor.writeControlComment("turn right");
+	// } else if (this.lineSensorLeft == 2 && (this.lineSensorRight == 0)) {
+	//
+	// // when left sensor is on the line, turn left
+	// leftMotor.setPower(lowPower);
+	// rightMotor.setPower(highPower);
+	//
+	// // MONITOR (example)
+	// monitor.writeControlComment("turn left");
+	//
+	// } else if (this.lineSensorRight == 2 && (this.lineSensorLeft == 0)) {
+	//
+	// // when right sensor is on the line, turn right
+	// leftMotor.setPower(highPower);
+	// rightMotor.setPower(lowPower);
+	//
+	// // MONITOR (example)
+	// monitor.writeControlComment("turn right");
+	// } else if (this.lineSensorLeft == 1 && this.lineSensorRight == 0) {
+	//
+	// // when left sensor is on the line, turn left
+	// leftMotor.setPower(medPower); // nicht zu stark korrigieren..
+	// rightMotor.setPower(highPower);
+	//
+	// // MONITOR (example)
+	// monitor.writeControlComment("turn left");
+	//
+	// } else if (this.lineSensorRight == 1 && this.lineSensorLeft == 0) {
+	//
+	// // when right sensor is on the line, turn right
+	// leftMotor.setPower(highPower);
+	// rightMotor.setPower(medPower);
+	//
+	// // MONITOR (example)
+	// monitor.writeControlComment("turn right");
+	// } else if (this.lineSensorLeft == 0 && this.lineSensorRight == 0) {
+	//
+	// // when both sensors are next to the line, go straight
+	// leftMotor.setPower(highPower);
+	// rightMotor.setPower(highPower);
+	//
+	// // MONITOR (example)
+	// monitor.writeControlComment("go straight");
+	// }
+	// }
 
 	private void exec_LINECTRL_ALGO() {
 		/**
@@ -368,10 +367,9 @@ public class ControlRST implements IControl {
 		 */
 		leftMotor.forward();
 		rightMotor.forward();
-		
+
 		this.lineSensorRight = perception.getRightLineSensorValue();
 		this.lineSensorLeft = perception.getLeftLineSensorValue();
-	
 
 		/**
 		 * if a sensor measures the calibrated value for e.g. white it returns
@@ -409,95 +407,97 @@ public class ControlRST implements IControl {
 		 */
 
 		e = errorRight - errorLeft;
-		
+
 		/**
 		 * As long as there is no sign of o curve, follow the straight routine
 		 * while is actually unnecessary, if would work as well
 		 */
-		while (!curve)			
-			{
-			if((e > upperThreshold) || (e < -upperThreshold))			//strong curve (start-threshold == 60)
-				{	
-					curve = true;
-					if(e<0)											//begin right curve 
-					{
-						leftMotor.setPower(maxPower/2);
-						rightMotor.setPower(0);
-					}
-					else 											//begin left curve
-					{
-						leftMotor.setPower(0);
-						rightMotor.setPower(maxPower/2);	
-					}
-					break;													//leave normal routine
-				}
-			break;
-			}
-		/**
-		 * as long as e is greater than the lower threshold for exiting the curve mode continue in curve mode
-		 */
-		while (curve)
+		if (!curve && (e > upperThreshold) || (e < -upperThreshold)) // strong
+																		// curve
+																		// (start-threshold
+																		// ==
+																		// 60)
 		{
-			if((e < lowerThreshold) || (e > -lowerThreshold))			//end of strong curve
-			{	
-				//curve = false;
-				//if (e > 0 || e < 0)									//evtl. Schwellwert einfŸhren, damit nicht zu viel korrigiert wird
-					y = PID_control(e, 0.08, 0.02, 0.02, 1);		//<--choose different parameters to prevent oscillations
-				//else y = 0;
-				break;
-			}
-			else
+			curve = true;
+			if (e < 0) // begin right curve
 			{
-				if(e<0)											//continue right curve 
+				leftMotor.setPower(maxPower / 2);
+				rightMotor.setPower(0);
+			} else // begin left curve
+			{
+				leftMotor.setPower(0);
+				rightMotor.setPower(maxPower / 2);
+			}
+		}
+		/**
+		 * as long as e is greater than the lower threshold for exiting the
+		 * curve mode continue in curve mode
+		 */
+		if (curve) {
+			if ((e < lowerThreshold) || (e > -lowerThreshold)) // end of strong
+																// curve
+			{
+				curve = false;
+				// if (e > 0 || e < 0) //evtl. Schwellwert einfŸhren, damit
+				// nicht zu viel korrigiert wird
+				y = PID_control(e, 0.08, 0.02, 0.02, 1); // <--choose different
+															// parameters to
+															// prevent
+															// oscillations
+				// else y = 0;
+			} else {
+				if (e < 0) // continue right curve
 				{
-					leftMotor.setPower(maxPower/2);
+					leftMotor.setPower(maxPower / 2);
 					rightMotor.setPower(0);
-				}
-				else 											//continue left curve
+				} else // continue left curve
 				{
 					leftMotor.setPower(0);
-					rightMotor.setPower(maxPower/2);	
+					rightMotor.setPower(maxPower / 2);
 				}
 			}
-		break;					
 		}
-		while (!curve)												//this while is necessary
+		if (!curve)
 		{
 			/**
 			 * normal routine for straight driving
 			 */
-			if (e > 0 || e < 0)										//evtl. Schwellwert einfŸhren, damit nicht zu viel korrigiert wird
+			if (e > 0 || e < 0) // evtl. Schwellwert einfŸhren, damit nicht zu
+								// viel korrigiert wird
 				y = PID_control(e, 0.08, 0.02, 0.02, 1);
-			else y = 0;
+			else
+				y = 0;
 			/**
 			 * correction to the right side
 			 */
 			if (y < 0) {
 				y = -1 * y;
-				if (y > maxPower/2)
-					y = maxPower/2;
-				leftMotor.setPower(maxPower/2 + (int) y);
-				rightMotor.setPower(maxPower/2 - (int) y); 			// speed of slower motor depending on the curve
-				
-			/**
-			 * correction to the left side
-			 */
+				if (y > maxPower / 2)
+					y = maxPower / 2;
+				leftMotor.setPower(maxPower / 2 + (int) y);
+				rightMotor.setPower(maxPower / 2 - (int) y); // speed of slower
+																// motor
+																// depending on
+																// the curve
+
+				/**
+				 * correction to the left side
+				 */
 			} else if (y > 0) {
-				if (y > maxPower/2)
-					y = maxPower/2;
-				rightMotor.setPower(maxPower/2 + (int) y);
-				leftMotor.setPower(maxPower/2 -(int) (y));
-	
-			/**
-			 * Drive straight
-			 */
+				if (y > maxPower / 2)
+					y = maxPower / 2;
+				rightMotor.setPower(maxPower / 2 + (int) y);
+				leftMotor.setPower(maxPower / 2 - (int) (y));
+
+				/**
+				 * Drive straight
+				 */
 			} else if (y == 0 || e == 0) {
-				leftMotor.setPower(maxPower/2);
-				rightMotor.setPower(maxPower/2);
+				leftMotor.setPower(maxPower / 2);
+				rightMotor.setPower(maxPower / 2);
 			}
-			break;
 		}
-		if (esum>200 || esum < -200) 
+		if (esum > 200 || esum < -200)
 			resetIntegralPID();
 
 	}
@@ -511,8 +511,8 @@ public class ControlRST implements IControl {
 		ealt = e;
 		return y;
 	}
-	private void resetIntegralPID()
-	{
+
+	private void resetIntegralPID() {
 		esum = 0;
 	}
 
