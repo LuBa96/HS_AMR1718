@@ -91,6 +91,9 @@ public class ControlRST implements IControl {
 	 * straight driving is not suitable for curving and vice versa
 	 */
 	boolean curve = true;
+	boolean curveR = false;
+	boolean curveL = false;
+
 
 	/**
 	 * provides the reference transfer so that the class knows its corresponding
@@ -122,9 +125,6 @@ public class ControlRST implements IControl {
 		this.encoderRight = perception.getControlRightEncoder();
 		this.lineSensorRight = perception.getRightLineSensorValue();
 		this.lineSensorLeft = perception.getLeftLineSensorValue();
-
-		// WICHTIG eventuell †bergabe der kalibrierten Werte von Perception fŸr
-		// Die PID regelung der Linienverfolgung?
 
 		// MONITOR (example)
 		monitor.addControlVar("RightSensor");
@@ -392,9 +392,9 @@ public class ControlRST implements IControl {
 		/**
 		 * Threshold and maxPower
 		 */
-		int upperThreshold = 30;
-		int lowerThreshold = 10;
-		int maxPower = 70;
+		int upperThreshold = 65;
+		int lowerThreshold = 20;
+		int maxPower = 80;
 
 		errorRight = this.lineSensorRight; // Asumption: the calibrated value
 											// for white is 100 and every
@@ -412,7 +412,7 @@ public class ControlRST implements IControl {
 		 * As long as there is no sign of o curve, follow the straight routine
 		 * while is actually unnecessary, if would work as well
 		 */
-		if (!curve && (e > upperThreshold) || (e < -upperThreshold)) // strong
+		if (!curve && ((e > upperThreshold) || (e < -upperThreshold))) // strong
 																		// curve
 																		// (start-threshold
 																		// ==
@@ -422,51 +422,73 @@ public class ControlRST implements IControl {
 			if (e < 0) // begin right curve
 			{
 				leftMotor.setPower(maxPower / 2);
-				rightMotor.setPower(0);
-			} else // begin left curve
+				rightMotor.setPower(maxPower/3);
+			} else// begin left curve
 			{
-				leftMotor.setPower(0);
+				leftMotor.setPower(maxPower/3);
 				rightMotor.setPower(maxPower / 2);
 			}
+
 		}
 		/**
 		 * as long as e is greater than the lower threshold for exiting the
 		 * curve mode continue in curve mode
 		 */
 		if (curve) {
-			if ((e < lowerThreshold) || (e > -lowerThreshold)) // end of strong
-																// curve
+			if (((e < lowerThreshold) && (e > -lowerThreshold))
+					&& ((errorRight > 50) && (errorLeft > 50))) // end of strong
+			// curve
+			// compare errorRight and errorLeft to make sure that the sensors are not seeing black and black
 			{
 				curve = false;
 				// if (e > 0 || e < 0) //evtl. Schwellwert einfŸhren, damit
 				// nicht zu viel korrigiert wird
-				y = PID_control(e, 0.08, 0.02, 0.02, 1); // <--choose different
+				y = PID_control(e, 0.1, 0.04, 0.02, 1); // <--choose different
 															// parameters to
 															// prevent
 															// oscillations
 				// else y = 0;
 			} else {
-				if (e < 0) // continue right curve
+				if ((e < 0) || curveR) // continue right curve
 				{
+					curveR=false;
 					leftMotor.setPower(maxPower / 2);
 					rightMotor.setPower(0);
-				} else // continue left curve
+				} else  if((e > 0) || curveL)// continue left curve
 				{
+					curveL=false;
 					leftMotor.setPower(0);
 					rightMotor.setPower(maxPower / 2);
 				}
+				//e=0 kann an dieser Stelle nicht auftreten
 			}
 		}
-		if (!curve)
-		{
+		if (!curve) {
 			/**
 			 * normal routine for straight driving
 			 */
-			if (e > 0 || e < 0) // evtl. Schwellwert einfŸhren, damit nicht zu
-								// viel korrigiert wird
-				y = PID_control(e, 0.08, 0.02, 0.02, 1);
-			else
+			if (((e > 0) || (e < 0)) && ((errorRight > 50) && (errorLeft > 50))) // evtl. Schwellwert einfŸhren, damit nicht
+									// zu
+				// viel korrigiert wird
+				y = PID_control(e, 0.15, 0.04, 0.02, 1);
+			else if ((errorRight > 50) && (errorLeft > 50))
 				y = 0;
+			else												//don't go straight if both sensors show black, 
+																//increase previous correction
+			{
+				curve = true;
+				if (ealt < 0) // begin right curve
+				{
+					curveR=true;
+					leftMotor.setPower(maxPower / 2);
+					rightMotor.setPower(maxPower/3);
+				} else if(ealt > 0)// begin left curve
+				{
+					curveL=true;
+					leftMotor.setPower(maxPower/3);
+					rightMotor.setPower(maxPower / 2);
+				}
+			}
 			/**
 			 * correction to the right side
 			 */
@@ -497,7 +519,10 @@ public class ControlRST implements IControl {
 				rightMotor.setPower(maxPower / 2);
 			}
 		}
-		if (esum > 200 || esum < -200)
+		/**
+		 * Anti-Reset-Windup
+		 */
+		if ((esum > 100) || (esum < -100))
 			resetIntegralPID();
 
 	}
@@ -532,5 +557,14 @@ public class ControlRST implements IControl {
 	 */
 	private void drive(double v, double omega) {
 		// Aufgabe 3.2
+		/*
+		 * wheelDiameter = 5.6 trackWidth = 13 distancePerTurn =
+		 * PI*wheelDiameter distancePerDeg = distancePerTurn/360
+		 * speedDegreesMiddle = (v/distancePerDeg)*100 wenn omega ungleich 0{
+		 * radius = v/omega wenn radius ungleich 0{ leftSpeed = ... rightSpeed =
+		 * ... } sonst{ } } sonst { rightSpeed = ... leftSpeed = ... rightSpeed
+		 * = ... leftSpeed = ... } MotorA.setzeGeschwindigkeit(leftSpeed)
+		 * MotorB.setzeGeschwindigkeit(rightSpeed)
+		 */
 	}
 }
