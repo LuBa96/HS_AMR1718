@@ -554,17 +554,57 @@ public class ControlRST implements IControl {
 	 *            velocity of the robot
 	 * @param omega
 	 *            angle velocity of the robot
+	 *            left turn is mathematical positive
+	 *            right turn is mathematical negative
 	 */
 	private void drive(double v, double omega) {
 		// Aufgabe 3.2
-		/*
-		 * wheelDiameter = 5.6 trackWidth = 13 distancePerTurn =
-		 * PI*wheelDiameter distancePerDeg = distancePerTurn/360
-		 * speedDegreesMiddle = (v/distancePerDeg)*100 wenn omega ungleich 0{
-		 * radius = v/omega wenn radius ungleich 0{ leftSpeed = ... rightSpeed =
-		 * ... } sonst{ } } sonst { rightSpeed = ... leftSpeed = ... rightSpeed
-		 * = ... leftSpeed = ... } MotorA.setzeGeschwindigkeit(leftSpeed)
-		 * MotorB.setzeGeschwindigkeit(rightSpeed)
-		 */
+		
+		 double wheelD = 5.6; 					//wheeldiameter
+		 double width = 13;						//width of track
+		 double radiusM = 0;					//radius of rotation; r=0--> rotate without translation; r->inf -->straight driving
+		 
+		 double speed = 0;
+		 int vLeft = 0;
+		 int vRight = 0;
+		 
+		 double disTurn = 3.1415 * wheelD;		//for regulated driving?
+		 double degTurn = disTurn/360;
+		 double degSpeed = (v/degTurn) * 100;
+		 
+		 /**
+		  * If omega is zero, dont rotate; translate with both wheels turning with v
+		  */
+		 if (omega == 0)
+		 {
+			vLeft = (int) v;							//needs to be improved with regulated straight driving
+			vRight = (int) v;
+		 }
+		 /**
+		  * If v is zero, dont translate; rotate left if omega is positive and right if omega is negative
+		  * 
+		  */
+		 else if (v == 0)
+		 {												//needs to be improved with regulated straight driving
+			 speed = omega * width/2;					//turn around the middle of the robot
+			 vLeft = - (int) speed;
+			 vRight = (int) speed;
+		 }
+		 /**
+		  * this should work for both orientations because radiusM and omega are negative on a right turn
+		  * and therefore the sign of width/2 changes according to the orientation of the rotation
+		  */
+		 else
+		 {
+			 radiusM = v/omega;
+			 speed =  (radiusM - width/2) * omega;		
+			 vLeft = (int) speed;
+			 speed = (radiusM + width/2) * omega;
+			 
+		 }
+		 leftMotor.setPower(vLeft);
+		 rightMotor.setPower(vRight);
+		 
+		 
 	}
 }
