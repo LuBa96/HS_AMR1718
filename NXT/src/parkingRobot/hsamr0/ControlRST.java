@@ -394,7 +394,7 @@ public class ControlRST implements IControl {
 		 */
 		int upperThreshold = 65;
 		int lowerThreshold = 20;
-		int maxPower = 80;
+		int maxPower = 70;
 
 		errorRight = this.lineSensorRight; // Asumption: the calibrated value
 											// for white is 100 and every
@@ -470,7 +470,7 @@ public class ControlRST implements IControl {
 			if (((e > 0) || (e < 0)) && ((errorRight > 50) && (errorLeft > 50))) // evtl. Schwellwert einfŸhren, damit nicht
 									// zu
 				// viel korrigiert wird
-				y = PID_control(e, 0.15, 0.04, 0.02, 1);
+				y = PID_control(e, 0.15, 0.02, 0.02, 1);
 			else if ((errorRight > 50) && (errorLeft > 50))
 				y = 0;
 			else												//don't go straight if both sensors show black, 
@@ -600,6 +600,7 @@ public class ControlRST implements IControl {
 			 speed =  (radiusM - width/2) * omega;		
 			 vLeft = (int) speed;
 			 speed = (radiusM + width/2) * omega;
+			 vRight = (int) speed;
 			 
 		 }
 		 leftMotor.setPower(vLeft);
