@@ -326,7 +326,10 @@ public class ControlRST implements IControl {
 	 */
 	/*
 	 * // //Verbesserung des Minimalbeispieles mit den drei diskreten Werten //
-	 * private void exec_LINECTRL_ALGO() { // leftMotor.forward(); //
+	 * private void exec_LINECTRL_ALGO() {
+	 * this.lineSensorRight = perception.getRightLineSensor();
+		this.lineSensorLeft = perception.getLeftLineSensor();
+	 *  // leftMotor.forward(); //
 	 * rightMotor.forward(); // int lowPower = 0; // int highPower = 35; // int
 	 * medPower = 10; // // // MONITOR (example) //
 	 * monitor.writeControlVar("LeftSensor", "" + this.lineSensorLeft); //
