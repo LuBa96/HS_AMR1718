@@ -221,6 +221,8 @@ public class GuidanceAT {
 		LCD.drawString("Y (in cm): " + (navigation.getPose().getY()*100), 0, 1);
 		LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading()/Math.PI*180), 0, 2);
 		
+		LCD.drawString("left: " + (perception.getLeftLineSensorValue()), 0, 3);
+		LCD.drawString("right: " + (perception.getRightLineSensorValue()), 0, 4);
 //		perception.showSensorData();
 		
 //    	if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
