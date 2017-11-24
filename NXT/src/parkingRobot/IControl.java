@@ -18,9 +18,29 @@ public interface IControl {
 	public enum ControlMode {
 		
 		/**
+		 * Demo 1 Programm
+		 */
+		DEMO1_CTRL,
+		
+		/**
+		 * Demo 2 Programm
+		 */
+		DEMO2_CTRL,
+		
+		/**
 		 * folgt schwarzer Linie
 		 */
 		LINE_CTRL,
+		
+		/**
+		 * Linkskurve
+		 */
+		LEFT_CRV_CTRL,
+		
+		/**
+		 * Rechtskrve
+		 */
+		RIGHT_CRV_CTRL,
 		
 		/**
 		 * einparken
