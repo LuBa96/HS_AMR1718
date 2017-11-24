@@ -9,6 +9,7 @@ import lejos.nxt.Battery;
 import lejos.nxt.LCD;
 import lejos.nxt.NXTMotor;
 import parkingRobot.INavigation;
+import lejos.nxt.Sound;
 
 /**
  * Main class for control module
@@ -87,10 +88,10 @@ public class ControlRST implements IControl {
 	double width = 13; // width of track
 
 	// global Variables for PID
-	double esum = 0;
+	int esum = 0;
 	double esumL = 0;
 	double esumR = 0;
-	double ealt = 0;
+	int ealt = 0;
 	double ealtL = 0;
 	double ealtR = 0;
 	int upperThreshold = 65;
@@ -98,6 +99,7 @@ public class ControlRST implements IControl {
 	int lowerThreshold = 20;
 	int maxPower = 70;
 	int counter = 0;
+	
 	/**
 	 * distinguish between straight driving and curving. PID optimized for
 	 * straight driving is not suitable for curving and vice versa
@@ -105,6 +107,7 @@ public class ControlRST implements IControl {
 	boolean curve;
 	boolean curveL;
 	boolean curveR;
+	
 	/**
 	 * demo program
 	 */
@@ -114,7 +117,8 @@ public class ControlRST implements IControl {
 	boolean demo4;
 	boolean demo5;
 	int startAngle = 0;
-	double startDis = 0;
+	double startX = 0;
+	double startY = 0;
 
 	/**
 	 * provides the reference transfer so that the class knows its corresponding
@@ -222,11 +226,24 @@ public class ControlRST implements IControl {
 	 * @see parkingRobot.IControl#exec_CTRL_ALGO()
 	 */
 	public void exec_CTRL_ALGO() {
-		//Control_Demo_1();
 		switch (currentCTRLMODE) {
+		case DEMO1_CTRL:
+			Control_Demo_1();
+			break;
+		case DEMO2_CTRL:
+			Control_Demo_2();
+			break;
 		case LINE_CTRL:
 			update_LINECTRL_Parameter();
 			exec_LINECTRL_ALGO();
+			break;
+		case LEFT_CRV_CTRL:
+			update_LINECTRL_Parameter();
+			//driveCurve();
+			break;
+		case RIGHT_CRV_CTRL:
+			update_LINECTRL_Parameter();
+			//driveCurve();
 			break;
 		case VW_CTRL:
 			update_VWCTRL_Parameter();
@@ -244,6 +261,7 @@ public class ControlRST implements IControl {
 			exec_INACTIVE();
 			break;
 		}
+		
 
 	}
 
@@ -371,52 +389,25 @@ public class ControlRST implements IControl {
 		int errorRight = 0;
 		int errorLeft = 0;
 		int e = 0; // control error
+
 		/**
 		 * correcting values
 		 */
 		double y = 0; // Stellwert
+
 		/**
-		 * Threshold and maxPower
+		 * maximum value for white is 100 and minimum value for black is 0
+		 * higher and lower values have been returned if the ground is
+		 * "more white" or "more black" than calibrated
 		 */
-
-		/*
-		 * //!!!alternative Linecontrol!!! errorRight = this.lineSensorRight;
-		 * errorLeft = this.lineSensorLeft; int maxPower = 70; int soll= 50;
-		 * //genau auf der Grenze e = errorLeft/2 - soll; if(!((errorRight < 1)
-		 * || (errorLeft > 99)) && !((errorLeft < 1) || (errorRight > 99))) {
-		 * y=PID_control(e, 0.15, 0.02, 0.02, 1); if (y < 0) { y = -1 * y; if (y
-		 * > maxPower / 2) y = maxPower / 2; leftMotor.setPower(maxPower / 2 +
-		 * (int) y); rightMotor.setPower(maxPower / 2 - (int) y); // speed of
-		 * slower // motor // depending on // the curve
-		 * 
-		 * /** correction to the left side
-		 * 
-		 * } else if (y > 0) { if (y > maxPower / 2) y = maxPower / 2;
-		 * rightMotor.setPower(maxPower / 2 + (int) y);
-		 * leftMotor.setPower(maxPower / 2 - (int) y);
-		 * 
-		 * /** Drive straight
-		 * 
-		 * } else if (y == 0) { leftMotor.setPower(maxPower / 2);
-		 * rightMotor.setPower(maxPower / 2); } } else if (errorRight < 1 ||
-		 * (errorLeft > 99)) { //Kurve rechts leftMotor.setPower((int) (maxPower
-		 * * 2 / 3)); rightMotor.setPower((int) (-maxPower * 2 / 3)); } else if
-		 * ((errorLeft < 1) || (errorRight > 99)) { //Kurve links
-		 * rightMotor.setPower((int) (maxPower * 2 / 3));
-		 * leftMotor.setPower((int) (-maxPower * 2 / 3)); }
-		 * 
-		 * //!!!alternative Linecontrol!!!
-		 */
-
+		// correct left value
 		if (this.lineSensorRight > 100)
 			errorRight = 100;
 		else if (this.lineSensorRight < 0)
 			errorRight = 0;
 		else
-			errorRight = this.lineSensorRight; // Asumption: the calibrated
-												// value
-		// for white is 100 and every
-		// deviation has to be corrected
+			errorRight = this.lineSensorRight;
+		// correct right value
 		if (this.lineSensorLeft > 100)
 			errorLeft = 100;
 		else if (this.lineSensorLeft < 0)
@@ -425,122 +416,113 @@ public class ControlRST implements IControl {
 			errorLeft = this.lineSensorLeft;
 
 		/**
-		 * Definition for control deviation e: negative e -->too far left
-		 * positive e -->too far right e==0 --> all right
+		 * Definition for control deviation e: negative e --> too far left;
+		 * positive e --> too far right; e==0 --> no error
 		 */
 		e = errorRight - errorLeft;
 
 		/**
-		 * as long as e is greater than the lower threshold for exiting the
-		 * curve mode continue in curve mode
+		 * as long as the robot is in curve mode and e is greater than the lower
+		 * threshold for exiting the curve mode continue in curve mode
 		 */
-		if (curve && ((e < lowerThreshold) && (e > -lowerThreshold))) // &&
-																		// ((errorRight
-																		// >
-																		// grey)
-																		// &&
-																		// (errorLeft
-																		// >
-																		// grey))
-		// end of strongcurve
+		if (curve && ((e < lowerThreshold) && (e > -lowerThreshold)))
+		// end of curvemode
 		// compare errorRight and errorLeft to make sure that the sensors
-		// are not seeing black and black
+		// are not seeing black and black; continue curve if they do
 		{
+			/**
+			 * remain in curve mode
+			 */
+			if ((errorRight < grey) && (errorLeft < grey)) {
+				// both sensors see black-->remain in curve mode
+				curve = true; // tautology
+				// to continue the curve the sign of the last error is needed
+				e = ealt;
+			}
 			/**
 			 * State Transition: curve --> straight
 			 */
-			if ((errorRight > grey) && (errorLeft > grey)) {
+			else {
+				// both sensors see more or less white
 				curve = false;
 				curveL = false;
 				curveR = false;
 			}
-			/**
-			 * remain in curve mode
-			 */
-			else
-				curve = true;
 		}
 
 		if ((!(curve)) && ((e > upperThreshold) || (e < -upperThreshold))) {
 			// dont change into curve mode too frequently
 			/**
-			 * remain in straight mode until counter is 0
+			 * remain in straight mode until counter is 0; counter is set to 3
+			 * after every transition into curve mode; this is equal to 0.3s of
+			 * latency for the next transition into curve mode
+			 */
+			/**
+			 * remain in straight mode
 			 */
 			if (counter > 0) {
 				counter = counter - 1;
 				y = PID_control(e, 0.15, 0.02, 0.02, 1);
-				/**
-				 * State Transition: straight --> curve
-				 */
-			} else {
+			}
+			/**
+			 * State Transition: straight --> curve
+			 */
+			else {
 				curve = true;
 				counter = 3; // about 0.3 seconds of latency with a sleep of
 								// 100ms
 			}
 		}
-		// curve
+
+		/**
+		 * regular curve mode
+		 */
 		if (curve)
 			driveCurve(e);
-		// straight
+
+		/**
+		 * regular straight driving mode
+		 */
 		if (!curve) {
+			y = PID_control(e, 0.15, 0.02, 0.02, 1);
+
 			/**
-			 * no sign of a curve; normal routine for straight driving
+			 * correction to the right side
 			 */
-			if ((errorRight > grey) && (errorLeft > grey)) // both sensors
-															// show
-															// more
-															// or less white
-			{
-				y = PID_control(e, 0.15, 0.02, 0.02, 1);
-
-				/**
-				 * correction to the right side
-				 */
-				if (y < 0) {
-					y = -1 * y;
-					if (y > maxPower / 2)
-						y = maxPower / 2;
-					leftMotor.setPower((int) (maxPower / 2) + (int) y);
-					rightMotor.setPower((int) (maxPower / 2) - (int) y); // speed
-																			// of
-					// slower
-					// motor
-					// depending
-					// on
-					// the curve
-
-					/**
-					 * correction to the left side
-					 */
-				} else if (y > 0) {
-					if (y > maxPower / 2)
-						y = maxPower / 2;
-					rightMotor.setPower((int) (maxPower / 2) + (int) y);
-					leftMotor.setPower((int) (maxPower / 2) - (int) y);
-
-					/**
-					 * Drive straight
-					 */
-				} else if (y == 0) {
-					leftMotor.setPower((int) maxPower / 2);
-					rightMotor.setPower((int) maxPower / 2);
-				}
+			if (y < 0) {
+				y = -1 * y;
+				if (y > maxPower / 2)
+					y = maxPower / 2;
+				leftMotor.setPower((int) (maxPower / 2) + (int) y);
+				rightMotor.setPower((int) (maxPower / 2) - (int) y);
 			}
-			// if both sensors show black, continue curve
-			else if ((errorRight < grey) && (errorLeft < grey)) {
-				curve = true;
-				driveCurve(ealt);
+			/**
+			 * correction to the left side
+			 */
+			else if (y > 0) {
+				if (y > maxPower / 2)
+					y = maxPower / 2;
+				rightMotor.setPower((int) (maxPower / 2) + (int) y);
+				leftMotor.setPower((int) (maxPower / 2) - (int) y);
 			}
+			/**
+			 * Drive straight
+			 */
+			else if (y == 0) {
+				leftMotor.setPower((int) maxPower / 2);
+				rightMotor.setPower((int) maxPower / 2);
+			}
+
 		}
 		/**
 		 * Anti-Reset-Windup
 		 */
-		if ((esum > 100) || (esum < -100))
+		if ((esum > 300) || (esum < -300))
 			resetIntegralPID();
 
 	}
 
-	private void driveCurve(double e) {
+	private void driveCurve(int e) {
 		double y;
 		/**
 		 * left curve
@@ -562,10 +544,11 @@ public class ControlRST implements IControl {
 				rightMotor.setPower((int) (maxPower * 2 / 3));
 				leftMotor.setPower((int) (-maxPower / 5));
 			}
+		}
 			/**
 			 * right curve
 			 */
-		} else if ((e < 0) || curveR) {
+		else if ((e < 0) || curveR) {
 			if (curveL) {
 				y = PID_control(e, 0.15, 0.02, 0.02, 1);
 				curveL = false;
@@ -606,18 +589,15 @@ public class ControlRST implements IControl {
 		int pwmLeft = 0;
 		int pwmRight = 0;
 
-		double disTurn = Math.PI * wheelD; // for regulated driving?
-		double degTurn = disTurn / 360;
-		double degSpeed = (v / degTurn) * 100;
 		/**
-		 * maxSpeed in deg/sec = 100deg/sec * battery.getVoltage maxSpeed/360 =
-		 * maxTurn/sec maxTurn/sec * circumfance = maxSpeed in cm/sec
+		 * maxSpeed in deg/sec = 100deg/sec * battery.getVoltage; maxSpeed/360 =
+		 * maxTurn/sec; maxTurn/sec * circumference = maxSpeed in cm/sec
 		 */
 		double maxSpeed = ((Battery.getVoltage() * 100) / 360) * Math.PI
 				* wheelD;
 
 		/**
-		 * If omega is zero, dont rotate; translate with both wheels turning
+		 * If omega is zero, don't rotate; translate with both wheels turning
 		 * with v
 		 */
 		if (omega == 0) {
@@ -625,19 +605,19 @@ public class ControlRST implements IControl {
 						// driving
 			vRight = v;
 		}
+
 		/**
-		 * If v is zero, dont translate; rotate left if omega is positive and
+		 * If v is zero, don't translate; rotate left if omega is positive and
 		 * right if omega is negative
-		 * 
 		 */
-		else if (v == 0) { // needs to be improved with regulated straight
-							// driving
-			speed = omega * width / 2; // turn around the middle of the robot
+		else if (v == 0) {
+			// middle of the robot = center of rotation
+			speed = omega * width / 2;
 			vLeft = -speed;
 			vRight = speed;
 		}
 		/**
-		 * this should work for both orientations because radiusM and omega are
+		 * this works for both orientations, because radiusM and omega are
 		 * negative on a right turn and therefore the sign of width/2 changes
 		 * according to the orientation of the rotation
 		 */
@@ -649,13 +629,22 @@ public class ControlRST implements IControl {
 			vRight = speed;
 
 		}
+
+		/**
+		 * calculate PWM values for each wheel this is the solution WITHOUT
+		 * regulated speed control
+		 */
 		pwmLeft = getPWM(vLeft);
 		pwmRight = getPWM(vRight);
 
-		// regWheelSpeed(vLeft, vRight);
-
 		leftMotor.setPower(pwmLeft);
 		rightMotor.setPower(pwmRight);
+
+		/**
+		 * calculate PWM values and set speed for each wheel solution WITH
+		 * regulated speed control
+		 */
+		// regWheelSpeed(vLeft, vRight);
 
 	}
 
@@ -671,7 +660,7 @@ public class ControlRST implements IControl {
 		if (Battery.getVoltageMilliVolt() > batteryLoadFull) {
 			pwm = (int) (3.9 * v - 1);
 		} else {
-			pwm = (int) (3.8 * v - 1.3);
+			pwm = (int) (3.87 * v - 1.3);
 		}
 		return pwm;
 	}
@@ -686,6 +675,7 @@ public class ControlRST implements IControl {
 		double leftAngleDiff = this.encoderLeft.getEncoderMeasurement()
 				.getAngleSum();
 		double leftTime = this.encoderLeft.getEncoderMeasurement().getDeltaT() * 1000;
+
 		double rightAngleDiff = this.encoderRight.getEncoderMeasurement()
 				.getAngleSum();
 		double rightTime = this.encoderRight.getEncoderMeasurement()
@@ -694,26 +684,26 @@ public class ControlRST implements IControl {
 		/**
 		 * idea: get the average speed of the individual wheels with deltaPhi
 		 * and deltaT
-		 * 
 		 */
 		double omegaLeft = leftAngleDiff / leftTime;
 		double omegaRight = rightAngleDiff / rightTime;
 
 		/**
-		 * v = w * r; actual value
+		 * v = w * r; actual value omega is the rotation of the individual
+		 * wheels, not the rotation of the robot
 		 */
 		double vLeft = omegaLeft * wheelD / 2;
 		double vRight = omegaRight * wheelD / 2;
 
 		/**
-		 * Definition of control error; individual regulation of each wheel vL
+		 * Definition of control error; individual regulation of each wheel; vL
 		 * and vR are the desired values
 		 */
 		double errVLeft = vL - vLeft;
 		double errVRight = vR - vRight;
 
 		/**
-		 * calculate control values with new PID_control(e, KP, KI, KD, Ta)
+		 * calculate control values PID
 		 */
 		esumL = esumL + errVLeft;
 		esumR = esumR + errVRight;
@@ -721,8 +711,8 @@ public class ControlRST implements IControl {
 		/**
 		 * TODO : test and get fitting values for KP, KI, KD
 		 */
-		double yL = KP * errVLeft + KI * esumL + KD * (e - ealtL);
-		double yR = KP * errVRight + KI * esumR + KD * (e - ealtR);
+		double yL = 0.15 * errVLeft + 0.02 * esumL + 0.02 * (errVLeft - ealtL);
+		double yR = 0.15 * errVRight + 0.02 * esumR + 0.02 * (errVRight - ealtR);
 
 		ealtL = errVLeft;
 		ealtR = errVRight;
@@ -742,37 +732,60 @@ public class ControlRST implements IControl {
 
 	}
 
-	private double PID_control(double e, double KP, double KI, double KD,
-			double Ta) {
+	/**
+	 * Method to calculate the control value for a specific control error esum
+	 * and ealt are global variables with the accumulated errors (I) and last
+	 * error (D) respectively
+	 * 
+	 * @param e
+	 *            control error
+	 * @param KP
+	 *            proportional factor
+	 * @param KI
+	 *            integral factor
+	 * @param KD
+	 *            differential factor
+	 * @param Ta
+	 *            sample time
+	 * @return y control value
+	 */
+	private double PID_control(int e, double KP, double KI, double KD, double Ta) {
 
-		double y = 0; // Stellwert
+		double y = 0;
 		esum = esum + e;
 		y = KP * e + KI * esum * Ta + KD * (e - ealt) / Ta;
 		ealt = e;
 		return y;
 	}
 
+	/**
+	 * Method to reset the accumulated error in esum to zero; prevents
+	 * "overregulation" by the I-Factor
+	 */
 	private void resetIntegralPID() {
 		esum = 0;
 	}
-
+/**
+ * Method for first presentation;
+ * follow a given routine and continue in Line Control Mode at last;
+ * sound a beep sequence after each finished step
+ */
 	private void Control_Demo_1() {
-		//evtl Sound ausgeben bei ŸbergŠngen; Soundmodul
 		
-		
+		double x = navigation.getPose().getX() * 100;
+		double y = navigation.getPose().getY() * 100;
+		double dis = Math.sqrt(x * x + y * y);
 		/**
 		 * 120 cm with 10 cm/s straight driving
 		 */
-		double x = navigation.getPose().getX()*100;
-		double y = navigation.getPose().getY()*100;
-		double dis = Math.sqrt(x*x + y*y);
-				
 		if (demo1) {
 			drive(10, 0);
-			if(dis>=100){
-			demo2 = true;
-			demo1 = false;
-			startAngle = (int) (navigation.getPose().getHeading()/Math.PI*180);
+			if (dis >= 100) {
+				// beep once when finished
+				Sound.systemSound(true, 0);
+				demo2 = true;
+				demo1 = false;
+				startAngle = (int) (navigation.getPose().getHeading() / Math.PI * 180);
 			}
 		}
 
@@ -781,10 +794,15 @@ public class ControlRST implements IControl {
 		 */
 		else if (demo2) {
 			drive(0, 15);
-			if((int) (navigation.getPose().getHeading()/Math.PI*180) - startAngle >= 90)
-			demo3 = true;
-			demo2 = false;
-			startDis = dis;
+			if ((int) (navigation.getPose().getHeading() / Math.PI * 180)
+					- startAngle >= 90) {
+				// beep twice when finished
+				Sound.systemSound(true, 1);
+				demo3 = true;
+				demo2 = false;
+				startX = navigation.getPose().getX();
+				startY =  navigation.getPose().getY();
+			}
 		}
 
 		/**
@@ -792,11 +810,16 @@ public class ControlRST implements IControl {
 		 */
 		else if (demo3) {
 			drive(5, 0);
-			if((dis - startDis)>=30)
-			{
-			demo4 = true;
-			demo3 = false;
-			startAngle = (int) (navigation.getPose().getHeading()/Math.PI*180);
+			double xMomentary = navigation.getPose().getX();
+			double yMomentary = navigation.getPose().getY();
+			double disMomentary = Math.sqrt(Math.pow((xMomentary-startX), 2) + Math.pow((yMomentary-startY), 2));	
+			if (disMomentary >= 30) {
+				// beep three times when finished
+				Sound.systemSound(true, 0);
+				Sound.systemSound(true, 1);
+				demo4 = true;
+				demo3 = false;
+				startAngle = (int) (navigation.getPose().getHeading() / Math.PI * 180);
 			}
 		}
 
@@ -805,10 +828,13 @@ public class ControlRST implements IControl {
 		 */
 		else if (demo4) {
 			drive(0, -30);
-			if((int) (navigation.getPose().getHeading()/Math.PI*180) - startAngle <= -90)
-			{
-			demo5 = true;
-			demo4 = false;
+			if ((int) (navigation.getPose().getHeading() / Math.PI * 180)
+					- startAngle <= -90) {
+				// beep four times when finished
+				Sound.systemSound(true, 1);
+				Sound.systemSound(true, 1);
+				demo5 = true;
+				demo4 = false;
 			}
 		}
 
@@ -821,4 +847,12 @@ public class ControlRST implements IControl {
 			demo5 = false;
 		}
 	}
+	/**
+	 * Method for second presentation;
+	 * follow a given routine and continue in Line Control Mode at last;
+	 * sound a beep sequence after each finished step
+	 */
+		private void Control_Demo_2() {
+		
+		}
 }
