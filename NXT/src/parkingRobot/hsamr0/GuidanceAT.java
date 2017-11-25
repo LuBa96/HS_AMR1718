@@ -20,6 +20,8 @@ import parkingRobot.hsamr0.PerceptionPMP;
 
 //TODO check how the monitor works
 //TODO introduce and implement underlying states of PARK_THIS
+//TODO get rid of HmiMode PARK_NEXT
+//TODO introduce and implement DEMO states for control
 
 /**
  * Main class for 'Hauptseminar AMR' project 'autonomous parking' for students
@@ -52,19 +54,23 @@ public class GuidanceAT {
 	 */
 	public enum CurrentStatus {
 		/**
-		 * indicates that robot is following the line and detecting parking slots
+		 * Indicates that robot is following the line and detecting parking slots
 		 */
 		SCOUT,
 		/**
-		 * indicates that robot is performing an parking maneuver
+		 * Indicates that robot is performing an parking maneuver
 		 */
 		PARK_THIS,
 		/**
-		 * indicates that shutdown of main program has initiated
+		 * Indicates the robot is performing a demo as part of the assignment for control
+		 */
+		DEMO,
+		/**
+		 * Indicates that the robot is currently standing still
 		 */
 		INACTIVE,
 		/**
-		 * indicates that robot is trying to drive into a parking slot
+		 * Indicates that robot is shutting down
 		 */
 		EXIT
 	}
@@ -74,26 +80,51 @@ public class GuidanceAT {
 	 */
 	public enum CurrentLineStatus {
 		/**
-		 * indicates the robot is following the line in a straight manner and there is
+		 * Indicates the robot is following the line in a straight manner and there is
 		 * no turn
 		 */
 		FOLLOW_LINE_STRAIGHT,
 		/**
-		 * indicates the robot is taking a turn right
+		 * Indicates the robot is taking a turn right
 		 */
 		FOLLOW_LINE_RIGHT,
 		/**
-		 * indicates the robot is taking a turn left
+		 * Indicates the robot is taking a turn left
 		 */
 		FOLLOW_LINE_LEFT,
 		/**
-		 * indicates the robot is not on the line and is trying to find it
+		 * Indicates the robot is not on the line and is trying to find it
 		 */
 		FOLLOW_LINE_OFF,
 		/**
-		 * indicates that the robot was previously not in the FOLLOW_LINE state
+		 * Indicates that the robot was previously not in the FOLLOW_LINE state
 		 */
 		FOLLOW_LINE_INACTIVE
+	}
+	/**
+	 * underlying states of the main state PARK_THIS
+	 */
+	public enum CurrentParkStatus{
+		/**
+		 * Indicates the robot is driving along the line until destination is reached.
+		 * This uses the four states of FOLLOW_LINE, but additionally checks whether
+		 * a certain point on the map is reached, and if so, continues to drive into
+		 * the parking slot following the path given by the path generator
+		 */
+		PARK_LINE_FOLLOW,
+		/**
+		 * Indicates the robot is following a path to get to a parking slot
+		 */
+		PARK_PATH_FOLLOW,
+		/**
+		 * Indicates the robot is correcting its position while already in the parking
+		 * slot. Maybe we will need to seperate this into smaller steps/states.
+		 */
+		PARK_CORRECTING,
+		/**
+		 * Indicates that the robot was previously not in the PARK_THIS state
+		 */
+		PARK_INACTIVE
 	}
 
 	/**
@@ -105,6 +136,10 @@ public class GuidanceAT {
 	 */
 	protected static CurrentLineStatus currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
 	/**
+	 * current underlying state of PARK_THIS
+	 */
+	protected static CurrentParkStatus currParkStatus = CurrentParkStatus.PARK_INACTIVE;
+	/**
 	 * state in which the main finite state machine was running before entering the
 	 * actual state
 	 */
@@ -113,6 +148,10 @@ public class GuidanceAT {
 	 * last underlying status of FOLLOW_LINE
 	 */
 	protected static CurrentLineStatus lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+	/**
+	 * last underlying status of PARK_THIS
+	 */
+	protected static CurrentParkStatus lastParkStatus = CurrentParkStatus.PARK_INACTIVE;
 
 	/**
 	 * one line of the map of the robot course. The course consists of a closed
@@ -223,6 +262,16 @@ public class GuidanceAT {
 				 * as we have no transition into this state yet, nothing has to be done here
 				 * temporarily.
 				 */
+				
+				//leave action
+				if(currentStatus != lastStatus) {
+					//deactivate the underlying state machine
+					currParkStatus = CurrentParkStatus.PARK_INACTIVE;
+					lastParkStatus = CurrentParkStatus.PARK_INACTIVE;
+				}
+				break;
+			//there is no transition into this state yet.
+			case DEMO:
 				break;
 			case INACTIVE:
 				// Into action
