@@ -19,6 +19,7 @@ import parkingRobot.hsamr0.NavigationAT;
 import parkingRobot.hsamr0.PerceptionPMP;
 
 //TODO check how the monitor works
+//TODO introduce and implement underlying states of PARK_THIS
 
 /**
  * Main class for 'Hauptseminar AMR' project 'autonomous parking' for students
@@ -51,9 +52,9 @@ public class GuidanceAT {
 	 */
 	public enum CurrentStatus {
 		/**
-		 * indicates that robot is following the line and maybe detecting parking slots
+		 * indicates that robot is following the line and detecting parking slots
 		 */
-		FOLLOW_LINE,
+		SCOUT,
 		/**
 		 * indicates that robot is performing an parking maneuver
 		 */
@@ -167,26 +168,23 @@ public class GuidanceAT {
 			showData(navigation, perception);
 
 			switch (currentStatus) {
-			case FOLLOW_LINE:
+			case SCOUT:
 				// MONITOR (example)
 				// monitor.writeGuidanceComment("Guidance_Driving");
 
 				// Into action
-				if (lastStatus != CurrentStatus.FOLLOW_LINE) {
+				if (lastStatus != CurrentStatus.SCOUT) {
 					// control.setCtrlMode(ControlMode.LINE_CTRL);
-					// TODO check whether the robot is on the line and if not how he reaches it
+					// TODO check whether the robot is on the line
 					// TODO set currLineStatus accordingly
 					currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
+					// activate parking slot detection
+					navigation.setDetectionState(true);
 				}
 
 			// While action
 			{
-				// TODO check if goal(point on map) is reached(should probably be done in the
-				// underlying state machine)
-				/**
-				 * distinction between the different states of FOLLOW_LINE, put in an extra
-				 * function for better reading
-				 */
+				//execute underlying state machine
 				followLineAction(control);
 			}
 
@@ -209,18 +207,22 @@ public class GuidanceAT {
 				}
 
 				// Leave action
-				if (currentStatus != CurrentStatus.FOLLOW_LINE) {
-					// maybe we dont need to do that, its just to be safe for now
+				if (currentStatus != CurrentStatus.SCOUT) {
+					// stop the robot(may not be needed)
 					control.setCtrlMode(ControlMode.INACTIVE);
 					// deactivate the underlying state machine
 					currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
 					lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+					// deactivate parking slot detection
+					navigation.setDetectionState(false);
 				}
 				break;
 			case PARK_THIS:
 				// TODO implement parking
-				// as we have no transition into this state yet, nothing has to be done here
-				// temporarily
+				/*
+				 * as we have no transition into this state yet, nothing has to be done here
+				 * temporarily.
+				 */
 				break;
 			case INACTIVE:
 				// Into action
@@ -236,9 +238,9 @@ public class GuidanceAT {
 				// State transition check
 				lastStatus = currentStatus;
 				if (hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT) {
-					currentStatus = CurrentStatus.FOLLOW_LINE;
+					currentStatus = CurrentStatus.SCOUT;
 				} else if (Button.ENTER.isDown()) {
-					currentStatus = CurrentStatus.FOLLOW_LINE;
+					currentStatus = CurrentStatus.SCOUT;
 					while (Button.ENTER.isDown()) {
 						Thread.sleep(1);
 					} // wait for button release
@@ -311,7 +313,8 @@ public class GuidanceAT {
 
 	/**
 	 * underlying state machine of FOLLOW_LINE, should do the same as without it at
-	 * the moment
+	 * the moment. Will make the robot follow the line, which can also be used
+	 * during PARK_THIS
 	 */
 	private static void followLineAction(IControl control) {
 		switch (currLineStatus) {
@@ -321,16 +324,24 @@ public class GuidanceAT {
 				control.setCtrlMode(ControlMode.LINE_CTRL);
 			}
 			// while action
-			// nothing
+			// TODO ask control or perception whether the robot is perceiving a turn
+			// TODO change booleans for state transitions accordingly
 
 			// state transitions
 			lastLineStatus = currLineStatus;
 			/*
 			 * if(rechtsKurveerkannt) currLineStatus = CurrentLineStatus.FOLLOW_LINE_RIGHT
+			 * else if(linksKurveerkannt) currLineStatus =
+			 * CurrentLineStatus.FOLLOW_LINE_LEFT
 			 **/
+
+			// leave action
+			if (currLineStatus != lastLineStatus) {
+				control.setCtrlMode(ControlMode.INACTIVE);
+			}
 			break;
 		case FOLLOW_LINE_RIGHT:
-			// TODO implement turning left
+			// TODO implement turning right
 
 			// into action
 			if (lastLineStatus != currLineStatus) {
@@ -338,7 +349,8 @@ public class GuidanceAT {
 			}
 
 			// while action
-			// nothing
+			// TODO ask control whether it has finished driving the turn
+			// TODO change transition booleans accordingly
 
 			// state transitions
 			lastLineStatus = currLineStatus;
@@ -347,9 +359,14 @@ public class GuidanceAT {
 			 * if((!rechtsKurveerkannt) && (!linksKurveerkannt)) currLineStatus =
 			 * CurrentLineStatus.FOLLOW_LINE_STRAIGHT
 			 **/
+
+			// leave action
+			if (currLineStatus != lastLineStatus) {
+				control.setCtrlMode(ControlMode.INACTIVE);
+			}
 			break;
 		case FOLLOW_LINE_LEFT:
-			// TODO implement turning right
+			// TODO implement turning left
 
 			// into action
 			if (lastLineStatus != currLineStatus) {
@@ -357,7 +374,8 @@ public class GuidanceAT {
 			}
 
 			// while action
-			// nothing
+			// TODO ask control whether it has finished driving the turn
+			// TODO change transition booleans accordingly
 
 			// state transitions
 			lastLineStatus = currLineStatus;
@@ -366,14 +384,30 @@ public class GuidanceAT {
 			 * if((!rechtsKurveerkannt) && (!linksKurveerkannt)) currLineStatus =
 			 * CurrentLineStatus.FOLLOW_LINE_STRAIGHT
 			 **/
+
+			// leave action
+			if (currLineStatus != lastLineStatus) {
+				control.setCtrlMode(ControlMode.INACTIVE);
+			}
 			break;
+		// there is no transition into this state yet
 		case FOLLOW_LINE_OFF:
-			// TODO implement finding back to the line
-			
-			//state transition
+			// into action
+			// TODO find path to the line, tell control to drive along that path
+
+			// while action
+			// TODO ask control/perception whether the line is reached
+			// TODO change transition accordingly
+
+			// state transition
 			lastLineStatus = currLineStatus;
-			//if(reachedLine)
-			//	currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT
+			// if(reachedLine)
+			// currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT
+
+			// leave action
+			if (currLineStatus != lastLineStatus) {
+				control.setCtrlMode(ControlMode.INACTIVE);
+			}
 			break;
 		// this state is only executed once after the LINE_FOLLOW is set active
 		case FOLLOW_LINE_INACTIVE:
