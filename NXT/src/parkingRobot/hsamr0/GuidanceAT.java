@@ -25,7 +25,7 @@ import parkingRobot.hsamr0.PerceptionPMP;
 //TODO check how type Pose works
 //TODO introduce and implement underlying states of PARK_THIS
 //TODO get rid of HmiMode PARK_NEXT
-//TODO maybe check if DEMO is finished from control
+//TODO maybe transition check if DEMO is finished from control
 //TODO implement sub-states for turns in SCOUT
 
 /**
@@ -322,11 +322,11 @@ public class GuidanceAT {
 					currParkStatus = CurrentParkStatus.PARK_LINE_FOLLOW;
 				}
 
-				// while action
-				{
-					//execute sub-state machine
-					parkThisSubStateMachine();
-				}
+			// while action
+			{
+				// execute sub-state machine
+				parkThisSubStateMachine();
+			}
 
 				// leave action
 				if (currentStatus != lastStatus) {
@@ -567,12 +567,16 @@ public class GuidanceAT {
 			break;
 		}
 	}
-	
+
 	private static void parkThisSubStateMachine() {
-		switch(currParkStatus) {
+		switch (currParkStatus) {
 		case PARK_LINE_FOLLOW:
 			break;
-		default:
+		case PARK_PATH_FOLLOW:
+			break;
+		case PARK_CORRECTING:
+			break;
+		case PARK_INACTIVE:
 			break;
 		}
 	}
@@ -583,13 +587,15 @@ public class GuidanceAT {
 	 * parking in a parking slot.
 	 * 
 	 * @param l_goal
-	 *            Point to which the closest point on the map has to be founds
+	 *            Point to which the closest point on the map has to be found
 	 * @return
 	 */
 	private static Point getClosestPointToGoal(Point l_goal) {
 		double a = 0;
 		// number of the line in map with the shortest distance to goal
 		int lineNo = 0;
+		// vector from starting point of desired line to goal
+		Point vectorR0;
 		// vector from starting point of desired line to point of shortest distance to
 		// goal on line
 		Point vectorR1;
@@ -602,7 +608,8 @@ public class GuidanceAT {
 			if (map[i].ptSegDist(l_goal) < a)
 				lineNo = i;
 		}
-		vectorR1 = l_goal.projectOn(map[lineNo]);
+		vectorR0 = l_goal.subtract(map[lineNo].getP1());
+		vectorR1 = vectorR0.projectOn(map[lineNo]);
 		vectorR2 = map[lineNo].getP1().add(vectorR1);
 		return vectorR2;
 	}
