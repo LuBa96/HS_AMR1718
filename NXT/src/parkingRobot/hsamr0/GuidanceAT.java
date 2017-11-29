@@ -3,10 +3,12 @@ package parkingRobot.hsamr0;
 import lejos.nxt.Button;
 import lejos.nxt.MotorPort;
 import lejos.nxt.NXTMotor;
+import lejos.robotics.navigation.Pose;
 import parkingRobot.IControl;
 import parkingRobot.IControl.*;
 import parkingRobot.INxtHmi;
 import parkingRobot.INavigation;
+import parkingRobot.INavigation.ParkingSlot;
 import parkingRobot.IPerception;
 import parkingRobot.IMonitor;
 
@@ -20,9 +22,11 @@ import parkingRobot.hsamr0.NavigationAT;
 import parkingRobot.hsamr0.PerceptionPMP;
 
 //TODO check how the monitor works
+//TODO check how type Pose works
 //TODO introduce and implement underlying states of PARK_THIS
 //TODO get rid of HmiMode PARK_NEXT
 //TODO introduce and implement DEMO states for control
+//TODO implement sub-states for turns in SCOUT
 
 /**
  * Main class for 'Hauptseminar AMR' project 'autonomous parking' for students
@@ -179,6 +183,41 @@ public class GuidanceAT {
 	static Line[] map = { line0, line1, line2, line3, line4, line5, line6, line7 };
 
 	/**
+	 * Point on the line-map the robot has to go in order to park, polynomial starts
+	 * from around here.
+	 */
+	static Point mapGoal;
+	/**
+	 * The point in the center of the ParkingSlot, also the point the robot ends up
+	 * by parking
+	 */
+	static Point slotGoal;
+	/**
+	 * Vector from the back to the front of the ParkingSlot, important in order to
+	 * find the slotGoal and the goalPose.
+	 */
+	static Point slotDir;
+	/**
+	 * Number of the current selected ParkingSlot
+	 */
+	static int selectedParkingSlotNo = 0;
+	/**
+	 * The currently selected ParkingSlot
+	 */
+	static ParkingSlot selectedParkingSlot;
+	/**
+	 * The pose the robot has to end up by parking.
+	 */
+	static Pose goalPose;
+	/**
+	 * This tells us whether the robot should be off the line-map. This is important
+	 * for determining which SCOUT sub-state has to be entered. It only gets set to
+	 * true when the robot purposefully leaves the track, which happens when we want
+	 * to park.
+	 */
+	static boolean offTrack = false;
+
+	/**
 	 * main method of project 'ParkingRobot'
 	 * 
 	 * @param args
@@ -217,10 +256,13 @@ public class GuidanceAT {
 				// Into action
 				if (lastStatus != CurrentStatus.SCOUT) {
 					// control.setCtrlMode(ControlMode.LINE_CTRL);
-					// TODO check whether the robot is on the line
-					// TODO set currLineStatus accordingly
-					currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
-					// activate parking slot detection
+					if (offTrack)
+						currLineStatus = CurrentLineStatus.FOLLOW_LINE_OFF;
+					else
+						currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
+
+					// activate parking slot detection, setOffTrack() has to be done at some point
+					// too
 					navigation.setDetectionState(true);
 				}
 
@@ -266,15 +308,50 @@ public class GuidanceAT {
 				 * temporarily.
 				 */
 
+				// into action
+				if (currentStatus != lastStatus) {
+					selectedParkingSlotNo = hmi.getSelectedParkingSlot();
+					selectedParkingSlot = navigation.getParkingSlots()[selectedParkingSlotNo];
+					slotDir = selectedParkingSlot.getFrontBoundaryPosition()
+							.subtract(selectedParkingSlot.getBackBoundaryPosition());
+					// calculate goalPose from angle of slotDir here, before manipulating the
+					// slotDir
+					slotDir.multiplyBy((float) 0.5);
+					slotGoal = selectedParkingSlot.getBackBoundaryPosition().add(slotDir);
+					mapGoal = getClosestPointToGoal(slotGoal);
+				}
+
 				// leave action
 				if (currentStatus != lastStatus) {
 					// deactivate the underlying state machine
 					currParkStatus = CurrentParkStatus.PARK_INACTIVE;
 					lastParkStatus = CurrentParkStatus.PARK_INACTIVE;
+					control.setCtrlMode(ControlMode.INACTIVE);
 				}
 				break;
 			// there is no transition into this state yet.
 			case DEMO:
+				// Into Action
+				if (lastStatus != currentStatus)
+					control.setCtrlMode(ControlMode.DEMO1_CTRL);
+
+				// While Action
+
+				// State transition check
+				lastStatus = currentStatus;
+				if (Button.ENTER.isDown()) {
+					currentStatus = CurrentStatus.INACTIVE;
+					while (Button.ENTER.isDown()) {
+						Thread.sleep(1);
+					} // wait for button release
+				} else if (Button.ESCAPE.isDown()) {
+					currentStatus = CurrentStatus.EXIT;
+					while (Button.ESCAPE.isDown()) {
+						Thread.sleep(1);
+					} // wait for button release
+				} else if (hmi.getMode() == parkingRobot.INxtHmi.Mode.DISCONNECT) {
+					currentStatus = CurrentStatus.EXIT;
+				}
 				break;
 			case INACTIVE:
 				// Into action
@@ -303,6 +380,11 @@ public class GuidanceAT {
 					} // wait for button release
 				} else if (hmi.getMode() == parkingRobot.INxtHmi.Mode.DISCONNECT) {
 					currentStatus = CurrentStatus.EXIT;
+				} else if (Button.RIGHT.isDown()) {
+					currentStatus = CurrentStatus.DEMO;
+					while (Button.RIGHT.isDown()) {
+						Thread.sleep(1);
+					} // wait for button release
 				}
 
 				// Leave action
@@ -453,6 +535,7 @@ public class GuidanceAT {
 
 			// state transition
 			lastLineStatus = currLineStatus;
+			currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
 			// if(reachedLine)
 			// currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT
 
@@ -473,11 +556,11 @@ public class GuidanceAT {
 	 * given. This is used for determining the point the robot drives to before
 	 * parking in a parking slot.
 	 * 
-	 * @param goal
+	 * @param l_goal
 	 *            Point to which the closest point on the map has to be founds
 	 * @return
 	 */
-	private static Point getClosestPointToGoal(Point goal) {
+	private static Point getClosestPointToGoal(Point l_goal) {
 		double a = 0;
 		// number of the line in map with the shortest distance to goal
 		int lineNo = 0;
@@ -488,12 +571,12 @@ public class GuidanceAT {
 		Point vectorR2;
 
 		// find out the line with the shortest distance to goal
-		a = map[0].ptSegDist(goal);
+		a = map[0].ptSegDist(l_goal);
 		for (int i = 1; i < map.length; i++) {
-			if (map[i].ptSegDist(goal) < a)
+			if (map[i].ptSegDist(l_goal) < a)
 				lineNo = i;
 		}
-		vectorR1 = goal.projectOn(map[lineNo]);
+		vectorR1 = l_goal.projectOn(map[lineNo]);
 		vectorR2 = map[lineNo].getP1().add(vectorR1);
 		return vectorR2;
 	}
