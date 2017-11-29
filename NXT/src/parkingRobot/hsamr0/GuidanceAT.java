@@ -11,6 +11,7 @@ import parkingRobot.IPerception;
 import parkingRobot.IMonitor;
 
 import lejos.geom.Line;
+import lejos.geom.Point;
 import lejos.nxt.LCD;
 
 import parkingRobot.hsamr0.ControlRST;
@@ -62,7 +63,8 @@ public class GuidanceAT {
 		 */
 		PARK_THIS,
 		/**
-		 * Indicates the robot is performing a demo as part of the assignment for control
+		 * Indicates the robot is performing a demo as part of the assignment for
+		 * control
 		 */
 		DEMO,
 		/**
@@ -101,15 +103,16 @@ public class GuidanceAT {
 		 */
 		FOLLOW_LINE_INACTIVE
 	}
+
 	/**
 	 * underlying states of the main state PARK_THIS
 	 */
-	public enum CurrentParkStatus{
+	public enum CurrentParkStatus {
 		/**
 		 * Indicates the robot is driving along the line until destination is reached.
-		 * This uses the four states of FOLLOW_LINE, but additionally checks whether
-		 * a certain point on the map is reached, and if so, continues to drive into
-		 * the parking slot following the path given by the path generator
+		 * This uses the four states of FOLLOW_LINE, but additionally checks whether a
+		 * certain point on the map is reached, and if so, continues to drive into the
+		 * parking slot following the path given by the path generator
 		 */
 		PARK_LINE_FOLLOW,
 		/**
@@ -223,7 +226,7 @@ public class GuidanceAT {
 
 			// While action
 			{
-				//execute underlying state machine
+				// execute underlying state machine
 				followLineAction(control);
 			}
 
@@ -262,15 +265,15 @@ public class GuidanceAT {
 				 * as we have no transition into this state yet, nothing has to be done here
 				 * temporarily.
 				 */
-				
-				//leave action
-				if(currentStatus != lastStatus) {
-					//deactivate the underlying state machine
+
+				// leave action
+				if (currentStatus != lastStatus) {
+					// deactivate the underlying state machine
 					currParkStatus = CurrentParkStatus.PARK_INACTIVE;
 					lastParkStatus = CurrentParkStatus.PARK_INACTIVE;
 				}
 				break;
-			//there is no transition into this state yet.
+			// there is no transition into this state yet.
 			case DEMO:
 				break;
 			case INACTIVE:
@@ -463,5 +466,35 @@ public class GuidanceAT {
 			currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
 			break;
 		}
+	}
+
+	/**
+	 * This function returns the closest point on the map in regards to the point
+	 * given. This is used for determining the point the robot drives to before
+	 * parking in a parking slot.
+	 * 
+	 * @param goal
+	 *            Point to which the closest point on the map has to be founds
+	 * @return
+	 */
+	private static Point getClosestPointToGoal(Point goal) {
+		double a = 0;
+		// number of the line in map with the shortest distance to goal
+		int lineNo = 0;
+		// vector from starting point of desired line to point of shortest distance to
+		// goal on line
+		Point vectorR1;
+		// vector from (0;0) to point of shortest distance to goal on line
+		Point vectorR2;
+
+		// find out the line with the shortest distance to goal
+		a = map[0].ptSegDist(goal);
+		for (int i = 1; i < map.length; i++) {
+			if (map[i].ptSegDist(goal) < a)
+				lineNo = i;
+		}
+		vectorR1 = goal.projectOn(map[lineNo]);
+		vectorR2 = map[lineNo].getP1().add(vectorR1);
+		return vectorR2;
 	}
 }
