@@ -279,11 +279,13 @@ public class ControlRST implements IControl {
 			break;
 		case LEFT_CRV_CTRL:
 			update_LINECTRL_Parameter();
-			// driveCurve();
+			updateStartAngle();
+			exec_driveCurve90(1);
 			break;
 		case RIGHT_CRV_CTRL:
 			update_LINECTRL_Parameter();
-			// driveCurve();
+			updateStartAngle();
+			exec_driveCurve90(-1);
 			break;
 		case VW_CTRL:
 			update_VWCTRL_Parameter();
@@ -302,6 +304,21 @@ public class ControlRST implements IControl {
 			break;
 		}
 
+	}
+
+	/**
+	 * public methods for direction to check for transition into curveMode
+	 */
+	public boolean getCurveMode() {
+		return curve;
+	}
+
+	public boolean getLeftCurve() {
+		return curveL;
+	}
+
+	public boolean getRightCurve() {
+		return curveR;
 	}
 
 	// Private methods
@@ -509,6 +526,10 @@ public class ControlRST implements IControl {
 			 * State Transition: straight --> curve
 			 */
 			else {
+				if (e < 0)
+					curveL = true;
+				else
+					curveR = true;
 				curve = true;
 				counter = 3; // about 0.3 seconds of latency with a sleep of
 								// 100ms
@@ -604,6 +625,45 @@ public class ControlRST implements IControl {
 
 	}
 
+	/**
+	 * robot turns 90 degrees for curve mode
+	 * 
+	 * @param direction
+	 *            > 0 right curve
+	 */
+	private void exec_driveCurve90(int direction) {
+		//TODO verbessern und testen und FEHLERBEHANDLUNG: 
+		double y;
+		int angle = (int) (navigation.getPose().getHeading() / Math.PI * 180);
+		// left curve
+		if (direction < 0) {
+			if ((angle - startAngle) <= 90) {
+				drive(10, 45);
+			} else {
+				curve = false;
+				curveL = false;
+				rightMotor.setPower((int) (maxPower / 2));
+				leftMotor.setPower((int) (maxPower / 2));
+				
+			}
+			// right curve
+		} else {
+			if ((angle - startAngle) >= -90) {
+				drive(10, -45);
+			} else {
+				curve = false;
+				curveR = false;
+				rightMotor.setPower((int) (maxPower / 2));
+				leftMotor.setPower((int) (maxPower / 2));
+			}
+		}
+
+	}
+
+	private void updateStartAngle() {
+		startAngle = (int) (navigation.getPose().getHeading() / Math.PI * 180);
+	}
+
 	private void stop() {
 		this.leftMotor.stop();
 		this.rightMotor.stop();
@@ -677,26 +737,26 @@ public class ControlRST implements IControl {
 		 * calculate PWM values for each wheel this is the solution WITHOUT
 		 * regulated speed control
 		 */
-		 LCD.drawString("vRight: " +vRight, 0, 7);
-		 pwmLeft = getPWM(vLeft);
-		 pwmRight = getPWM(vRight);
-		 LCD.drawString("pwmR: " +pwmRight, 0, 7);
-		
-		 leftMotor.setPower(pwmLeft);
-		 rightMotor.setPower(pwmRight);
+		LCD.drawString("vRight: " + vRight, 0, 7);
+		pwmLeft = getPWM(vLeft);
+		pwmRight = getPWM(vRight);
+		LCD.drawString("pwmR: " + pwmRight, 0, 7);
+
+		leftMotor.setPower(pwmLeft);
+		rightMotor.setPower(pwmRight);
 
 		/**
 		 * calculate PWM values and set speed for each wheel solution WITH
 		 * regulated speed control
 		 */
-//		if (start) {
-//			pwmLeft = getPWM(vLeft);
-//			pwmRight = getPWM(vRight);
-//			leftMotor.setPower(pwmLeft);
-//			rightMotor.setPower(pwmRight);
-//			start = false;
-//		} else
-//			regWheelSpeed(vLeft, vRight);
+		// if (start) {
+		// pwmLeft = getPWM(vLeft);
+		// pwmRight = getPWM(vRight);
+		// leftMotor.setPower(pwmLeft);
+		// rightMotor.setPower(pwmRight);
+		// start = false;
+		// } else
+		// regWheelSpeed(vLeft, vRight);
 
 	}
 
@@ -705,9 +765,9 @@ public class ControlRST implements IControl {
 		int batteryLoadFull = 7700;
 		int batteryLoadHalf = 7500;
 		/*
-		 * TODO bei sehr niedrigem Akkuzustand stärker steuern
+		 * TODO batteriabhängigkeit sollte in regWheelspeed gelöst werden
 		 */
-		
+
 		/**
 		 * measurements for full and half load showed only small deviations in
 		 * the rise of the functions PWM(v) greater differences in PWM(omega)
@@ -817,7 +877,7 @@ public class ControlRST implements IControl {
 		esum = esum + e;
 		y = KP * e + KI * esum * Ta + KD * (e - ealt) / Ta;
 		ealt = e;
-		LCD.drawString("es: "+esum +" ea: "+ealt, 0, 8);
+		LCD.drawString("es: " + esum + " ea: " + ealt, 0, 8);
 		return y;
 	}
 
@@ -850,7 +910,9 @@ public class ControlRST implements IControl {
 				Sound.systemSound(true, 0);
 				demo2 = true;
 				demo1 = false;
-				startAngle = (int) (navigation.getPose().getHeading() / Math.PI * 180);
+				// startAngle = (int) (navigation.getPose().getHeading() /
+				// Math.PI * 180);
+				updateStartAngle();
 			}
 		}
 
@@ -888,7 +950,9 @@ public class ControlRST implements IControl {
 				Sound.systemSound(true, 1);
 				demo4 = true;
 				demo3 = false;
-				startAngle = (int) (navigation.getPose().getHeading() / Math.PI * 180);
+				// startAngle = (int) (navigation.getPose().getHeading() /
+				// Math.PI * 180);
+				updateStartAngle();
 			}
 		}
 
@@ -915,7 +979,7 @@ public class ControlRST implements IControl {
 			LCD.drawString("demo5", 0, 6);
 			exec_LINECTRL_ALGO();
 			demo1 = true;
-//			demo5 = false;
+			// demo5 = false;
 		}
 	}
 
