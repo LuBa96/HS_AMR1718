@@ -25,7 +25,7 @@ import parkingRobot.hsamr0.PerceptionPMP;
 //TODO check how type Pose works
 //TODO introduce and implement underlying states of PARK_THIS
 //TODO get rid of HmiMode PARK_NEXT
-//TODO introduce and implement DEMO states for control
+//TODO maybe check if DEMO is finished from control
 //TODO implement sub-states for turns in SCOUT
 
 /**
@@ -255,21 +255,22 @@ public class GuidanceAT {
 
 				// Into action
 				if (lastStatus != CurrentStatus.SCOUT) {
-					// control.setCtrlMode(ControlMode.LINE_CTRL);
+					// this does not need to be here because of the transition check in the
+					// SubStateMachine, but this way we save the time of one cycle
 					if (offTrack)
 						currLineStatus = CurrentLineStatus.FOLLOW_LINE_OFF;
 					else
 						currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
 
-					// activate parking slot detection, setOffTrack() has to be done at some point
-					// too
+					// activate parking slot detection, setOffTrack() in navigation has to be done
+					// at some point too, probably when we change it
 					navigation.setDetectionState(true);
 				}
 
 			// While action
 			{
 				// execute underlying state machine
-				followLineAction(control);
+				followLineSubStateMachine(control);
 			}
 
 				// State transition check
@@ -301,15 +302,13 @@ public class GuidanceAT {
 					navigation.setDetectionState(false);
 				}
 				break;
+			// There is no transition into this state yet.
 			case PARK_THIS:
 				// TODO implement parking
-				/*
-				 * as we have no transition into this state yet, nothing has to be done here
-				 * temporarily.
-				 */
 
 				// into action
 				if (currentStatus != lastStatus) {
+					// calculate our goal on the line-map and in the ParkingSlot
 					selectedParkingSlotNo = hmi.getSelectedParkingSlot();
 					selectedParkingSlot = navigation.getParkingSlots()[selectedParkingSlotNo];
 					slotDir = selectedParkingSlot.getFrontBoundaryPosition()
@@ -319,6 +318,14 @@ public class GuidanceAT {
 					slotDir.multiplyBy((float) 0.5);
 					slotGoal = selectedParkingSlot.getBackBoundaryPosition().add(slotDir);
 					mapGoal = getClosestPointToGoal(slotGoal);
+
+					currParkStatus = CurrentParkStatus.PARK_LINE_FOLLOW;
+				}
+
+				// while action
+				{
+					//execute sub-state machine
+					parkThisSubStateMachine();
 				}
 
 				// leave action
@@ -326,10 +333,11 @@ public class GuidanceAT {
 					// deactivate the underlying state machine
 					currParkStatus = CurrentParkStatus.PARK_INACTIVE;
 					lastParkStatus = CurrentParkStatus.PARK_INACTIVE;
+					currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+					lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
 					control.setCtrlMode(ControlMode.INACTIVE);
 				}
 				break;
-			// there is no transition into this state yet.
 			case DEMO:
 				// Into Action
 				if (lastStatus != currentStatus)
@@ -450,7 +458,7 @@ public class GuidanceAT {
 	 * the moment. Will make the robot follow the line, which can also be used
 	 * during PARK_THIS
 	 */
-	private static void followLineAction(IControl control) {
+	private static void followLineSubStateMachine(IControl control) {
 		switch (currLineStatus) {
 		case FOLLOW_LINE_STRAIGHT:
 			// into action
@@ -546,7 +554,25 @@ public class GuidanceAT {
 			break;
 		// this state is only executed once after the LINE_FOLLOW is set active
 		case FOLLOW_LINE_INACTIVE:
-			currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
+			// into action
+
+			// while action
+
+			// state transition check
+			lastLineStatus = currLineStatus;
+			if (offTrack)
+				currLineStatus = CurrentLineStatus.FOLLOW_LINE_OFF;
+			else
+				currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
+			break;
+		}
+	}
+	
+	private static void parkThisSubStateMachine() {
+		switch(currParkStatus) {
+		case PARK_LINE_FOLLOW:
+			break;
+		default:
 			break;
 		}
 	}
