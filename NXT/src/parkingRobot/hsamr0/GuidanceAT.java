@@ -218,19 +218,19 @@ public class GuidanceAT {
 		LCD.drawString("xResult: " + navigation.getxResult()*100,0,0);
 		LCD.drawString("yResult: " + navigation.getyResult()*100,0,1);
 		LCD.drawString("angleResult: " + navigation.getAngleResult()/Math.PI*180,0,2);
-		LCD.drawString("SK:" + navigation.getWinkelSchonKorrigiert(),0,4);
-		navigation.ueberpruefenObAktuellInKurve();
-		LCD.drawString("In Kurve: " + navigation.getAktuellInKurve(), 0, 3);
-		LCD.drawString("RMS_angle:" + navigation.getRMS()/Math.PI*180, 0, 5);
+		//LCD.drawString("SK:" + navigation.getWinkelSchonKorrigiert(),0,4);
+		//navigation.ueberpruefenObAktuellInKurve();
+		//LCD.drawString("In Kurve: " + navigation.getAktuellInKurve(), 0, 3);
+		//LCD.drawString("RMS_angle:" + navigation.getRMS()/Math.PI*180, 0, 5);
 //		LCD.drawString("xMap: " + navigation.getxResultMap(),0,4);
 //		LCD.drawString("yMap: " + navigation.getyResultMap(),0,5);
 //		LCD.drawString("aMap:" + navigation.getAngleResultMap(),0,6);
-		LCD.drawString("Im KP:" + navigation.getAktuellenKurvenpunkt(), 0, 7);
+		//LCD.drawString("Im KP:" + navigation.getAktuellenKurvenpunkt(), 0, 7);
 //		LCD.drawString("MouseX: " +  navigation.getfusionMatrixContent(1,1),0,4);
 //		LCD.drawString("MouseY: " +  navigation.getfusionMatrixContent(1,2),0,5);
 //		LCD.drawString("MouseA: " +  navigation.getfusionMatrixContent(1,3),0,6);
 		
-		LCD.drawString("B:" + Integer.toString((int)perception.getBackSensorDistance()),0,3);
+		//LCD.drawString("B:" + Integer.toString((int)perception.getBackSensorDistance()),0,3);
 //		LCD.drawString("F:" + Integer.toString((int)perception.getFrontSensorDistance()),0,4);
 //		LCD.drawString("BS:" + Integer.toString((int)perception.getBackSideSensorDistance()),0,5);
 //		LCD.drawString("FS:" + Integer.toString((int)perception.getFrontSideSensorDistance()),0,6);
