@@ -62,7 +62,6 @@ public interface IControl {
 		 */
 		INACTIVE
 	}
-	
 		
 	/**
 	 * set the required speed
@@ -117,6 +116,16 @@ public interface IControl {
 	 * execute the selected algorithms for control which was set by guidance
 	 */
 	public void exec_CTRL_ALGO();
+	
+	public boolean getCurveMode();
+
+	public boolean getLeftTurn();
+
+	public boolean getRightTurn();
+
+	public void updateStartAngle();
+	
+	public void resetIntegralPID();
 
 }
 

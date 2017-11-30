@@ -23,7 +23,7 @@ public interface INavigation {
 	 * 
 	 * @param map array of line references, whose corresponding lines form a closed chain and represent the map of the robot course
 	 */
-	public void setMap(Line[] map);
+	public void setMap(Line[] map); //was mach ich konkret mit setMap?
 	
 	/**
 	 * switches parking slot detection on or off. While a parking maneuver active parking slot detection can lead to unexpected
@@ -34,6 +34,9 @@ public interface INavigation {
 	 */
 	public void setDetectionState(boolean isOn);
 	
+	public void setOffTrack(boolean isOn);
+	
+	
 	
 	// Class control
 	
@@ -41,6 +44,29 @@ public interface INavigation {
 	 * initiates a new and actual computation/detection of all relevant Navigation members, especially robot pose and parking slots (last, if their detection is activated)
 	 */
 	public void updateNavigation();
+	
+	public double getfusionMatrixContent(int line, int row);
+	
+	public int getAktuellenKurvenpunkt();
+
+	public boolean getAktuellInKurve();
+	
+	public void ueberpruefenObAktuellInKurve();
+	
+
+	public double getxResult();
+	public double getyResult();
+	public double getAngleResult();
+	public double getxResultMap();
+	public double getyResultMap();
+	public double getAngleResultMap();
+	public boolean getWinkelSchonKorrigiert();
+	public double getRMS();
+	
+	public void updateRobotCloseToCurve();
+	public boolean getRobotCloseToCurve();
+	public void setRobotCloseToCurveToFalse();
+	
 	
 	
 	// Outputs

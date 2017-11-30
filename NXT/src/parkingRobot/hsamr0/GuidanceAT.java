@@ -463,19 +463,19 @@ public class GuidanceAT {
 		case FOLLOW_LINE_STRAIGHT:
 			// into action
 			if (lastLineStatus != currLineStatus) {
+				control.resetIntegralPID();
 				control.setCtrlMode(ControlMode.LINE_CTRL);
 			}
 			// while action
-			// TODO ask control or perception whether the robot is perceiving a turn
-			// TODO change booleans for state transitions accordingly
 
 			// state transitions
 			lastLineStatus = currLineStatus;
-			/*
-			 * if(rechtsKurveerkannt) currLineStatus = CurrentLineStatus.FOLLOW_LINE_RIGHT
-			 * else if(linksKurveerkannt) currLineStatus =
-			 * CurrentLineStatus.FOLLOW_LINE_LEFT
-			 **/
+
+			if (control.getRightTurn()) {
+				currLineStatus = CurrentLineStatus.FOLLOW_LINE_RIGHT;
+			} else if (control.getLeftTurn()) {
+				currLineStatus = CurrentLineStatus.FOLLOW_LINE_LEFT;
+			}
 
 			// leave action
 			if (currLineStatus != lastLineStatus) {
@@ -496,11 +496,10 @@ public class GuidanceAT {
 
 			// state transitions
 			lastLineStatus = currLineStatus;
-			/*
-			 * if(rechtsKurveerkannt && linksKurveerkannt) Fehler schmeiﬂen else
-			 * if((!rechtsKurveerkannt) && (!linksKurveerkannt)) currLineStatus =
-			 * CurrentLineStatus.FOLLOW_LINE_STRAIGHT
-			 **/
+
+			if (!control.getRightTurn()) {
+				currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
+			}
 
 			// leave action
 			if (currLineStatus != lastLineStatus) {
@@ -521,11 +520,10 @@ public class GuidanceAT {
 
 			// state transitions
 			lastLineStatus = currLineStatus;
-			/*
-			 * if(rechtsKurveerkannt && linksKurveerkannt) Fehler schmeiﬂen else
-			 * if((!rechtsKurveerkannt) && (!linksKurveerkannt)) currLineStatus =
-			 * CurrentLineStatus.FOLLOW_LINE_STRAIGHT
-			 **/
+
+			if (!control.getLeftTurn()) {
+				currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
+			}
 
 			// leave action
 			if (currLineStatus != lastLineStatus) {
