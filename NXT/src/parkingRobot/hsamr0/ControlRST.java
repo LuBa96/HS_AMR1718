@@ -75,7 +75,6 @@ public class ControlRST implements IControl {
 	Pose destination = new Pose();
 
 	ControlMode currentCTRLMODE = null;
-	TurnDirection currentTurnDir = null;
 
 	EncoderSensor controlRightEncoder = null;
 	EncoderSensor controlLeftEncoder = null;
@@ -109,6 +108,26 @@ public class ControlRST implements IControl {
 	boolean boolTurn = false;
 	boolean boolTurnL = false;
 	boolean boolTurnR = false;
+
+	/**
+	 * variables for regWheelSpeed
+	 */
+	double leftAngleDiff = 0;
+	double rightAngleDiff = 0;
+	double leftDeltaTime = 0;
+	double rightDeltaTime = 0;
+	double omegaLeft = 0;
+	double omegaRight = 0;
+	double vLeft = 0;
+	double vRight = 0;
+	double errVLeft = 0;
+	double errVRight = 0;
+	double yL = 0;
+	double yR = 0;
+	double vLNew = 0;
+	double vRNew = 0;
+	int pwmLeft = 0;
+	int pwmRight = 0;
 
 	/**
 	 * demo program
@@ -547,42 +566,28 @@ public class ControlRST implements IControl {
 			resetIntegralPID();
 
 	}
-/*
-	private void driveCurve(int e) {
-		double y;
-		
-		if ((e > 0) || boolTurnL) {
-			
-			if (boolTurnR) {
-				// if the robot has been in a right curve in the last cycle it
-				// may not change into left curve right
-				// until the next cycle finishes
-				boolTurnR = false;
-				y = PID_control(e, 0.15, 0.02, 0.02, 1);
-				rightMotor.setPower((int) (maxPower / 2) + (int) y);
-				leftMotor.setPower((int) (maxPower / 2) - (int) y);
-			} else {
-				boolTurnL = true;
-				rightMotor.setPower((int) (maxPower * 2 / 3));
-				leftMotor.setPower((int) (-maxPower / 5));
-			}
-		}
 
-		else if ((e < 0) || boolTurnR) {
-			if (boolTurnL) {
-				y = PID_control(e, 0.15, 0.02, 0.02, 1);
-				boolTurnL = false;
-				rightMotor.setPower((int) (maxPower / 2) - (int) y);
-				leftMotor.setPower((int) (maxPower / 2) + (int) y);
-			} else {
-				boolTurnR = true;
-				rightMotor.setPower((int) (-maxPower / 5));
-				leftMotor.setPower((int) (maxPower * 2 / 3));
-			}
-		}
-
-	}
-*/
+	/*
+	 * private void driveCurve(int e) { double y;
+	 * 
+	 * if ((e > 0) || boolTurnL) {
+	 * 
+	 * if (boolTurnR) { // if the robot has been in a right curve in the last
+	 * cycle it // may not change into left curve right // until the next cycle
+	 * finishes boolTurnR = false; y = PID_control(e, 0.15, 0.02, 0.02, 1);
+	 * rightMotor.setPower((int) (maxPower / 2) + (int) y);
+	 * leftMotor.setPower((int) (maxPower / 2) - (int) y); } else { boolTurnL =
+	 * true; rightMotor.setPower((int) (maxPower * 2 / 3));
+	 * leftMotor.setPower((int) (-maxPower / 5)); } }
+	 * 
+	 * else if ((e < 0) || boolTurnR) { if (boolTurnL) { y = PID_control(e,
+	 * 0.15, 0.02, 0.02, 1); boolTurnL = false; rightMotor.setPower((int)
+	 * (maxPower / 2) - (int) y); leftMotor.setPower((int) (maxPower / 2) +
+	 * (int) y); } else { boolTurnR = true; rightMotor.setPower((int) (-maxPower
+	 * / 5)); leftMotor.setPower((int) (maxPower * 2 / 3)); } }
+	 * 
+	 * }
+	 */
 
 	/**
 	 * robot turns 90 degrees for curve mode
@@ -593,8 +598,8 @@ public class ControlRST implements IControl {
 	private void exec_driveCurve90() {
 		angleDeg = (int) (navigation.getPose().getHeading() / Math.PI * 180);
 		// left curve
-		switch (currentTurnDir) {
-		case TURN_LEFT:
+		switch (currentCTRLMODE) {
+		case LEFT_CRV_CTRL:
 			if ((angleDeg - startAngleDeg) <= 90) {
 				drive(0, 45);
 			} else {
@@ -605,7 +610,7 @@ public class ControlRST implements IControl {
 			}
 			break;
 		// right curve
-		case TURN_RIGHT:
+		case RIGHT_CRV_CTRL:
 			if ((angleDeg - startAngleDeg) >= -90) {
 				drive(0, -45);
 			} else {
@@ -641,10 +646,6 @@ public class ControlRST implements IControl {
 							// translation; r->inf -->straight driving
 
 		double speed = 0;
-		double vLeft = 0;
-		double vRight = 0;
-		int pwmLeft = 0;
-		int pwmRight = 0;
 
 		/**
 		 * maxSpeed in deg/sec = 100deg/sec * battery.getVoltage; maxSpeed/360 =
@@ -729,40 +730,38 @@ public class ControlRST implements IControl {
 	 */
 	private void regWheelSpeed(double vL, double vR) {
 		/**
-		 * get angledifference in deg and time in msec
+		 * get angledifference in degree and time in msec
 		 */
-		double leftAngleDiff = this.encoderLeft.getEncoderMeasurement()
-				.getAngleSum();
+		leftAngleDiff = this.encoderLeft.getEncoderMeasurement().getAngleSum();
 		leftAngleDiff = leftAngleDiff * Math.PI / 180;
 
-		double leftTime = this.encoderLeft.getEncoderMeasurement().getDeltaT() * 1000;
+		leftDeltaTime = this.encoderLeft.getEncoderMeasurement().getDeltaT() * 1000;
 
-		double rightAngleDiff = this.encoderRight.getEncoderMeasurement()
+		rightAngleDiff = this.encoderRight.getEncoderMeasurement()
 				.getAngleSum();
 		rightAngleDiff = rightAngleDiff * Math.PI / 180;
-		double rightTime = this.encoderRight.getEncoderMeasurement()
-				.getDeltaT() * 1000;
+		rightDeltaTime = this.encoderRight.getEncoderMeasurement().getDeltaT() * 1000;
 
 		/**
 		 * idea: get the average speed of the individual wheels with deltaPhi
 		 * and deltaT
 		 */
-		double omegaLeft = leftAngleDiff / leftTime;
-		double omegaRight = rightAngleDiff / rightTime;
+		omegaLeft = leftAngleDiff / leftDeltaTime;
+		omegaRight = rightAngleDiff / rightDeltaTime;
 
 		/**
 		 * v = w * r; actual value omega is the rotation of the individual
 		 * wheels, not the rotation of the robot
 		 */
-		double vLeft = omegaLeft * wheelD / 2;
-		double vRight = omegaRight * wheelD / 2;
+		vLeft = omegaLeft * wheelD / 2;
+		vRight = omegaRight * wheelD / 2;
 
 		/**
 		 * Definition of control error; individual regulation of each wheel; vL
 		 * and vR are the desired values
 		 */
-		double errVLeft = vL - vLeft;
-		double errVRight = vR - vRight;
+		errVLeft = vL - vLeft;
+		errVRight = vR - vRight;
 
 		/**
 		 * calculate control values PID
@@ -773,26 +772,24 @@ public class ControlRST implements IControl {
 		/**
 		 * TODO : test and get fitting values for KP, KI, KD
 		 */
-		double yL = 0.15 * errVLeft + 0.02 * esumL + 0.02 * (errVLeft - ealtL);
-		double yR = 0.15 * errVRight + 0.02 * esumR + 0.02
-				* (errVRight - ealtR);
+		yL = 0.15 * errVLeft + 0.02 * esumL + 0.02 * (errVLeft - ealtL);
+		yR = 0.15 * errVRight + 0.02 * esumR + 0.02 * (errVRight - ealtR);
 
 		ealtL = errVLeft;
 		ealtR = errVRight;
 
-		double vLNew = vL + yL;
-		double vRNew = vR + yR;
+		vLNew = vL + yL;
+		vRNew = vR + yR;
 
 		/**
 		 * calculate PWM values and set speed
 		 */
-		int pwmLeft = 0;
-		int pwmRight = 0;
+		pwmLeft = 0;
+		pwmRight = 0;
 		pwmLeft = getPWM(vLNew);
 		pwmRight = getPWM(vRNew);
 		leftMotor.setPower(pwmLeft);
 		rightMotor.setPower(pwmRight);
-
 	}
 
 	/**
@@ -909,7 +906,6 @@ public class ControlRST implements IControl {
 				demo4 = false;
 			}
 		}
-
 		/**
 		 * linecontrol
 		 */

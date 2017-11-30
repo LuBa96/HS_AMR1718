@@ -62,13 +62,6 @@ public interface IControl {
 		 */
 		INACTIVE
 	}
-	
-	public enum TurnDirection
-	{
-		TURN_LEFT,
-		
-		TURN_RIGHT
-	}
 		
 	/**
 	 * set the required speed
