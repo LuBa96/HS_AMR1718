@@ -75,6 +75,7 @@ public class ControlRST implements IControl {
 	Pose destination = new Pose();
 
 	ControlMode currentCTRLMODE = null;
+	TurnDirection currentTurnDir = null;
 
 	EncoderSensor controlRightEncoder = null;
 	EncoderSensor controlLeftEncoder = null;
@@ -94,7 +95,7 @@ public class ControlRST implements IControl {
 	int ealt = 0;
 	double ealtL = 0;
 	double ealtR = 0;
-	int upperThreshold = 0;
+	int upperThreshold = 65;
 	int grey = 0;
 	int lowerThreshold = 20;
 	int maxPower = 0;
@@ -105,9 +106,9 @@ public class ControlRST implements IControl {
 	 * distinguish between straight driving and curving. PID optimized for
 	 * straight driving is not suitable for curving and vice versa
 	 */
-	boolean curve = false;
-	boolean curveL = false;
-	boolean curveR = false;
+	boolean boolTurn = false;
+	boolean boolTurnL = false;
+	boolean boolTurnR = false;
 
 	/**
 	 * demo program
@@ -117,7 +118,8 @@ public class ControlRST implements IControl {
 	boolean demo3 = false;
 	boolean demo4 = false;
 	boolean demo5 = false;
-	int startAngle = 0;
+	int angleDeg = 0;
+	int startAngleDeg = 0;
 	double startX = 0;
 	double startY = 0;
 
@@ -173,9 +175,9 @@ public class ControlRST implements IControl {
 		 * distinguish between straight driving and curving. PID optimized for
 		 * straight driving is not suitable for curving and vice versa
 		 */
-		curve = false;
-		curveL = false;
-		curveR = false;
+		boolTurn = false;
+		boolTurnL = false;
+		boolTurnR = false;
 
 		/**
 		 * demo program
@@ -185,7 +187,7 @@ public class ControlRST implements IControl {
 		demo3 = false;
 		demo4 = false;
 		demo5 = false;
-		startAngle = 0;
+		startAngleDeg = 0;
 		startX = 0;
 		startY = 0;
 
@@ -267,25 +269,22 @@ public class ControlRST implements IControl {
 	public void exec_CTRL_ALGO() {
 		switch (currentCTRLMODE) {
 		case DEMO1_CTRL:
+			update_LINECTRL_Parameter();
 			Control_Demo_1();
+			exec_LINECTRL_ALGO();
 			break;
 		case DEMO2_CTRL:
 			Control_Demo_2();
 			break;
 		case LINE_CTRL:
 			update_LINECTRL_Parameter();
-			Control_Demo_1();
-			// exec_LINECTRL_ALGO();
+			exec_LINECTRL_ALGO();
 			break;
 		case LEFT_CRV_CTRL:
-			update_LINECTRL_Parameter();
-			updateStartAngle();
-			exec_driveCurve90(1);
+			exec_driveCurve90();
 			break;
 		case RIGHT_CRV_CTRL:
-			update_LINECTRL_Parameter();
-			updateStartAngle();
-			exec_driveCurve90(-1);
+			exec_driveCurve90();
 			break;
 		case VW_CTRL:
 			update_VWCTRL_Parameter();
@@ -310,15 +309,27 @@ public class ControlRST implements IControl {
 	 * public methods for direction to check for transition into curveMode
 	 */
 	public boolean getCurveMode() {
-		return curve;
+		return boolTurn;
 	}
 
-	public boolean getLeftCurve() {
-		return curveL;
+	public boolean getLeftTurn() {
+		return boolTurnL;
 	}
 
-	public boolean getRightCurve() {
-		return curveR;
+	public boolean getRightTurn() {
+		return boolTurnR;
+	}
+
+	public void updateStartAngle() {
+		startAngleDeg = (int) (navigation.getPose().getHeading() / Math.PI * 180);
+	}
+
+	/**
+	 * Method to reset the accumulated error in esum to zero; prevents
+	 * "overregulation" by the I-Factor
+	 */
+	public void resetIntegralPID() {
+		esum = 0;
 	}
 
 	// Private methods
@@ -480,102 +491,55 @@ public class ControlRST implements IControl {
 		e = errorRight - errorLeft;
 
 		/**
-		 * as long as the robot is in curve mode and e is greater than the lower
-		 * threshold for exiting the curve mode continue in curve mode
+		 * as long as the robot is in boolTurn mode and e is greater than the
+		 * lower threshold for exiting the boolTurn mode continue in boolTurn
+		 * mode
 		 */
-		if (curve && ((e < lowerThreshold) && (e > -lowerThreshold)))
-		// end of curvemode
-		// compare errorRight and errorLeft to make sure that the sensors
-		// are not seeing black and black; continue curve if they do
-		{
-			/**
-			 * remain in curve mode
-			 */
-			if ((errorRight < grey) && (errorLeft < grey)) {
-				// both sensors see black-->remain in curve mode
-				curve = true; // tautology
-				// to continue the curve the sign of the last error is needed
-				e = ealt;
-			}
-			/**
-			 * State Transition: curve --> straight
-			 */
-			else {
-				// both sensors see more or less white
-				curve = false;
-				curveL = false;
-				curveR = false;
-			}
-		}
-
-		if ((!(curve)) && ((e > upperThreshold) || (e < -upperThreshold))) {
-			// dont change into curve mode too frequently
-			/**
-			 * remain in straight mode until counter is 0; counter is set to 3
-			 * after every transition into curve mode; this is equal to 0.3s of
-			 * latency for the next transition into curve mode
-			 */
-			/**
-			 * remain in straight mode
-			 */
-			if (counter > 0) {
-				counter = counter - 1;
-				y = PID_control(e, 0.15, 0.02, 0.02, 1);
-			}
+		if ((!(boolTurn)) && ((e > upperThreshold) || (e < -upperThreshold))) {
 			/**
 			 * State Transition: straight --> curve
 			 */
-			else {
-				if (e < 0)
-					curveL = true;
-				else
-					curveR = true;
-				curve = true;
-				counter = 3; // about 0.3 seconds of latency with a sleep of
-								// 100ms
+			if (e < 0) {
+				boolTurnL = true;
+				boolTurnR = false;
+			} else {
+				boolTurnR = true;
+				boolTurnL = false;
 			}
+			boolTurn = true;
 		}
-
-		/**
-		 * regular curve mode
-		 */
-		if (curve)
-			driveCurve(e);
 
 		/**
 		 * regular straight driving mode
 		 */
-		if (!curve) {
-			y = PID_control(e, 0.15, 0.02, 0.02, 1);
+		y = PID_control(e, 0.15, 0.02, 0.02, 1);
 
-			/**
-			 * correction to the right side
-			 */
-			if (y < 0) {
-				y = -1 * y;
-				if (y > maxPower / 2)
-					y = maxPower / 2;
-				leftMotor.setPower((int) (maxPower / 2) + (int) y);
-				rightMotor.setPower((int) (maxPower / 2) - (int) y);
-			}
-			/**
-			 * correction to the left side
-			 */
-			else if (y > 0) {
-				if (y > maxPower / 2)
-					y = maxPower / 2;
-				rightMotor.setPower((int) (maxPower / 2) + (int) y);
-				leftMotor.setPower((int) (maxPower / 2) - (int) y);
-			}
-			/**
-			 * Drive straight
-			 */
-			else if (y == 0) {
-				leftMotor.setPower((int) maxPower / 2);
-				rightMotor.setPower((int) maxPower / 2);
-			}
-
+		/**
+		 * correction to the right side
+		 */
+		if (y < 0) {
+			if (y < -(maxPower / 2))
+				y = -(maxPower / 2);
+			leftMotor.setPower((int) (maxPower / 2) - (int) y);
+			rightMotor.setPower((int) (maxPower / 2) + (int) y);
 		}
+		/**
+		 * correction to the left side
+		 */
+		else if (y > 0) {
+			if (y > maxPower / 2)
+				y = maxPower / 2;
+			rightMotor.setPower((int) (maxPower / 2) + (int) y);
+			leftMotor.setPower((int) (maxPower / 2) - (int) y);
+		}
+		/**
+		 * Drive straight
+		 */
+		else if (y == 0) {
+			leftMotor.setPower((int) maxPower / 2);
+			rightMotor.setPower((int) maxPower / 2);
+		}
+
 		/**
 		 * Anti-Reset-Windup
 		 */
@@ -583,47 +547,42 @@ public class ControlRST implements IControl {
 			resetIntegralPID();
 
 	}
-
+/*
 	private void driveCurve(int e) {
 		double y;
-		/**
-		 * left curve
-		 */
-		if ((e > 0) || curveL) {
-			/**
-			 * dont change curves directly after one another
-			 */
-			if (curveR) {
+		
+		if ((e > 0) || boolTurnL) {
+			
+			if (boolTurnR) {
 				// if the robot has been in a right curve in the last cycle it
 				// may not change into left curve right
 				// until the next cycle finishes
-				curveR = false;
+				boolTurnR = false;
 				y = PID_control(e, 0.15, 0.02, 0.02, 1);
 				rightMotor.setPower((int) (maxPower / 2) + (int) y);
 				leftMotor.setPower((int) (maxPower / 2) - (int) y);
 			} else {
-				curveL = true;
+				boolTurnL = true;
 				rightMotor.setPower((int) (maxPower * 2 / 3));
 				leftMotor.setPower((int) (-maxPower / 5));
 			}
 		}
-		/**
-		 * right curve
-		 */
-		else if ((e < 0) || curveR) {
-			if (curveL) {
+
+		else if ((e < 0) || boolTurnR) {
+			if (boolTurnL) {
 				y = PID_control(e, 0.15, 0.02, 0.02, 1);
-				curveL = false;
+				boolTurnL = false;
 				rightMotor.setPower((int) (maxPower / 2) - (int) y);
 				leftMotor.setPower((int) (maxPower / 2) + (int) y);
 			} else {
-				curveR = true;
+				boolTurnR = true;
 				rightMotor.setPower((int) (-maxPower / 5));
 				leftMotor.setPower((int) (maxPower * 2 / 3));
 			}
 		}
 
 	}
+*/
 
 	/**
 	 * robot turns 90 degrees for curve mode
@@ -631,42 +590,37 @@ public class ControlRST implements IControl {
 	 * @param direction
 	 *            > 0 right curve
 	 */
-	private void exec_driveCurve90(int direction) {
-		//TODO verbessern und testen und FEHLERBEHANDLUNG: 
-		double y;
-		int angle = (int) (navigation.getPose().getHeading() / Math.PI * 180);
+	private void exec_driveCurve90() {
+		angleDeg = (int) (navigation.getPose().getHeading() / Math.PI * 180);
 		// left curve
-		if (direction < 0) {
-			if ((angle - startAngle) <= 90) {
-				drive(10, 45);
+		switch (currentTurnDir) {
+		case TURN_LEFT:
+			if ((angleDeg - startAngleDeg) <= 90) {
+				drive(0, 45);
 			} else {
-				curve = false;
-				curveL = false;
-				rightMotor.setPower((int) (maxPower / 2));
-				leftMotor.setPower((int) (maxPower / 2));
-				
+				boolTurn = false;
+				boolTurnL = false;
+				rightMotor.stop();
+				leftMotor.stop();
 			}
-			// right curve
-		} else {
-			if ((angle - startAngle) >= -90) {
-				drive(10, -45);
+			break;
+		// right curve
+		case TURN_RIGHT:
+			if ((angleDeg - startAngleDeg) >= -90) {
+				drive(0, -45);
 			} else {
-				curve = false;
-				curveR = false;
-				rightMotor.setPower((int) (maxPower / 2));
-				leftMotor.setPower((int) (maxPower / 2));
+				boolTurn = false;
+				boolTurnR = false;
+				rightMotor.stop();
+				leftMotor.stop();
 			}
+			break;
+		default:
+			rightMotor.stop();
+			leftMotor.stop();
+			break;
 		}
 
-	}
-
-	private void updateStartAngle() {
-		startAngle = (int) (navigation.getPose().getHeading() / Math.PI * 180);
-	}
-
-	private void stop() {
-		this.leftMotor.stop();
-		this.rightMotor.stop();
 	}
 
 	/**
@@ -762,23 +716,10 @@ public class ControlRST implements IControl {
 
 	private int getPWM(double v) {
 		int pwm = 0;
-		int batteryLoadFull = 7700;
-		int batteryLoadHalf = 7500;
 		/*
 		 * TODO batteriabhŠngigkeit sollte in regWheelspeed gelšst werden
 		 */
-
-		/**
-		 * measurements for full and half load showed only small deviations in
-		 * the rise of the functions PWM(v) greater differences in PWM(omega)
-		 * power loss when battery is very low-->voltage collapses
-		 */
-		if (Battery.getVoltageMilliVolt() > batteryLoadFull) {
-			pwm = (int) (3.9 * v - 1);
-		} else if (Battery.getVoltageMilliVolt() > batteryLoadHalf) {
-			pwm = (int) (3.87 * v - 1.3);
-		} else
-			pwm = (int) (8 * v);
+		pwm = (int) (3.9 * v - 1);
 
 		return pwm;
 	}
@@ -881,12 +822,9 @@ public class ControlRST implements IControl {
 		return y;
 	}
 
-	/**
-	 * Method to reset the accumulated error in esum to zero; prevents
-	 * "overregulation" by the I-Factor
-	 */
-	private void resetIntegralPID() {
-		esum = 0;
+	private void stop() {
+		this.leftMotor.stop();
+		this.rightMotor.stop();
 	}
 
 	/**
@@ -923,7 +861,7 @@ public class ControlRST implements IControl {
 			LCD.drawString("demo2", 0, 6);
 			drive(0, 15);
 			if ((int) (navigation.getPose().getHeading() / Math.PI * 180)
-					- startAngle >= 90) {
+					- startAngleDeg >= 90) {
 				// beep twice when finished
 				Sound.systemSound(true, 1);
 				demo3 = true;
@@ -963,7 +901,7 @@ public class ControlRST implements IControl {
 			LCD.drawString("demo4", 0, 6);
 			drive(0, -30);
 			if ((int) (navigation.getPose().getHeading() / Math.PI * 180)
-					- startAngle <= -90) {
+					- startAngleDeg <= -90) {
 				// beep four times when finished
 				Sound.systemSound(true, 1);
 				Sound.systemSound(true, 1);
