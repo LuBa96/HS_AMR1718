@@ -1,10 +1,14 @@
-package parkingRobot.hsamr0;
+package parkingRobot.hsamr10;
 
 import lejos.nxt.Button;
 import lejos.nxt.MotorPort;
 import lejos.nxt.NXTMotor;
 import parkingRobot.IControl;
 import parkingRobot.IControl.*;
+import parkingRobot.hsamr10.ControlRST;
+import parkingRobot.hsamr10.HmiPLT;
+import parkingRobot.hsamr10.NavigationAT;
+import parkingRobot.hsamr10.PerceptionPMP;
 import parkingRobot.INxtHmi;
 import parkingRobot.INavigation;
 import parkingRobot.IPerception;
@@ -12,11 +16,6 @@ import parkingRobot.IMonitor;
 
 import lejos.geom.Line;
 import lejos.nxt.LCD;
-
-import parkingRobot.hsamr0.ControlRST;
-import parkingRobot.hsamr0.HmiPLT;
-import parkingRobot.hsamr0.NavigationAT;
-import parkingRobot.hsamr0.PerceptionPMP;
 
 
 /**
@@ -61,11 +60,11 @@ public class GuidanceAT {
 	/**
 	 * state in which the main finite state machine is running at the moment
 	 */
-	protected static CurrentStatus currentStatus 	= CurrentStatus.INACTIVE;
+	protected static CurrentStatus currentStatus 	= CurrentStatus.DRIVING;
 	/**
 	 * state in which the main finite state machine was running before entering the actual state
 	 */
-	protected static CurrentStatus lastStatus		= CurrentStatus.INACTIVE;
+	protected static CurrentStatus lastStatus		= CurrentStatus.DRIVING;
 	
 	
 	/**
@@ -96,7 +95,7 @@ public class GuidanceAT {
 	 * @throws Exception exception for thread management
 	 */
 	public static void main(String[] args) throws Exception {		
-        currentStatus = CurrentStatus.INACTIVE;
+        currentStatus = CurrentStatus.DRIVING;
         lastStatus    = CurrentStatus.EXIT;
 		
 		// Generate objects
@@ -215,11 +214,33 @@ public class GuidanceAT {
 	 * @param navigation reference to the navigation class for getting pose information
 	 */
 	protected static void showData(INavigation navigation, IPerception perception){
-		LCD.clear();	
+		LCD.clear();
+		LCD.drawString("xResult: " + navigation.getxResult()*100,0,0);
+		LCD.drawString("yResult: " + navigation.getyResult()*100,0,1);
+		LCD.drawString("angleResult: " + navigation.getAngleResult()/Math.PI*180,0,2);
+		LCD.drawString("SK:" + navigation.getWinkelSchonKorrigiert(),0,4);
+		navigation.ueberpruefenObAktuellInKurve();
+		LCD.drawString("In Kurve: " + navigation.getAktuellInKurve(), 0, 3);
+		LCD.drawString("RMS_angle:" + navigation.getRMS()/Math.PI*180, 0, 5);
+//		LCD.drawString("xMap: " + navigation.getxResultMap(),0,4);
+//		LCD.drawString("yMap: " + navigation.getyResultMap(),0,5);
+//		LCD.drawString("aMap:" + navigation.getAngleResultMap(),0,6);
+		LCD.drawString("Im KP:" + navigation.getAktuellenKurvenpunkt(), 0, 7);
+//		LCD.drawString("MouseX: " +  navigation.getfusionMatrixContent(1,1),0,4);
+//		LCD.drawString("MouseY: " +  navigation.getfusionMatrixContent(1,2),0,5);
+//		LCD.drawString("MouseA: " +  navigation.getfusionMatrixContent(1,3),0,6);
 		
-		LCD.drawString("X (in cm): " + (navigation.getPose().getX()*100), 0, 0);
-		LCD.drawString("Y (in cm): " + (navigation.getPose().getY()*100), 0, 1);
-		LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading()/Math.PI*180), 0, 2);
+		LCD.drawString("B:" + Integer.toString((int)perception.getBackSensorDistance()),0,3);
+//		LCD.drawString("F:" + Integer.toString((int)perception.getFrontSensorDistance()),0,4);
+//		LCD.drawString("BS:" + Integer.toString((int)perception.getBackSideSensorDistance()),0,5);
+//		LCD.drawString("FS:" + Integer.toString((int)perception.getFrontSideSensorDistance()),0,6);
+//		LCD.drawString("X:" + Integer.toString((int)perception.getUOdmometryDiffernce()),0,0);
+//		LCD.drawString("Y:" + Integer.toString((int)perception.getVOdometryDifference()),0,1);
+//		
+		
+//	LCD.drawString("X (in cm): " + (navigation.getPose().getX()*100), 0,5);
+//	LCD.drawString("Y (in cm): " + (navigation.getPose().getY()*100), 0, 6);
+//	LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading()/Math.PI*180), 0, 7);
 		
 //		perception.showSensorData();
 		
