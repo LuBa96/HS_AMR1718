@@ -105,9 +105,9 @@ public class NavigationAT implements INavigation{
 	
 	static final double DISTANCE_FrontSideSensorToRobotCenter = 2; //in cm, noch ausmessen! (TODO)
 	
-	static final double DISTANCE_BackSideSensorToRobotCenter = 2; //in cm, noch ausmessen! (TODO)
+	static final double DISTANCE_BackSideSensorToRobotCenter = 2; //in cm, noch ausmessen(TODO)!; positiv wenn Sensor vor Zentrum des Roboters ist 
 	
-	static final double DISTANCE_RobotCenterToBarrier = 15; // in cm; Wert muesste stimmen, aber nochmal ueberpruefen (TODO)
+	static final double DISTANCE_RobotCenterToBarrier = 20; // in cm; Wert muesste stimmen, aber nochmal ueberpruefen (TODO)
 	
 	/**
 	 * map array of line references, whose corresponding lines form a closed chain and represent the map of the robot course
@@ -336,8 +336,9 @@ public class NavigationAT implements INavigation{
 //		perception.getUOdmometryDiffernce();
 		this.calculateLocationUsingMouseSensor(perception.getUOdmometryDiffernce(),perception.getVOdometryDifference());
 //		this.calculateLocationUsingCompass();
-		if (this.parkingSlotDetectionIsOn)
+	/**	if (this.parkingSlotDetectionIsOn)
 				this.detectParkingSlot();
+				**/
 		
 		
 		// MONITOR (example)
@@ -515,6 +516,10 @@ public class NavigationAT implements INavigation{
 	}
 	/**Sensordaten werden mit folgenden Zeilennummern in Matrix eingetragen: Encorder (0), Maussensor (1), Kompass (2) **/
 	private void fusionOfPoseData(double s, double x, double y, double angle) {
+		
+		if (angle > 0.8*2*Math.PI) {
+			angle = angle - 2*Math.PI;
+		}
 		fusionMatrix[(int)s][0] = s;
 		fusionMatrix[(int)s][1] = x;
 		fusionMatrix[(int)s][2] = y;
@@ -542,7 +547,7 @@ public class NavigationAT implements INavigation{
 		fusionMatrix[0][3] = angleResult;
 		/**xResultMap und yResultMap werden berechnet: Auf gerader Strecke wird entsprechendes x bzw. y genullt**/
 		this.PositionFuerTabletMitPositionskorrekturAufGeraden(); // berechnet xResultMap und yResultMap
-//		this.WinkelkorrekturZwischenEcken();
+	
 		this.pose.setLocation((float)xResult, (float)yResult); //x und y werden bereits in setPoseMitPositionskorrektur gesetzt
 		this.pose.setHeading((float)angleResult);		 		
 	//	LCD.drawString("Fusinoniert: " + (this.getPose().getX()*100) + "/" + (this.getPose().getY()*100) + (this.getPose().getHeading()/Math.PI*180), 0, 4);
@@ -574,6 +579,8 @@ public class NavigationAT implements INavigation{
 					yResult = Kurvenmatrix[i][6]/100;
 					aktuellInKurve = false;
 					winkelSchonKorrigiert = false;
+					angleResultAktuellerMittelwert = 0;
+					anzahlDurchlaufeMittelwert = 1;
 					/**sobald Kurve beendet, befindet man sich optimalerweise wieder in Geradeaus-Fahrt
 					 * -> Blickrichtung koennte hier evt. korrigiert werden oder Kalibrierung fuer Kompass waere hier moeglich**/
 					
@@ -592,97 +599,83 @@ public class NavigationAT implements INavigation{
 	 * Hier soll durch Mittelwertbildung auf ca. halber Strecke der Winkel einmal um den vom Mittelwert abweichenden Wert korrigiert werden.
 	 * Das Parameter aktuellerKurvenpunkt wird deshalb verwendet, weil dieser auch nach der Kurve noch auf dem letzten Kurvenpunkt bestehen bleibt.
 	 * Dieser repraesentiert also ebenso die Strecke nach dem aktuellen Kurvenpunkt
-	 * TODO: Parameter noch soweit anpassen wie Pendelbewegung nach Kurvenausfahrt zu erkennen**/
-	
+	 * TODO: Parameter noch soweit anpassen wie Pendelbewegung nach Kurvenausfahrt zu erkennen
+	 * mindestens 15 cm, besser 20 vor Kurve aufhoeren Mittelwert zu bilden und aktuelles Heading mit Mittelwert anzupassen**/
+	// Bemerkung: Merkwuerdigerweise wurden die beiden Parameter 'angleResultAktuellerMittelwert' und 'anzahlDurchlaufeMittelwert' in der zweiten if-Schleife in jeder case Anwendung nicht korrekt gesetzt (obwohl winkelSchonKorrigiert korrekt geaendert wurde)
+	// Das Setzen der Werte der beiden Paramter wurde nun in die Methode PositionskorrekturAnEcken() verlegt. Somit werden erst an jeder Ecke die Werte gesetzt (was voellig ausreichend ist)
 	private void WinkelkorrekturZwischenEcken() {
 		switch (aktuellerKurvenpunkt) {
-		case 0: if(yResult*100 > 10 && yResult*100 < 30) {
+		case 0: if(yResult*100 > 10 && yResult*100 < 30) { //waren 10, 30
 					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
+					anzahlDurchlaufeMittelwert++;
 				}
-				if(yResult > 30 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (90 - angleResultAktuellerMittelwert/Math.PI*180);
-					angleResultAktuellerMittelwert = 0;
+				if(yResult*100 > 15 && winkelSchonKorrigiert == false) {
+					angleResult = angleResult + (90*Math.PI/180 - angleResultAktuellerMittelwert); //90 Grad muss in Einheit von angleResult geaendert werden
 					winkelSchonKorrigiert = true; //wird in PositionskorrekturAnEcken Methode auf false gesetzt
-					anzahlDurchlaufeMittelwert = 0;
 				}
-				anzahlDurchlaufeMittelwert++;
 				break;
-		case 1: if(xResult*100 < 175 && yResult*100 > 160) {
+		case 1: if(xResult*100 < 175 && xResult*100 > 170) {
 					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
+					anzahlDurchlaufeMittelwert++;
 				}
-				if(yResult < 160 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (180 - angleResultAktuellerMittelwert/Math.PI*180);
-					angleResultAktuellerMittelwert = 0;
+				if(xResult*100 < 170 && winkelSchonKorrigiert == false) {
+					angleResult = angleResult + (180*Math.PI/180 - angleResultAktuellerMittelwert);
 					winkelSchonKorrigiert = true; 
-					anzahlDurchlaufeMittelwert = 0;
 				}
-				anzahlDurchlaufeMittelwert++;
 				break;
-		case 2: if(yResult*100 < 55 && yResult*100 > 35) {
+		case 2: if(yResult*100 < 55 && yResult*100 > 50) {
 					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
+					anzahlDurchlaufeMittelwert++;
 				}
-				if(yResult < 35 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (270 - angleResultAktuellerMittelwert/Math.PI*180);
-					angleResultAktuellerMittelwert = 0;
+				if(yResult*100 < 50 && winkelSchonKorrigiert == false) {
+					angleResult = angleResult + (270*Math.PI/180 - angleResultAktuellerMittelwert);
 					winkelSchonKorrigiert = true; 
-					anzahlDurchlaufeMittelwert = 0;
 				}
-				anzahlDurchlaufeMittelwert++;
 				break;
 		case 3: if(xResult*100 < 140 && xResult*100 > 90) {
 					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
+					anzahlDurchlaufeMittelwert++;
 				}
-				if(yResult < 90 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (180 - angleResultAktuellerMittelwert/Math.PI*180);
-					angleResultAktuellerMittelwert = 0;
+				if(xResult*100 < 90 && winkelSchonKorrigiert == false) {
+					angleResult = angleResult + (180*Math.PI/180 - angleResultAktuellerMittelwert);
 					winkelSchonKorrigiert = true; 
-					anzahlDurchlaufeMittelwert = 0;
 				}
-				anzahlDurchlaufeMittelwert++;
 				break;
-		case 4: if(yResult*100 > 35 && yResult*100 < 55) {
+		case 4: if(yResult*100 > 35 && yResult*100 < 40) {
 					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
+					anzahlDurchlaufeMittelwert++;
 				}
-				if(yResult > 55 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (90 - angleResultAktuellerMittelwert/Math.PI*180);
-					angleResultAktuellerMittelwert = 0;
+				if(yResult*100 > 40 && winkelSchonKorrigiert == false) {
+					angleResult = angleResult + (90*Math.PI/180 - angleResultAktuellerMittelwert);
 					winkelSchonKorrigiert = true; 
-					anzahlDurchlaufeMittelwert = 0;
 				}
-				anzahlDurchlaufeMittelwert++;
 				break;
-		case 5: if(xResult*100 < 25 && yResult*100 > 5) {
+		case 5: if(xResult*100 < 25 && xResult*100 > 20) {
 					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
+					anzahlDurchlaufeMittelwert++;
 				}
-				if(yResult < 5 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (180 - angleResultAktuellerMittelwert/Math.PI*180);
-					angleResultAktuellerMittelwert = 0;
+				if(xResult*100 < 20 && winkelSchonKorrigiert == false) {
+					angleResult = angleResult + (180*Math.PI/180 - angleResultAktuellerMittelwert);
 					winkelSchonKorrigiert = true; 
-					anzahlDurchlaufeMittelwert = 0;
 				}
-				anzahlDurchlaufeMittelwert++;
 				break;
 		case 6: if(yResult*100 < 55 && yResult*100 > 25) {
 					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
+					anzahlDurchlaufeMittelwert++;
 				}
-				if(yResult < 25 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (270 - angleResultAktuellerMittelwert/Math.PI*180);
-					angleResultAktuellerMittelwert = 0;
+				if(yResult*100 < 25 && winkelSchonKorrigiert == false) {
+					angleResult = angleResult + (270*Math.PI/180 - angleResultAktuellerMittelwert);
 					winkelSchonKorrigiert = true; 
-					anzahlDurchlaufeMittelwert = 0;
 				}
-				anzahlDurchlaufeMittelwert++;
 				break;
-		case 7: if(xResult*100 > 30 && xResult*100 < 70) {
+		case 7: if(xResult*100 > 30 && xResult*100 < 70) { 
 					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
+					anzahlDurchlaufeMittelwert++;
 				}
-				if(yResult > 70 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (90 - angleResultAktuellerMittelwert/Math.PI*180)*Math.PI*180;
-					angleResultAktuellerMittelwert = 0;
+				if(xResult*100 > 70 && winkelSchonKorrigiert == false) {
+					angleResult = angleResult - angleResultAktuellerMittelwert;
 					winkelSchonKorrigiert = true; 
-					anzahlDurchlaufeMittelwert = 0;
 				}
-				anzahlDurchlaufeMittelwert++;
 				break;
 		}
 	}
@@ -729,7 +722,7 @@ public class NavigationAT implements INavigation{
 	public void updateRobotCloseToCurve() {								//ACHTUNG: Aktuelle Annahme -> wegen return kein break noetig
 																// TODO: Luke und Gregor sagen, dass sie mit setCloseToCurve = false
 		switch (aktuellerKurvenpunkt){ 							//geaendert zu von this.getAktullenKurvenpunkt!! -> ueberpruefen obs noch funktioniert
-		case 0: if (yResult*100 > 50) {
+		case 0: if (yResult*100 > 40) {
 					robotCloseToCurve = true;
 					break;
 				}
@@ -737,7 +730,7 @@ public class NavigationAT implements INavigation{
 					robotCloseToCurve = false;
 					break;
 				}
-		case 1: if (xResult*100 < 140) {
+		case 1: if (xResult*100 < 170) {
 					robotCloseToCurve = true;
 					break;
 				}
@@ -745,7 +738,7 @@ public class NavigationAT implements INavigation{
 					robotCloseToCurve = false;
 					break;
 				}
-		case 2:	if (yResult*100 < 40) {
+		case 2:	if (yResult*100 < 50) {
 					robotCloseToCurve = true;
 					break;
 				}
@@ -753,7 +746,7 @@ public class NavigationAT implements INavigation{
 					robotCloseToCurve = false;
 					break;
 				}
-		case 3: if (xResult*100 < 40) {
+		case 3: if (xResult*100 < 45) {
 					robotCloseToCurve = true;
 					break;
 				}
@@ -761,7 +754,7 @@ public class NavigationAT implements INavigation{
 					robotCloseToCurve = false;
 					break;
 				}
-		case 4: if (yResult*100 > 50) {
+		case 4: if (yResult*100 > 40) {
 					robotCloseToCurve = true;
 					break;
 				}
@@ -769,7 +762,7 @@ public class NavigationAT implements INavigation{
 					robotCloseToCurve = false;
 					break;
 				}
-		case 5: if (xResult*100 < 10) {
+		case 5: if (xResult*100 < 20) {
 					robotCloseToCurve = true;
 					break;
 				}
@@ -777,7 +770,7 @@ public class NavigationAT implements INavigation{
 					robotCloseToCurve = false;
 					break;
 				}
-		case 6: if (yResult*100 < 10) {
+		case 6: if (yResult*100 < 20) {
 					robotCloseToCurve = true;
 					break;
 				}
@@ -811,23 +804,20 @@ public class NavigationAT implements INavigation{
 	/** Methode zur Erkennung und Eintragung von Parkluecken in eine Datenbank
 	 * Hinweis: Methode wird nur aufgerufen falls parkingSlotDetection auf true gesetzt
 	 * Die Methode ermittelt nicht die vorderen Positionsecken der Parkluecke sondern die Positionen auf halber Tiefe in den Parkluecken!**/
-	private void detectParkingSlot(){
+	/**private void detectParkingSlot(){
 	
 		double aktuellFrontSideSensorDistance = perception.getFrontSideSensorDistance();
-		if(aktuellFrontSideSensorDistance > 15) {			//ACHTUNG: Korrekt so auf perception zuzugreifen??
+		if(aktuellFrontSideSensorDistance > 15) {			//ACHTUNG: Korrekt so auf perception zuzugreifen?? Ja muesste passen
 																	//Hier die Tiefe angeben die Parkluecke mindestens haben muss
 			switch(aktuellerKurvenpunkt) {
-			case 0: // Roboter faehrt in positive y Richtung
-					backBoundarxFrontSensor = this.pose.getX()*100 + (aktuellFrontSideSensorDistance -DISTANCE_RobotCenterToBarrier)/2; //y Position gut, fuer x Position evt. ein spaeteren Wert nehmen, da zu frueh ermittelt und evt noch an Kante
+			case 0: backBoundarxFrontSensor = this.pose.getX()*100 + DISTANCE_RobotCenterToBarrier + (aktuellFrontSideSensorDistance -DISTANCE_RobotCenterToBarrier)/2; //y Position gut, fuer x Position evt. ein spaeteren Wert nehmen, da zu frueh ermittelt und evt noch an Kante
 					backBoundaryFrontSensor = this.pose.getY()*100 + DISTANCE_FrontSideSensorToRobotCenter;
-			case 2: case 6: //Roboter faehrt in negative y Richtung
-					backBoundarxFrontSensor = this.pose.getX()*100;
-					backBoundaryFrontSensor = this.pose.getY()*100 + DISTANCE_FrontSideSensorToRobotCenter;
-			case 4: backBoundarxFrontSensor = this.pose.getX()*100 + (aktuellFrontSideSensorDistance +DISTANCE_RobotCenterToBarrier)/2; //y Position gut, fuer x Position evt. ein spaeteren Wert nehmen, da zu frueh ermittelt und evt noch an Kante
-					backBoundaryFrontSensor = this.pose.getY()*100 + DISTANCE_FrontSideSensorToRobotCenter;
-			case 1: case 3: case 5:
-					backBoundarxFrontSensor = this.pose.getX()*100 
-					backBoundaryFrontSensor = this.pose.getY()*100 + DISTANCE_FrontSideSensorToRobotCenter;
+			case 1: case 2 : case 4: case 5: case 6: //break, da es keine Parkluecken auf diesen Strecken gibt
+					break;
+			case 3: backBoundarxFrontSensor = this.pose.getX()*100 - DISTANCE_FrontSideSensorToRobotCenter;
+					backBoundaryFrontSensor = this.pose.getY()*100 + DISTANCE_RobotCenterToBarrier + (aktuellFrontSideSensorDistance -DISTANCE_RobotCenterToBarrier)/2;
+			case 7: backBoundarxFrontSensor = this.pose.getX()*100 + DISTANCE_FrontSideSensorToRobotCenter;
+					backBoundaryFrontSensor = this.pose.getY()*100 - DISTANCE_RobotCenterToBarrier - (aktuellFrontSideSensorDistance -DISTANCE_RobotCenterToBarrier)/2;
 											
 											
 											
@@ -835,7 +825,7 @@ public class NavigationAT implements INavigation{
 				
 		}
 	
-	}
+	}**/
 }
 /**TODO:
 	1. Bei setLocation xResult*100 und Winkel bereits richtig eintragen, damit Pose bereits in richtiger Einheit gespeichert wird
