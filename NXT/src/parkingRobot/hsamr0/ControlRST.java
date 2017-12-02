@@ -297,8 +297,8 @@ public class ControlRST implements IControl {
 			break;
 		case LINE_CTRL:
 			Control_Demo_1();
-			//update_LINECTRL_Parameter();
-			//exec_LINECTRL_ALGO();
+			// update_LINECTRL_Parameter();
+			// exec_LINECTRL_ALGO();
 			break;
 		case LEFT_CRV_CTRL:
 			exec_driveCurve90();
@@ -693,13 +693,13 @@ public class ControlRST implements IControl {
 		 * calculate PWM values for each wheel this is the solution WITHOUT
 		 * regulated speed control
 		 */
-//		//LCD.drawString("vRight: " + vRight, 0, 7);
-//		pwmLeft = getPWM(vLeft);
-//		pwmRight = getPWM(vRight);
-//		//LCD.drawString("pwmR: " + pwmRight, 0, 7);
-//
-//		leftMotor.setPower(pwmLeft);
-//		rightMotor.setPower(pwmRight);
+//		 //LCD.drawString("vRight: " + vRight, 0, 7);
+//		 pwmLeft = getPWM(vLeft);
+//		 pwmRight = getPWM(vRight);
+//		 //LCD.drawString("pwmR: " + pwmRight, 0, 7);
+//		
+//		 leftMotor.setPower(pwmLeft);
+//		 rightMotor.setPower(pwmRight);
 
 		/**
 		 * calculate PWM values and set speed for each wheel solution WITH
@@ -733,23 +733,21 @@ public class ControlRST implements IControl {
 		/**
 		 * get angledifference in degree and time in msec
 		 */
+
 		this.angleMeasurementLeft = this.encoderLeft.getEncoderMeasurement();
 		this.angleMeasurementRight = this.encoderRight.getEncoderMeasurement();
-		
+
 		leftAngleDiff = this.angleMeasurementLeft.getAngleSum();
 		leftAngleDiff = leftAngleDiff * Math.PI / 180;
 
-		leftDeltaTime = this.angleMeasurementLeft.getDeltaT() * 1000;
-		LCD.drawString("ang: "+leftAngleDiff, 0, 6);
-		LCD.drawString("t: "+leftDeltaTime, 0, 7);
+		leftDeltaTime = this.angleMeasurementLeft.getDeltaT();
+		leftDeltaTime = leftDeltaTime /1000;
 
-		rightDeltaTime = this.angleMeasurementRight.getDeltaT() * 1000;
-		rightAngleDiff = this.angleMeasurementRight
-				.getAngleSum();
-		rightAngleDiff = rightAngleDiff * Math.PI / 180;
-		LCD.drawString("ang: "+rightAngleDiff, 0, 8);
-		LCD.drawString("t: "+rightDeltaTime, 0, 9);
+		rightDeltaTime = this.angleMeasurementRight.getDeltaT();
+		rightDeltaTime = rightDeltaTime/1000;
 		
+		rightAngleDiff = this.angleMeasurementRight.getAngleSum();
+		rightAngleDiff = rightAngleDiff * Math.PI / 180;
 
 		/**
 		 * idea: get the average speed of the individual wheels with deltaPhi
@@ -765,6 +763,8 @@ public class ControlRST implements IControl {
 		vLeft = omegaLeft * wheelD / 2;
 		vRight = omegaRight * wheelD / 2;
 
+		LCD.drawString("vL: " + vLeft, 0, 6);
+		LCD.drawString("vR: " + vRight, 0, 7);
 		/**
 		 * Definition of control error; individual regulation of each wheel; vL
 		 * and vR are the desired values
@@ -781,8 +781,8 @@ public class ControlRST implements IControl {
 		/**
 		 * TODO : test and get fitting values for KP, KI, KD
 		 */
-		yL = 0.15 * errVLeft + 0.02 * esumL + 0.02 * (errVLeft - ealtL);
-		yR = 0.15 * errVRight + 0.02 * esumR + 0.02 * (errVRight - ealtR);
+		yL = 0.3 * errVLeft + 0.02 * esumL + 0 * (errVLeft - ealtL);
+		yR = 0.3 * errVRight + 0.02 * esumR + 0 * (errVRight - ealtR);
 
 		ealtL = errVLeft;
 		ealtR = errVRight;
@@ -799,6 +799,15 @@ public class ControlRST implements IControl {
 		pwmRight = getPWM(vRNew);
 		leftMotor.setPower(pwmLeft);
 		rightMotor.setPower(pwmRight);
+		/**
+		 * Anti-Reset-Windup
+		 */
+		if ((esumL > 10000) || (esumL < -10000))
+			resetIntegralPID();
+
+		if ((esumR > 10000) || (esumR < -10000))
+			resetIntegralPID();
+
 	}
 
 	/**
@@ -824,7 +833,7 @@ public class ControlRST implements IControl {
 		esum = esum + e;
 		y = KP * e + KI * esum * Ta + KD * (e - ealt) / Ta;
 		ealt = e;
-		//LCD.drawString("es: " + esum + " ea: " + ealt, 0, 8);
+		// LCD.drawString("es: " + esum + " ea: " + ealt, 0, 8);
 		return y;
 	}
 
@@ -845,11 +854,11 @@ public class ControlRST implements IControl {
 		/**
 		 * 120 cm with 10 cm/s straight driving
 		 */
-		//LCD.drawString("demoprog", 0, 5);
+		// LCD.drawString("demoprog", 0, 5);
 		if (demo1) {
-			//LCD.drawString("demo1", 0, 6);
-			drive(10, 0);
-			if (dis >= 100) {
+			// LCD.drawString("demo1", 0, 6);
+			drive(25, 0);
+			if (dis >= 1000) {
 				// beep once when finished
 				Sound.systemSound(true, 0);
 				demo2 = true;
@@ -864,7 +873,7 @@ public class ControlRST implements IControl {
 		 * 90 deg turn with 15deg/sec
 		 */
 		else if (demo2) {
-			//LCD.drawString("demo2", 0, 6);
+			// LCD.drawString("demo2", 0, 6);
 			drive(0, 15);
 			if ((int) (navigation.getPose().getHeading() / Math.PI * 180)
 					- startAngleDeg >= 90) {
@@ -881,13 +890,13 @@ public class ControlRST implements IControl {
 		 * 30 cm with 5 cm/s straight driving
 		 */
 		else if (demo3) {
-			//LCD.drawString("demo3", 0, 6);
+			// LCD.drawString("demo3", 0, 6);
 			drive(5, 0);
 			double xMomentary = navigation.getPose().getX() * 100;
 			double yMomentary = navigation.getPose().getY() * 100;
 			double disMomentary = Math.sqrt(Math.pow((xMomentary - startX), 2)
 					+ Math.pow((yMomentary - startY), 2));
-			//LCD.drawString("dis: " + disMomentary, 0, 7);
+			// LCD.drawString("dis: " + disMomentary, 0, 7);
 			if (disMomentary >= 30) {
 				// beep three times when finished
 				Sound.systemSound(true, 0);
@@ -904,7 +913,7 @@ public class ControlRST implements IControl {
 		 * -90 deg turn with 15deg/sec
 		 */
 		else if (demo4) {
-			//LCD.drawString("demo4", 0, 6);
+			// LCD.drawString("demo4", 0, 6);
 			drive(0, -30);
 			if ((int) (navigation.getPose().getHeading() / Math.PI * 180)
 					- startAngleDeg <= -90) {
@@ -919,7 +928,7 @@ public class ControlRST implements IControl {
 		 * linecontrol
 		 */
 		else if (demo5) {
-			//LCD.drawString("demo5", 0, 6);
+			// LCD.drawString("demo5", 0, 6);
 			exec_LINECTRL_ALGO();
 			demo1 = true;
 			// demo5 = false;
