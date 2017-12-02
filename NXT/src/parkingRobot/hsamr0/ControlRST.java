@@ -297,8 +297,8 @@ public class ControlRST implements IControl {
 			break;
 		case LINE_CTRL:
 			Control_Demo_1();
-			// update_LINECTRL_Parameter();
-			// exec_LINECTRL_ALGO();
+			 //update_LINECTRL_Parameter();
+			 //exec_LINECTRL_ALGO();
 			break;
 		case LEFT_CRV_CTRL:
 			exec_driveCurve90();
@@ -384,7 +384,7 @@ public class ControlRST implements IControl {
 	}
 
 	/**
-	 * The car can be driven with velocity in m/s or angular velocity in grade
+	 * The car can be driven with velocity in m/s or angular velocity in degree
 	 * during VW Control Mode optionally one of them could be set to zero for
 	 * simple test.
 	 */
@@ -671,7 +671,7 @@ public class ControlRST implements IControl {
 		 */
 		else if (v == 0) {
 			// middle of the robot = center of rotation
-			speed = omega * ((2 * Math.PI) / 360) * width / 2;
+			speed = omega * (Math.PI / 180) * width / 2;
 			vLeft = -speed;
 			vRight = speed;
 		}
@@ -693,13 +693,13 @@ public class ControlRST implements IControl {
 		 * calculate PWM values for each wheel this is the solution WITHOUT
 		 * regulated speed control
 		 */
-//		 //LCD.drawString("vRight: " + vRight, 0, 7);
-//		 pwmLeft = getPWM(vLeft);
-//		 pwmRight = getPWM(vRight);
-//		 //LCD.drawString("pwmR: " + pwmRight, 0, 7);
-//		
-//		 leftMotor.setPower(pwmLeft);
-//		 rightMotor.setPower(pwmRight);
+		// //LCD.drawString("vRight: " + vRight, 0, 7);
+		// pwmLeft = getPWM(vLeft);
+		// pwmRight = getPWM(vRight);
+		// //LCD.drawString("pwmR: " + pwmRight, 0, 7);
+		//
+		// leftMotor.setPower(pwmLeft);
+		// rightMotor.setPower(pwmRight);
 
 		/**
 		 * calculate PWM values and set speed for each wheel solution WITH
@@ -718,10 +718,10 @@ public class ControlRST implements IControl {
 
 	private int getPWM(double v) {
 		int pwm = 0;
-		/*
-		 * TODO batteriabhŠngigkeit sollte in regWheelspeed gelšst werden
+		/**
+		 * 
 		 */
-		pwm = (int) (3.9 * v - 1);
+		pwm = (int) (3.9 * v - 1)/2;
 
 		return pwm;
 	}
@@ -741,13 +741,14 @@ public class ControlRST implements IControl {
 		leftAngleDiff = leftAngleDiff * Math.PI / 180;
 
 		leftDeltaTime = this.angleMeasurementLeft.getDeltaT();
-		leftDeltaTime = leftDeltaTime /1000;
-
-		rightDeltaTime = this.angleMeasurementRight.getDeltaT();
-		rightDeltaTime = rightDeltaTime/1000;
+		leftDeltaTime = leftDeltaTime / 1000;
 		
 		rightAngleDiff = this.angleMeasurementRight.getAngleSum();
 		rightAngleDiff = rightAngleDiff * Math.PI / 180;
+
+		rightDeltaTime = this.angleMeasurementRight.getDeltaT();
+		rightDeltaTime = rightDeltaTime / 1000;
+
 
 		/**
 		 * idea: get the average speed of the individual wheels with deltaPhi
@@ -781,8 +782,8 @@ public class ControlRST implements IControl {
 		/**
 		 * TODO : test and get fitting values for KP, KI, KD
 		 */
-		yL = 0.3 * errVLeft + 0.02 * esumL + 0 * (errVLeft - ealtL);
-		yR = 0.3 * errVRight + 0.02 * esumR + 0 * (errVRight - ealtR);
+		yL = 0.5 * errVLeft + 0.15 * esumL + 0 * (errVLeft - ealtL);
+		yR = 0.5 * errVRight + 0.15 * esumR + 0 * (errVRight - ealtR);
 
 		ealtL = errVLeft;
 		ealtR = errVRight;
@@ -802,11 +803,11 @@ public class ControlRST implements IControl {
 		/**
 		 * Anti-Reset-Windup
 		 */
-		if ((esumL > 10000) || (esumL < -10000))
-			resetIntegralPID();
+		if ((esumL > 1500) || (esumL < -1500))
+			esumL=0;
 
-		if ((esumR > 10000) || (esumR < -10000))
-			resetIntegralPID();
+		if ((esumR > 1500) || (esumR < -1500))
+			esumR=0;
 
 	}
 
@@ -857,8 +858,8 @@ public class ControlRST implements IControl {
 		// LCD.drawString("demoprog", 0, 5);
 		if (demo1) {
 			// LCD.drawString("demo1", 0, 6);
-			drive(25, 0);
-			if (dis >= 1000) {
+			drive(10, 0);
+			if (dis >= 100) {
 				// beep once when finished
 				Sound.systemSound(true, 0);
 				demo2 = true;
@@ -866,6 +867,11 @@ public class ControlRST implements IControl {
 				// startAngle = (int) (navigation.getPose().getHeading() /
 				// Math.PI * 180);
 				updateStartAngle();
+				leftMotor.stop();
+				rightMotor.stop();
+				//reset esumL and esumR, otherwise the accumulated error for straight driving would be used for turning
+				esumL=0;
+				esumR=0;
 			}
 		}
 
@@ -874,15 +880,20 @@ public class ControlRST implements IControl {
 		 */
 		else if (demo2) {
 			// LCD.drawString("demo2", 0, 6);
-			drive(0, 15);
+			drive(0, 30);
 			if ((int) (navigation.getPose().getHeading() / Math.PI * 180)
-					- startAngleDeg >= 90) {
+					- startAngleDeg >= 180) {
 				// beep twice when finished
 				Sound.systemSound(true, 1);
 				demo3 = true;
 				demo2 = false;
 				startX = navigation.getPose().getX() * 100;
 				startY = navigation.getPose().getY() * 100;
+				leftMotor.stop();
+				rightMotor.stop();
+				//reset esumL and esumR, otherwise the accumulated error for straight driving would be used for turning
+				esumL=0;
+				esumR=0;
 			}
 		}
 
@@ -906,6 +917,11 @@ public class ControlRST implements IControl {
 				// startAngle = (int) (navigation.getPose().getHeading() /
 				// Math.PI * 180);
 				updateStartAngle();
+				leftMotor.stop();
+				rightMotor.stop();
+				//reset esumL and esumR, otherwise the accumulated error for straight driving would be used for turning
+				esumL=0;
+				esumR=0;
 			}
 		}
 
@@ -914,7 +930,7 @@ public class ControlRST implements IControl {
 		 */
 		else if (demo4) {
 			// LCD.drawString("demo4", 0, 6);
-			drive(0, -30);
+			drive(0, -60);
 			if ((int) (navigation.getPose().getHeading() / Math.PI * 180)
 					- startAngleDeg <= -90) {
 				// beep four times when finished
@@ -922,6 +938,11 @@ public class ControlRST implements IControl {
 				Sound.systemSound(true, 1);
 				demo5 = true;
 				demo4 = false;
+				leftMotor.stop();
+				rightMotor.stop();
+				//reset esumL and esumR, otherwise the accumulated error for straight driving would be used for turning
+				esumL=0;
+				esumR=0;
 			}
 		}
 		/**
