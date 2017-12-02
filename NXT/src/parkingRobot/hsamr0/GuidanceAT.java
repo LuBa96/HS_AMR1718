@@ -216,6 +216,15 @@ public class GuidanceAT {
 	 * to park.
 	 */
 	static boolean offTrack = false;
+	/**
+	 * This tells us how far away from the mapGoal the robot will stop and start
+	 * following a path into a parking slot. Needs to be tested.
+	 */
+	static double mapGoalDist = 15;
+	/**
+	 * This array holds the coefficients of the path polynomial 
+	 */
+	static double[] coEffs;
 
 	/**
 	 * main method of project 'ParkingRobot'
@@ -325,8 +334,26 @@ public class GuidanceAT {
 			// while action
 			{
 				// execute sub-state machine
-				parkThisSubStateMachine();
+				parkThisSubStateMachine(control, navigation);
 			}
+
+				// state transition
+				lastStatus = currentStatus;
+				if (hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE) {
+					currentStatus = CurrentStatus.INACTIVE;
+				} else if (Button.ENTER.isDown()) {
+					currentStatus = CurrentStatus.INACTIVE;
+					while (Button.ENTER.isDown()) {
+						Thread.sleep(1);
+					} // wait for button release
+				} else if (Button.ESCAPE.isDown()) {
+					currentStatus = CurrentStatus.EXIT;
+					while (Button.ESCAPE.isDown()) {
+						Thread.sleep(1);
+					} // wait for button release
+				} else if (hmi.getMode() == parkingRobot.INxtHmi.Mode.DISCONNECT) {
+					currentStatus = CurrentStatus.EXIT;
+				}
 
 				// leave action
 				if (currentStatus != lastStatus) {
@@ -487,6 +514,7 @@ public class GuidanceAT {
 
 			// into action
 			if (lastLineStatus != currLineStatus) {
+				control.updateStartAngle();
 				control.setCtrlMode(ControlMode.RIGHT_CRV_CTRL);
 			}
 
@@ -511,6 +539,7 @@ public class GuidanceAT {
 
 			// into action
 			if (lastLineStatus != currLineStatus) {
+				control.updateStartAngle();
 				control.setCtrlMode(ControlMode.LEFT_CRV_CTRL);
 			}
 
@@ -566,15 +595,66 @@ public class GuidanceAT {
 		}
 	}
 
-	private static void parkThisSubStateMachine() {
+	private static void parkThisSubStateMachine(IControl control, INavigation navigation) {
 		switch (currParkStatus) {
 		case PARK_LINE_FOLLOW:
+			// into action
+			if (lastParkStatus != currParkStatus) {
+				// this does not need to be here because of the transition check in the
+				// SubStateMachine, but this way we save the time of one cycle
+				if (offTrack)
+					currLineStatus = CurrentLineStatus.FOLLOW_LINE_OFF;
+				else
+					currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
+			}
+
+			// while action
+			followLineSubStateMachine(control);
+
+			// state transition
+			lastParkStatus = currParkStatus;
+			if (navigation.getPose().getLocation().distance(mapGoal) <= mapGoalDist) {
+				currParkStatus = CurrentParkStatus.PARK_PATH_FOLLOW;
+			}
+
+			// leaving action
+			if (currParkStatus != lastParkStatus) {
+				// stop the robot(may not be needed)
+				control.setCtrlMode(ControlMode.INACTIVE);
+				// deactivate the underlying state machine
+				currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+				lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+			}
 			break;
 		case PARK_PATH_FOLLOW:
+			// into action
+			if(lastParkStatus != currParkStatus) {
+				coEffs = setPolynomial(navigation.getPose().getLocation(), slotGoal);
+			}
+
+			// while action
+
+			// state transition
+
+			// leaving action
 			break;
 		case PARK_CORRECTING:
+			// into action
+
+			// while action
+
+			// state transition
+
+			// leaving action
 			break;
 		case PARK_INACTIVE:
+			// into action
+
+			// while action
+
+			// state transition
+
+			// leaving action
 			break;
 		}
 	}
@@ -610,5 +690,9 @@ public class GuidanceAT {
 		vectorR1 = vectorR0.projectOn(map[lineNo]);
 		vectorR2 = map[lineNo].getP1().add(vectorR1);
 		return vectorR2;
+	}
+	private static double[] setPolynomial(Point startPoint, Point endPoint) {
+		double a,b,c,d = 0;	
+		return null;
 	}
 }
