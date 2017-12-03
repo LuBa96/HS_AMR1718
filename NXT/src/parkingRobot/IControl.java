@@ -117,15 +117,61 @@ public interface IControl {
 	 */
 	public void exec_CTRL_ALGO();
 	
+	/**
+	 * 
+	 * @return true if robot has detected a turn
+	 */
 	public boolean getCurveMode();
 
+	/**
+	 * method for straight-turn transition
+	 * @return true if robot has detected a left turn
+	 */
 	public boolean getLeftTurn();
 
+	/**
+	 * method for straight-turn transition
+	 * @return true if robot has detected a right turn
+	 */
 	public boolean getRightTurn();
 
+	/**
+	 * save momentary heading in variable for angle calculation
+	 */
 	public void updateStartAngle();
 	
+	/**
+	 * save momentary position for path
+	 */
+	public void updateStartX();
+
+	/**
+	 * save momentary position for path
+	 */
+	public void updateStartY();
+
+	/**
+	 * set final position
+	 * @param x of target position
+	 */
+	public void setEndX(double x);
+	
+	/**
+	 * set final position
+	 * @param y of target position
+	 */
+	public void setEndY(double y);
+	
+	/**
+	 * reset accumulated error for PID calculations
+	 */
 	public void resetIntegralPID();
+	
+	/**
+	 * reset accumulated error for RWD calculations
+	 * RWD=regulated Wheel Control
+	 */
+	public void resetIntegralRWD();
 
 }
 
