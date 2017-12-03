@@ -435,13 +435,20 @@ public class ControlRST implements IControl {
 	 */
 	private void exec_SETPOSE_ALGO() {
 
-		xRotKOS = (navigation.getPose().getX() * 100)
-				/ Math.cos(startAngleDeg * Math.PI / 180);
-		/*
-		 * turn KOS so yRotKOS is allways the deviation from the straight way
+		/**
+		 * x'=x*cos(phi)+y*sin(phi)
 		 */
-		yRotKOS = (navigation.getPose().getY() * 100)
-				/ Math.sin(startAngleDeg * Math.PI / 180);
+		xRotKOS = ((navigation.getPose().getX() * 100) * Math.cos(startAngleDeg
+				* Math.PI / 180))
+				+ ((navigation.getPose().getY() * 100) * Math.sin(startAngleDeg
+						* Math.PI / 180));
+		/**
+		 * y'=-x*sin(phi)+y*cos(phi)
+		 */
+		yRotKOS = ((navigation.getPose().getY() * 100) * Math.cos(startAngleDeg
+				* Math.PI / 180))
+				- ((navigation.getPose().getX() * 100) * Math.sin(startAngleDeg
+						* Math.PI / 180));
 
 		/*
 		 * PD-Control yRotKOS should be zero
@@ -574,24 +581,25 @@ public class ControlRST implements IControl {
 		 * lower threshold for exiting the boolTurn mode continue in boolTurn
 		 * mode
 		 */
-		
-		 if ((!(boolTurn)) && ((e > upperThreshold) || (e < -upperThreshold)))
-		 { /** State Transition: straight --> curve
-		 */
 
-		if (e < 0) {
-			boolTurnR = true;
-			boolTurnL = false;
-		} else if (e > 0) {
-			boolTurnL = true;
-			boolTurnR = false;
-		}
-		boolTurn = true;
-		}
+		if ((!(boolTurn)) && ((e > upperThreshold) || (e < -upperThreshold))) {
 			/**
-			 * regular straight driving mode KP = 0.1 KI = 0.002 KD = 0.06
+			 * State Transition: straight --> curve
 			 */
-			y = PID_control(e, 0.1, 0.002, 0.06, 1);
+
+			if (e < 0) {
+				boolTurnR = true;
+				boolTurnL = false;
+			} else if (e > 0) {
+				boolTurnL = true;
+				boolTurnR = false;
+			}
+			boolTurn = true;
+		}
+		/**
+		 * regular straight driving mode KP = 0.1 KI = 0.002 KD = 0.06
+		 */
+		y = PID_control(e, 0.1, 0.002, 0.06, 1);
 
 		/**
 		 * correction to the right side
@@ -624,7 +632,7 @@ public class ControlRST implements IControl {
 		 */
 		if ((esum > 10000) || (esum < -10000))
 			resetIntegralPID();
-		
+
 	}
 
 	/*
@@ -665,7 +673,7 @@ public class ControlRST implements IControl {
 		switch (currentCTRLMODE) {
 		case LEFT_CRV_CTRL:
 			if ((angleDeg - startAngleDeg) <= 90) {
-					drive(0, 45);
+				drive(0, 45);
 			} else {
 				boolTurn = false;
 				boolTurnL = false;
