@@ -95,7 +95,10 @@ public interface IControl {
 	 */	
 	public void setPose(Pose currentPosition); 	
 	
-
+	/**
+	 * update start position for angledifference and distance calculation
+	 */
+	public void updateStartPose();
 	
 	
 	/**
@@ -135,33 +138,7 @@ public interface IControl {
 	 */
 	public boolean getRightTurn();
 
-	/**
-	 * save momentary heading in variable for angle calculation
-	 */
-	public void updateStartAngle();
-	
-	/**
-	 * save momentary position for path
-	 */
-	public void updateStartX();
 
-	/**
-	 * save momentary position for path
-	 */
-	public void updateStartY();
-
-	/**
-	 * set final position
-	 * @param x of target position
-	 */
-	public void setEndX(double x);
-	
-	/**
-	 * set final position
-	 * @param y of target position
-	 */
-	public void setEndY(double y);
-	
 	/**
 	 * reset accumulated error for PID calculations
 	 */
@@ -172,6 +149,10 @@ public interface IControl {
 	 * RWD=regulated Wheel Control
 	 */
 	public void resetIntegralRWD();
+	
+	
+	public double getYstrich();
+	public double getXstrich();
 
 }
 

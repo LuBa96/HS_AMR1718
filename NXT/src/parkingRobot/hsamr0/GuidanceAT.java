@@ -246,7 +246,7 @@ public class GuidanceAT {
 		monitor.startLogging();
 
 		while (true) {
-			showData(navigation, perception);
+			showData(navigation, perception, control);
 
 			switch (currentStatus) {
 			case SCOUT:
@@ -433,15 +433,15 @@ public class GuidanceAT {
 	 * @param navigation
 	 *            reference to the navigation class for getting pose information
 	 */
-	protected static void showData(INavigation navigation, IPerception perception) {
+	protected static void showData(INavigation navigation, IPerception perception, IControl control) {
 		LCD.clear();
 
 		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0, 0);
 		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0, 1);
 		LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
 
-		LCD.drawString("left: " + (perception.getLeftLineSensorValue()), 0, 3);
-		LCD.drawString("right: " + (perception.getRightLineSensorValue()), 0, 4);
+		LCD.drawString("Y': " + (control.getYstrich()), 0, 4);
+		LCD.drawString("X': " + (control.getXstrich()), 0, 3);
 		// perception.showSensorData();
 
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
@@ -471,15 +471,11 @@ public class GuidanceAT {
 			// state transitions
 			lastLineStatus = currLineStatus;
 			if (control.getRightTurn()) {
-				control.updateStartAngle();
-				control.updateStartX();
-				control.updateStartY();
+				control.updateStartPose();
 				control.resetIntegralRWD();
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_RIGHT;
 			} else if (control.getLeftTurn()) {
-				control.updateStartX();
-				control.updateStartY();
-				control.updateStartAngle();
+				control.updateStartPose();
 				control.resetIntegralRWD();
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_LEFT;
 			}

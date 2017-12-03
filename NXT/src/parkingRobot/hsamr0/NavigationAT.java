@@ -676,10 +676,10 @@ public class NavigationAT implements INavigation {
 		 * Hier wird an der aktuellen Pose immer dann eine Korrektur
 		 * vorgenommen, wenn sich der Roboter an einer Ecke befindet
 		 */
-		this.ueberpruefenObAktuellInKurve(); // setzt aktuellInKurve auf true
-												// oder false
-		this.PositionskorrekturAnEcken();
-		this.WinkelkorrekturZwischenEcken();
+//		this.ueberpruefenObAktuellInKurve(); // setzt aktuellInKurve auf true
+//												// oder false
+//		this.PositionskorrekturAnEcken();
+//		this.WinkelkorrekturZwischenEcken();
 
 		/**
 		 * Fusionierte Position soll die Eckenkorrektur uebernehmen, diese wird
