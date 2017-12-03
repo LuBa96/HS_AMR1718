@@ -470,10 +470,17 @@ public class GuidanceAT {
 
 			// state transitions
 			lastLineStatus = currLineStatus;
-
 			if (control.getRightTurn()) {
+				control.updateStartAngle();
+				control.updateStartX();
+				control.updateStartY();
+				control.resetIntegralRWD();
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_RIGHT;
 			} else if (control.getLeftTurn()) {
+				control.updateStartX();
+				control.updateStartY();
+				control.updateStartAngle();
+				control.resetIntegralRWD();
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_LEFT;
 			}
 
