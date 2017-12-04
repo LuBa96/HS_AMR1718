@@ -76,7 +76,7 @@ public class ControlRST implements IControl {
 	Pose destination = new Pose();
 
 	ControlMode currentCTRLMODE = null;
-	
+
 	EncoderSensor controlRightEncoder = null;
 	EncoderSensor controlLeftEncoder = null;
 
@@ -99,6 +99,7 @@ public class ControlRST implements IControl {
 	int grey = 0;
 	int lowerThreshold = 20;
 	int maxPower = 0;
+	int counter=0;
 
 	/**
 	 * distinguish between straight driving and curving. PID optimized for
@@ -195,8 +196,8 @@ public class ControlRST implements IControl {
 		ealt = 0;
 		ealtL = 0;
 		ealtR = 0;
-		upperThreshold = 85;
-		maxPower = 100;
+		upperThreshold = 70;
+		maxPower = 80;
 
 		/**
 		 * distinguish between straight driving and curving. PID optimized for
@@ -314,12 +315,14 @@ public class ControlRST implements IControl {
 			Control_Demo_2();
 			break;
 		case LINE_CTRL:
-			navigation.setOffTrack(true);
 			update_SETPOSE_Parameter();
-			//update_LINECTRL_Parameter();
-			exec_SETPOSE_ALGO();
-			LCD.drawString("x': " + xRotKOS, 0, 6);
-			LCD.drawString("y': " + yRotKOS, 0, 7);
+			update_LINECTRL_Parameter();
+			Control_Demo_1();
+			// update_SETPOSE_Parameter();
+			// update_LINECTRL_Parameter();
+			// exec_SETPOSE_ALGO();
+			// LCD.drawString("x': " + xRotKOS, 0, 6);
+			// LCD.drawString("y': " + yRotKOS, 0, 7);
 			//exec_LINECTRL_ALGO();
 			break;
 		case LEFT_CRV_CTRL:
@@ -362,11 +365,16 @@ public class ControlRST implements IControl {
 		return boolTurnR;
 	}
 
-	public double getXstrich(){
+	public double getXstrich() {
 		return xRotKOS;
 	}
-	public double getYstrich(){
+
+	public double getYstrich() {
 		return yRotKOS;
+	}
+
+	public double getesum() {
+		return esum;
 	}
 
 	/**
@@ -400,7 +408,7 @@ public class ControlRST implements IControl {
 	 */
 	private void update_SETPOSE_Parameter() {
 		setPose(navigation.getPose());
-		
+
 	}
 
 	/**
@@ -441,38 +449,31 @@ public class ControlRST implements IControl {
 	 */
 	private void exec_SETPOSE_ALGO() {
 		double y;
-		double ps; //StreckenŸbertragungsfunktion
 		double vo = 20;
 		/**
 		 * x'=x*cos(phi)+y*sin(phi)
 		 */
-		xRotKOS = (this.currentPosition.getX() * 100) * Math.cos(0)
-				+ (this.currentPosition.getY() * 100) * Math.sin(0);
-		
+		xRotKOS = (this.currentPosition.getX() * 100) * Math.cos(10)
+				+ (this.currentPosition.getY() * 100) * Math.sin(10);
+
 		/**
 		 * y'=-x*sin(phi)+y*cos(phi)
 		 */
-		yRotKOS = (this.currentPosition.getY() * 100) * Math.cos(0)
-				- (this.currentPosition.getX() * 100) * Math.sin(0);
+		yRotKOS = (this.currentPosition.getY() * 100) * Math.cos(10)
+				- (this.currentPosition.getX() * 100) * Math.sin(10);
 
-		/**
-		 * second derivate of yRotKOS multiplied with v_0 equals w
-		 * omega
-		 * root locus showed stable behavior for PD and PID
-		 */
-		lastError = yRotKOS - lastError;
-		lastLastError = lastError - lastLastError;
-		
-		ps = lastLastError/(0.1 * 0.1) / vo; //dyRotKOS)^2/dt^2 /vo = omega
-		errYSum =errYSum+yRotKOS;
-		y = ps * (0.01 * yRotKOS + 0.002 * errYSum + 0.01 * lastError);
-		drive(vo,y);
-		
+		errYAlt = yRotKOS - errYAlt;
+
+		y = 0.2 * yRotKOS + 0.00 * errYSum + 0.02 * lastError;
+		drive(vo, -y);
+
+		errYSum = errYSum + yRotKOS;
+
 		/*
 		 * 
 		 */
-		//guideLine = new Line((float) startX, (float) startY, (float) endX,
-		//		(float) endY);
+		// guideLine = new Line((float) startX, (float) startY, (float) endX,
+		// (float) endY);
 
 	}
 
@@ -595,12 +596,16 @@ public class ControlRST implements IControl {
 		 * lower threshold for exiting the boolTurn mode continue in boolTurn
 		 * mode
 		 */
+		if (counter > 0)
+		{
+			counter=counter-1;
+		}
 
 		if ((!(boolTurn)) && ((e > upperThreshold) || (e < -upperThreshold))) {
 			/**
 			 * State Transition: straight --> curve
 			 */
-
+			if (counter <= 0){
 			if (e < 0) {
 				boolTurnR = true;
 				boolTurnL = false;
@@ -609,6 +614,9 @@ public class ControlRST implements IControl {
 				boolTurnR = false;
 			}
 			boolTurn = true;
+			counter = 14;
+			}
+		
 		}
 		/**
 		 * regular straight driving mode KP = 0.1 KI = 0.002 KD = 0.06
@@ -678,6 +686,7 @@ public class ControlRST implements IControl {
 	 *            > 0 right curve
 	 */
 	private void exec_driveCurve90() {
+		Sound.setVolume(25);
 		double xMomentary = this.currentPosition.getX() * 100;
 		double yMomentary = this.currentPosition.getY() * 100;
 		angleDeg = (int) (this.currentPosition.getHeading() / Math.PI * 180);
@@ -686,8 +695,9 @@ public class ControlRST implements IControl {
 		// left curve
 		switch (currentCTRLMODE) {
 		case LEFT_CRV_CTRL:
-			if ((angleDeg - startAngleDeg) <= 90) {
-				drive(0, 45);
+			if ((angleDeg - startAngleDeg) <= 80) {
+				drive(Math.PI, 40);
+				Sound.buzz();
 			} else {
 				boolTurn = false;
 				boolTurnL = false;
@@ -697,9 +707,9 @@ public class ControlRST implements IControl {
 			break;
 		// right curve
 		case RIGHT_CRV_CTRL:
-			if ((angleDeg - startAngleDeg) >= -90) {
-				if (disMomentary <= 10)
-					drive(0, -45);
+			if ((angleDeg - startAngleDeg) >= -80) {
+				drive(Math.PI, -40);
+				Sound.buzz();
 			} else {
 				boolTurn = false;
 				boolTurnR = false;
@@ -832,8 +842,8 @@ public class ControlRST implements IControl {
 		vLeft = omegaLeft * wheelD / 2;
 		vRight = omegaRight * wheelD / 2;
 
-		//LCD.drawString("vL: " + vLeft, 0, 6);
-		//LCD.drawString("vR: " + vRight, 0, 7);
+		// LCD.drawString("vL: " + vLeft, 0, 6);
+		// LCD.drawString("vR: " + vRight, 0, 7);
 		/**
 		 * Definition of control error; individual regulation of each wheel; vL
 		 * and vR are the desired values
@@ -999,8 +1009,10 @@ public class ControlRST implements IControl {
 		else if (demo4) {
 			// LCD.drawString("demo4", 0, 6);
 			drive(0, -30);
-			LCD.drawString("c: "+((this.currentPosition.getHeading() / Math.PI * 180)), 0, 6);
-			LCD.drawString("s: "+startAngleDeg, 0, 7);
+			LCD.drawString("c: "
+					+ ((this.currentPosition.getHeading() / Math.PI * 180)), 0,
+					6);
+			LCD.drawString("s: " + startAngleDeg, 0, 7);
 			if ((int) (this.currentPosition.getHeading() / Math.PI * 180)
 					- startAngleDeg <= -90) {
 				// beep four times when finished

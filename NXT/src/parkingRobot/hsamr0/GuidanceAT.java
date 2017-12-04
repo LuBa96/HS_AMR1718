@@ -54,12 +54,14 @@ import parkingRobot.hsamr0.PerceptionPMP;
 public class GuidanceAT {
 
 	/**
-	 * states for the main finite state machine. This main states are requirements
-	 * because they invoke different display modes in the human machine interface.
+	 * states for the main finite state machine. This main states are
+	 * requirements because they invoke different display modes in the human
+	 * machine interface.
 	 */
 	public enum CurrentStatus {
 		/**
-		 * Indicates that robot is following the line and detecting parking slots
+		 * Indicates that robot is following the line and detecting parking
+		 * slots
 		 */
 		SCOUT,
 		/**
@@ -67,8 +69,8 @@ public class GuidanceAT {
 		 */
 		PARK_THIS,
 		/**
-		 * Indicates the robot is performing a demo as part of the assignment for
-		 * control
+		 * Indicates the robot is performing a demo as part of the assignment
+		 * for control
 		 */
 		DEMO,
 		/**
@@ -86,8 +88,8 @@ public class GuidanceAT {
 	 */
 	public enum CurrentLineStatus {
 		/**
-		 * Indicates the robot is following the line in a straight manner and there is
-		 * no turn
+		 * Indicates the robot is following the line in a straight manner and
+		 * there is no turn
 		 */
 		FOLLOW_LINE_STRAIGHT,
 		/**
@@ -113,10 +115,11 @@ public class GuidanceAT {
 	 */
 	public enum CurrentParkStatus {
 		/**
-		 * Indicates the robot is driving along the line until destination is reached.
-		 * This uses the four states of FOLLOW_LINE, but additionally checks whether a
-		 * certain point on the map is reached, and if so, continues to drive into the
-		 * parking slot following the path given by the path generator
+		 * Indicates the robot is driving along the line until destination is
+		 * reached. This uses the four states of FOLLOW_LINE, but additionally
+		 * checks whether a certain point on the map is reached, and if so,
+		 * continues to drive into the parking slot following the path given by
+		 * the path generator
 		 */
 		PARK_LINE_FOLLOW,
 		/**
@@ -124,8 +127,9 @@ public class GuidanceAT {
 		 */
 		PARK_PATH_FOLLOW,
 		/**
-		 * Indicates the robot is correcting its position while already in the parking
-		 * slot. Maybe we will need to seperate this into smaller steps/states.
+		 * Indicates the robot is correcting its position while already in the
+		 * parking slot. Maybe we will need to seperate this into smaller
+		 * steps/states.
 		 */
 		PARK_CORRECTING,
 		/**
@@ -147,8 +151,8 @@ public class GuidanceAT {
 	 */
 	protected static CurrentParkStatus currParkStatus = CurrentParkStatus.PARK_INACTIVE;
 	/**
-	 * state in which the main finite state machine was running before entering the
-	 * actual state
+	 * state in which the main finite state machine was running before entering
+	 * the actual state
 	 */
 	protected static CurrentStatus lastStatus = CurrentStatus.INACTIVE;
 	/**
@@ -162,9 +166,9 @@ public class GuidanceAT {
 
 	/**
 	 * one line of the map of the robot course. The course consists of a closed
-	 * chain of straight lines. Thus every next line starts where the last line ends
-	 * and the last line ends where the first line starts. This documentation for
-	 * line0 hold for all lines.
+	 * chain of straight lines. Thus every next line starts where the last line
+	 * ends and the last line ends where the first line starts. This
+	 * documentation for line0 hold for all lines.
 	 */
 	static Line line0 = new Line(0, 0, 180, 0);
 	static Line line1 = new Line(180, 0, 180, 60);
@@ -175,26 +179,27 @@ public class GuidanceAT {
 	static Line line6 = new Line(30, 60, 0, 60);
 	static Line line7 = new Line(0, 60, 0, 0);
 	/**
-	 * map of the robot course. The course consists of a closed chain of straight
-	 * lines. Thus every next line starts where the last line ends and the last line
-	 * ends where the first line starts. All above defined lines are bundled in this
-	 * array and to form the course map.
+	 * map of the robot course. The course consists of a closed chain of
+	 * straight lines. Thus every next line starts where the last line ends and
+	 * the last line ends where the first line starts. All above defined lines
+	 * are bundled in this array and to form the course map.
 	 */
-	static Line[] map = { line0, line1, line2, line3, line4, line5, line6, line7 };
+	static Line[] map = { line0, line1, line2, line3, line4, line5, line6,
+			line7 };
 
 	/**
-	 * Point on the line-map the robot has to go in order to park, polynomial starts
-	 * from around here.
+	 * Point on the line-map the robot has to go in order to park, polynomial
+	 * starts from around here.
 	 */
 	static Point mapGoal;
 	/**
-	 * The point in the center of the ParkingSlot, also the point the robot ends up
-	 * by parking
+	 * The point in the center of the ParkingSlot, also the point the robot ends
+	 * up by parking
 	 */
 	static Point slotGoal;
 	/**
-	 * Vector from the back to the front of the ParkingSlot, important in order to
-	 * find the slotGoal and the goalPose.
+	 * Vector from the back to the front of the ParkingSlot, important in order
+	 * to find the slotGoal and the goalPose.
 	 */
 	static Point slotDir;
 	/**
@@ -210,12 +215,14 @@ public class GuidanceAT {
 	 */
 	static Pose goalPose;
 	/**
-	 * This tells us whether the robot should be off the line-map. This is important
-	 * for determining which SCOUT sub-state has to be entered. It only gets set to
-	 * true when the robot purposefully leaves the track, which happens when we want
-	 * to park.
+	 * This tells us whether the robot should be off the line-map. This is
+	 * important for determining which SCOUT sub-state has to be entered. It
+	 * only gets set to true when the robot purposefully leaves the track, which
+	 * happens when we want to park.
 	 */
 	static boolean offTrack = false;
+	static long lastTime=0;
+	static long currTime=0;
 
 	/**
 	 * main method of project 'ParkingRobot'
@@ -236,11 +243,13 @@ public class GuidanceAT {
 
 		IMonitor monitor = new Monitor();
 
-		IPerception perception = new PerceptionPMP(leftMotor, rightMotor, monitor);
+		IPerception perception = new PerceptionPMP(leftMotor, rightMotor,
+				monitor);
 		perception.calibrateLineSensors();
 
 		INavigation navigation = new NavigationAT(perception, monitor);
-		IControl control = new ControlRST(perception, navigation, leftMotor, rightMotor, monitor);
+		IControl control = new ControlRST(perception, navigation, leftMotor,
+				rightMotor, monitor);
 		INxtHmi hmi = new HmiPLT(perception, navigation, control, monitor);
 
 		monitor.startLogging();
@@ -255,23 +264,26 @@ public class GuidanceAT {
 
 				// Into action
 				if (lastStatus != CurrentStatus.SCOUT) {
-					// this does not need to be here because of the transition check in the
-					// SubStateMachine, but this way we save the time of one cycle
+					// this does not need to be here because of the transition
+					// check in the
+					// SubStateMachine, but this way we save the time of one
+					// cycle
 					if (offTrack)
 						currLineStatus = CurrentLineStatus.FOLLOW_LINE_OFF;
 					else
 						currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
 
-					// activate parking slot detection, setOffTrack() in navigation has to be done
+					// activate parking slot detection, setOffTrack() in
+					// navigation has to be done
 					// at some point too, probably when we change it
 					navigation.setDetectionState(true);
 				}
 
-			// While action
-			{
-				// execute underlying state machine
-				followLineSubStateMachine(control);
-			}
+				// While action
+				{
+					// execute underlying state machine
+					followLineSubStateMachine(control, navigation);
+				}
 
 				// State transition check
 				lastStatus = currentStatus;
@@ -312,21 +324,25 @@ public class GuidanceAT {
 					selectedParkingSlotNo = hmi.getSelectedParkingSlot();
 					selectedParkingSlot = navigation.getParkingSlots()[selectedParkingSlotNo];
 					slotDir = selectedParkingSlot.getFrontBoundaryPosition()
-							.subtract(selectedParkingSlot.getBackBoundaryPosition());
-					// calculate goalPose from angle of slotDir here, before manipulating the
+							.subtract(
+									selectedParkingSlot
+											.getBackBoundaryPosition());
+					// calculate goalPose from angle of slotDir here, before
+					// manipulating the
 					// slotDir
 					slotDir.multiplyBy((float) 0.5);
-					slotGoal = selectedParkingSlot.getBackBoundaryPosition().add(slotDir);
+					slotGoal = selectedParkingSlot.getBackBoundaryPosition()
+							.add(slotDir);
 					mapGoal = getClosestPointToGoal(slotGoal);
 
 					currParkStatus = CurrentParkStatus.PARK_LINE_FOLLOW;
 				}
 
-			// while action
-			{
-				// execute sub-state machine
-				parkThisSubStateMachine();
-			}
+				// while action
+				{
+					// execute sub-state machine
+					parkThisSubStateMachine();
+				}
 
 				// leave action
 				if (currentStatus != lastStatus) {
@@ -367,10 +383,10 @@ public class GuidanceAT {
 					control.setCtrlMode(ControlMode.INACTIVE);
 				}
 
-			// While action
-			{
-				// nothing to do here
-			}
+				// While action
+				{
+					// nothing to do here
+				}
 
 				// State transition check
 				lastStatus = currentStatus;
@@ -403,8 +419,8 @@ public class GuidanceAT {
 			case EXIT:
 				hmi.disconnect();
 				/**
-				 * NOTE: RESERVED FOR FUTURE DEVELOPMENT (PLEASE DO NOT CHANGE) //
-				 * monitor.sendOfflineLog();
+				 * NOTE: RESERVED FOR FUTURE DEVELOPMENT (PLEASE DO NOT CHANGE)
+				 * // monitor.sendOfflineLog();
 				 */
 				monitor.stopLogging();
 				System.exit(0);
@@ -418,8 +434,8 @@ public class GuidanceAT {
 	}
 
 	/**
-	 * returns the actual state of the main finite state machine as defined by the
-	 * requirements
+	 * returns the actual state of the main finite state machine as defined by
+	 * the requirements
 	 * 
 	 * @return actual state of the main finite state machine
 	 */
@@ -433,15 +449,22 @@ public class GuidanceAT {
 	 * @param navigation
 	 *            reference to the navigation class for getting pose information
 	 */
-	protected static void showData(INavigation navigation, IPerception perception, IControl control) {
+	protected static void showData(INavigation navigation,
+			IPerception perception, IControl control) {
 		LCD.clear();
 
-		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0, 0);
-		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0, 1);
-		LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
+		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0,
+				0);
+		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0,
+				1);
+		LCD.drawString("Phi (grd): "
+				+ (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
 
-		LCD.drawString("Y': " + (control.getYstrich()), 0, 4);
-		LCD.drawString("X': " + (control.getXstrich()), 0, 3);
+		LCD.drawString("esum: " + (control.getesum()), 0, 3);
+		currTime=System.currentTimeMillis();
+		
+		LCD.drawString("deltaT: " + (currTime-lastTime), 0, 4);
+		lastTime = currTime;
 		// perception.showSensorData();
 
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
@@ -454,30 +477,34 @@ public class GuidanceAT {
 	}
 
 	/**
-	 * underlying state machine of FOLLOW_LINE, should do the same as without it at
-	 * the moment. Will make the robot follow the line, which can also be used
-	 * during PARK_THIS
+	 * underlying state machine of FOLLOW_LINE, should do the same as without it
+	 * at the moment. Will make the robot follow the line, which can also be
+	 * used during PARK_THIS
 	 */
-	private static void followLineSubStateMachine(IControl control) {
+	private static void followLineSubStateMachine(IControl control,
+			INavigation navigation) {
 		switch (currLineStatus) {
 		case FOLLOW_LINE_STRAIGHT:
 			// into action
 			if (lastLineStatus != currLineStatus) {
 				control.resetIntegralPID();
+				control.resetIntegralRWD();
 				control.setCtrlMode(ControlMode.LINE_CTRL);
 			}
 			// while action
 
 			// state transitions
 			lastLineStatus = currLineStatus;
+			navigation.updateRobotCloseToCurve();
+
 			if (control.getRightTurn()) {
 				control.updateStartPose();
-				control.resetIntegralRWD();
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_RIGHT;
-			} else if (control.getLeftTurn()) {
-				control.updateStartPose();
-				control.resetIntegralRWD();
+				navigation.setRobotCloseToCurveToFalse();
+			} else if (control.getLeftTurn()
+					) {
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_LEFT;
+				navigation.setRobotCloseToCurveToFalse();
 			}
 
 			// leave action
@@ -490,6 +517,9 @@ public class GuidanceAT {
 
 			// into action
 			if (lastLineStatus != currLineStatus) {
+				control.resetIntegralRWD();
+				control.updateStartPose();
+				navigation.setRobotCloseToCurveToFalse();
 				control.setCtrlMode(ControlMode.RIGHT_CRV_CTRL);
 			}
 
@@ -514,6 +544,9 @@ public class GuidanceAT {
 
 			// into action
 			if (lastLineStatus != currLineStatus) {
+				control.resetIntegralRWD();
+				control.updateStartPose();
+				navigation.setRobotCloseToCurveToFalse();
 				control.setCtrlMode(ControlMode.LEFT_CRV_CTRL);
 			}
 
@@ -583,9 +616,9 @@ public class GuidanceAT {
 	}
 
 	/**
-	 * This function returns the closest point on the map in regards to the point
-	 * given. This is used for determining the point the robot drives to before
-	 * parking in a parking slot.
+	 * This function returns the closest point on the map in regards to the
+	 * point given. This is used for determining the point the robot drives to
+	 * before parking in a parking slot.
 	 * 
 	 * @param l_goal
 	 *            Point to which the closest point on the map has to be found
@@ -597,7 +630,8 @@ public class GuidanceAT {
 		int lineNo = 0;
 		// vector from starting point of desired line to goal
 		Point vectorR0;
-		// vector from starting point of desired line to point of shortest distance to
+		// vector from starting point of desired line to point of shortest
+		// distance to
 		// goal on line
 		Point vectorR1;
 		// vector from (0;0) to point of shortest distance to goal on line
