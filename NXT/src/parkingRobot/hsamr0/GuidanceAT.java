@@ -222,7 +222,7 @@ public class GuidanceAT {
 	 */
 	static double mapGoalDist = 15;
 	/**
-	 * This array holds the coefficients of the path polynomial 
+	 * This array holds the coefficients of the path polynomial
 	 */
 	static double[] coEffs;
 
@@ -255,7 +255,7 @@ public class GuidanceAT {
 		monitor.startLogging();
 
 		while (true) {
-			showData(navigation, perception);
+			showData(navigation, perception,control);
 
 			switch (currentStatus) {
 			case SCOUT:
@@ -460,16 +460,18 @@ public class GuidanceAT {
 	 * @param navigation
 	 *            reference to the navigation class for getting pose information
 	 */
-	protected static void showData(INavigation navigation, IPerception perception) {
+	protected static void showData(INavigation navigation, IPerception perception, IControl control) {
 		LCD.clear();
 
 		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0, 0);
 		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0, 1);
 		LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
 
-		LCD.drawString("left: " + (perception.getLeftLineSensorValue()), 0, 3);
-		LCD.drawString("right: " + (perception.getRightLineSensorValue()), 0, 4);
+		//LCD.drawString("left: " + (perception.getLeftLineSensorValue()), 0, 3);
+		//LCD.drawString("right: " + (perception.getRightLineSensorValue()), 0, 4);
 		// perception.showSensorData();
+		LCD.drawString("X': " + (control.getYstrich()),0,3);
+		LCD.drawString("Y': " + (control.getYstrich()),0,4);
 
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
@@ -514,7 +516,7 @@ public class GuidanceAT {
 
 			// into action
 			if (lastLineStatus != currLineStatus) {
-				control.updateStartAngle();
+				control.updateStartPose();
 				control.setCtrlMode(ControlMode.RIGHT_CRV_CTRL);
 			}
 
@@ -539,7 +541,7 @@ public class GuidanceAT {
 
 			// into action
 			if (lastLineStatus != currLineStatus) {
-				control.updateStartAngle();
+				control.updateStartPose();
 				control.setCtrlMode(ControlMode.LEFT_CRV_CTRL);
 			}
 
@@ -628,7 +630,7 @@ public class GuidanceAT {
 			break;
 		case PARK_PATH_FOLLOW:
 			// into action
-			if(lastParkStatus != currParkStatus) {
+			if (lastParkStatus != currParkStatus) {
 				coEffs = setPolynomial(navigation.getPose().getLocation(), slotGoal);
 			}
 
@@ -691,8 +693,23 @@ public class GuidanceAT {
 		vectorR2 = map[lineNo].getP1().add(vectorR1);
 		return vectorR2;
 	}
+
 	private static double[] setPolynomial(Point startPoint, Point endPoint) {
-		double a,b,c,d = 0;	
+		double a, b, c, d = 0;
+		double x0 = (endPoint.getX() - startPoint.getX())/2;
 		return null;
+	}
+
+	/**
+	 * This function sets the Point 0,0 for the coordinate system the robot uses
+	 * when following a path.
+	 * 
+	 * @param startPoint
+	 *            The Point the path starts.
+	 * @param endPoint
+	 *            The Point the path ends.
+	 */
+	private static void setTransformedCoordinates(Point startPoint, Point endPoint) {
+
 	}
 }
