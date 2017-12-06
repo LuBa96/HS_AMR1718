@@ -1,4 +1,4 @@
-package parkingRobot.hsamr10;
+package parkingRobot.hsamr0;
 
 import parkingRobot.INavigation;
 

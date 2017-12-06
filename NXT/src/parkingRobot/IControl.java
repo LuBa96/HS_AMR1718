@@ -18,9 +18,29 @@ public interface IControl {
 	public enum ControlMode {
 		
 		/**
+		 * Demo 1 Programm
+		 */
+		DEMO1_CTRL,
+		
+		/**
+		 * Demo 2 Programm
+		 */
+		DEMO2_CTRL,
+		
+		/**
 		 * folgt schwarzer Linie
 		 */
 		LINE_CTRL,
+		
+		/**
+		 * Linkskurve
+		 */
+		LEFT_CRV_CTRL,
+		
+		/**
+		 * Rechtskrve
+		 */
+		RIGHT_CRV_CTRL,
 		
 		/**
 		 * einparken
@@ -42,7 +62,6 @@ public interface IControl {
 		 */
 		INACTIVE
 	}
-	
 		
 	/**
 	 * set the required speed
@@ -76,7 +95,10 @@ public interface IControl {
 	 */	
 	public void setPose(Pose currentPosition); 	
 	
-
+	/**
+	 * update start position for angledifference and distance calculation
+	 */
+	public void updateStartPose();
 	
 	
 	/**
@@ -97,6 +119,47 @@ public interface IControl {
 	 * execute the selected algorithms for control which was set by guidance
 	 */
 	public void exec_CTRL_ALGO();
+	
+	/**
+	 * 
+	 * @return true if robot has detected a turn
+	 */
+	public boolean getCurveMode();
+
+	/**
+	 * method for straight-turn transition
+	 * @return true if robot has detected a left turn
+	 */
+	public boolean getLeftTurn();
+
+	/**
+	 * method for straight-turn transition
+	 * @return true if robot has detected a right turn
+	 */
+	public boolean getRightTurn();
+
+
+	/**
+	 * reset accumulated error for PID calculations
+	 */
+	public void resetIntegralPID();
+	
+	/**
+	 * reset accumulated error for RWD calculations
+	 * RWD=regulated Wheel Control
+	 */
+	public void resetIntegralRWD();
+	
+	/**
+	 * @return true if demo mode is finished
+	 */
+	public boolean getDemoStatus();
+	
+	
+	public double getYstrich();
+	public double getXstrich();
+	public double getesum();
+	
 
 }
 
