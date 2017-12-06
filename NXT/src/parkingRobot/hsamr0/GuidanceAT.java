@@ -223,7 +223,7 @@ public class GuidanceAT {
 	static boolean offTrack = false;
 	static long lastTime=0;
 	static long currTime=0;
-	static File wavDatei=null;
+	
 
 	/**
 	 * main method of project 'ParkingRobot'
@@ -236,7 +236,6 @@ public class GuidanceAT {
 	public static void main(String[] args) throws Exception {
 		currentStatus = CurrentStatus.INACTIVE;
 		lastStatus = CurrentStatus.EXIT;
-		wavDatei = new File("pacman_beginning.wav");
 		
 		
 		// Generate objects
@@ -259,7 +258,6 @@ public class GuidanceAT {
 
 		while (true) {
 			showData(navigation, perception, control);
-			Sound.playSample(wavDatei, 100);
 			switch (currentStatus) {
 			case SCOUT:
 				// MONITOR (example)
@@ -378,6 +376,8 @@ public class GuidanceAT {
 					} // wait for button release
 				} else if (hmi.getMode() == parkingRobot.INxtHmi.Mode.DISCONNECT) {
 					currentStatus = CurrentStatus.EXIT;
+				} else if(control.getDemoStatus()){
+					currentStatus = CurrentStatus.SCOUT;
 				}
 				break;
 			case INACTIVE:
@@ -454,6 +454,7 @@ public class GuidanceAT {
 	 */
 	protected static void showData(INavigation navigation,
 			IPerception perception, IControl control) {
+		
 		LCD.clear();
 
 		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0,

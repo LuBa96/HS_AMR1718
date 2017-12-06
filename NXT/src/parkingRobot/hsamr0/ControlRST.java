@@ -152,6 +152,7 @@ public class ControlRST implements IControl {
 	boolean demo3 = false;
 	boolean demo4 = false;
 	boolean demo5 = false;
+	boolean demoFin = false;
 	int angleDeg = 0;
 	int startAngleDeg = 0;
 
@@ -296,6 +297,10 @@ public class ControlRST implements IControl {
 	public void setStartTime(int startTime) {
 		this.lastTime = startTime;
 	}
+	
+	public boolean getDemoStatus() {
+		return demoFin;
+	}
 
 	/**
 	 * selection of control-mode
@@ -306,9 +311,7 @@ public class ControlRST implements IControl {
 		switch (currentCTRLMODE) {
 		case DEMO1_CTRL:
 			update_SETPOSE_Parameter();
-			update_LINECTRL_Parameter();
 			Control_Demo_1();
-			exec_LINECTRL_ALGO();
 			break;
 		case DEMO2_CTRL:
 			update_SETPOSE_Parameter();
@@ -696,7 +699,7 @@ public class ControlRST implements IControl {
 		case LEFT_CRV_CTRL:
 			if ((angleDeg - startAngleDeg) <= 80) {
 				drive(Math.PI, 40);
-				Sound.buzz();
+				//Sound.buzz();
 			} else {
 				boolTurn = false;
 				boolTurnL = false;
@@ -708,7 +711,7 @@ public class ControlRST implements IControl {
 		case RIGHT_CRV_CTRL:
 			if ((angleDeg - startAngleDeg) >= -80) {
 				drive(Math.PI, -40);
-				Sound.buzz();
+				//Sound.buzz();
 			} else {
 				boolTurn = false;
 				boolTurnR = false;
@@ -777,18 +780,6 @@ public class ControlRST implements IControl {
 			vRight = speed;
 
 		}
-
-		/**
-		 * calculate PWM values for each wheel this is the solution WITHOUT
-		 * regulated speed control
-		 */
-		// //LCD.drawString("vRight: " + vRight, 0, 7);
-		// pwmLeft = getPWM(vLeft);
-		// pwmRight = getPWM(vRight);
-		// //LCD.drawString("pwmR: " + pwmRight, 0, 7);
-		//
-		// leftMotor.setPower(pwmLeft);
-		// rightMotor.setPower(pwmRight);
 
 		/**
 		 * calculate PWM values and set speed for each wheel solution WITH
@@ -935,7 +926,7 @@ public class ControlRST implements IControl {
 		if (demo1) {
 			// LCD.drawString("demo1", 0, 6);
 			drive(10, 0);
-			if (dis >= 100) {
+			if (dis >= 120) {
 				// beep once when finished
 				Sound.systemSound(true, 0);
 				demo2 = true;
@@ -1003,7 +994,7 @@ public class ControlRST implements IControl {
 		}
 
 		/**
-		 * -90 deg turn with 15deg/sec
+		 * -90 deg turn with 30deg/sec
 		 */
 		else if (demo4) {
 			// LCD.drawString("demo4", 0, 6);
@@ -1032,9 +1023,11 @@ public class ControlRST implements IControl {
 		 */
 		else if (demo5) {
 			// LCD.drawString("demo5", 0, 6);
+			setCtrlMode(ControlMode.LINE_CTRL);
 			exec_LINECTRL_ALGO();
 			demo1 = true;
-			// demo5 = false;
+			demo5 = false;
+			demoFin = true;
 		}
 	}
 
