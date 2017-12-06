@@ -452,6 +452,7 @@ public class GuidanceAT {
 	 * @param navigation
 	 *            reference to the navigation class for getting pose information
 	 */
+
 	protected static void showData(INavigation navigation,
 			IPerception perception, IControl control) {
 		
@@ -466,6 +467,7 @@ public class GuidanceAT {
 
 		LCD.drawString("esum: " + (control.getesum()), 0, 3);
 		currTime=System.currentTimeMillis();
+
 		
 		LCD.drawString("deltaT: " + (currTime-lastTime), 0, 4);
 		lastTime = currTime;

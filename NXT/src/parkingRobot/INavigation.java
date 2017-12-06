@@ -67,8 +67,15 @@ public interface INavigation {
 	public boolean getRobotCloseToCurve();
 	public void setRobotCloseToCurveToFalse();
 	
-	
-	
+	public boolean backBoundaryDetektiert();
+	public boolean frontBoundaryDetektiert();
+	public double backBoundarxFrontSensor();
+	public double backBoundaryFrontSensor();
+	public double frontBoundarxFrontSensor();
+	public double frontBoundaryFrontSensor();
+	public double frontBoundarxFrontSensorAktuell();
+	public double frontBoundaryFrontSensorAktuell();
+	public double parklueckenLaenge();
 	// Outputs
 	
 	/**
@@ -232,6 +239,5 @@ public interface INavigation {
 		public int getMeasurementQuality() {
 			return measurementQuality;
 		}
-
 	}	
 }
