@@ -317,13 +317,12 @@ public class ControlRST implements IControl {
 		case LINE_CTRL:
 			update_SETPOSE_Parameter();
 			update_LINECTRL_Parameter();
-			Control_Demo_1();
 			// update_SETPOSE_Parameter();
 			// update_LINECTRL_Parameter();
 			// exec_SETPOSE_ALGO();
 			// LCD.drawString("x': " + xRotKOS, 0, 6);
 			// LCD.drawString("y': " + yRotKOS, 0, 7);
-			//exec_LINECTRL_ALGO();
+			exec_LINECTRL_ALGO();
 			break;
 		case LEFT_CRV_CTRL:
 			exec_driveCurve90();
@@ -449,18 +448,18 @@ public class ControlRST implements IControl {
 	 */
 	private void exec_SETPOSE_ALGO() {
 		double y;
-		double vo = 20;
+		double vo = 25;
 		/**
 		 * x'=x*cos(phi)+y*sin(phi)
 		 */
-		xRotKOS = (this.currentPosition.getX() * 100) * Math.cos(10)
-				+ (this.currentPosition.getY() * 100) * Math.sin(10);
+		xRotKOS = (this.currentPosition.getX() * 100) * Math.cos(0)
+				+ (this.currentPosition.getY() * 100) * Math.sin(0);
 
 		/**
 		 * y'=-x*sin(phi)+y*cos(phi)
 		 */
-		yRotKOS = (this.currentPosition.getY() * 100) * Math.cos(10)
-				- (this.currentPosition.getX() * 100) * Math.sin(10);
+		yRotKOS = (this.currentPosition.getY() * 100) * Math.cos(0)
+				- (this.currentPosition.getX() * 100) * Math.sin(0);
 
 		errYAlt = yRotKOS - errYAlt;
 

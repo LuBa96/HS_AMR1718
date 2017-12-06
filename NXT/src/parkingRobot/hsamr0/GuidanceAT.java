@@ -3,6 +3,7 @@ package parkingRobot.hsamr0;
 import lejos.nxt.Button;
 import lejos.nxt.MotorPort;
 import lejos.nxt.NXTMotor;
+import lejos.nxt.Sound;
 import lejos.robotics.navigation.Pose;
 import parkingRobot.IControl;
 import parkingRobot.IControl.*;
@@ -11,15 +12,14 @@ import parkingRobot.INavigation;
 import parkingRobot.INavigation.ParkingSlot;
 import parkingRobot.IPerception;
 import parkingRobot.IMonitor;
-
 import lejos.geom.Line;
 import lejos.geom.Point;
 import lejos.nxt.LCD;
-
 import parkingRobot.hsamr0.ControlRST;
 import parkingRobot.hsamr0.HmiPLT;
 import parkingRobot.hsamr0.NavigationAT;
 import parkingRobot.hsamr0.PerceptionPMP;
+import java.io.File;
 
 //TODO check how the monitor works
 //TODO check how type Pose works
@@ -223,6 +223,7 @@ public class GuidanceAT {
 	static boolean offTrack = false;
 	static long lastTime=0;
 	static long currTime=0;
+	static File wavDatei=null;
 
 	/**
 	 * main method of project 'ParkingRobot'
@@ -235,7 +236,9 @@ public class GuidanceAT {
 	public static void main(String[] args) throws Exception {
 		currentStatus = CurrentStatus.INACTIVE;
 		lastStatus = CurrentStatus.EXIT;
-
+		wavDatei = new File("pacman_beginning.wav");
+		
+		
 		// Generate objects
 
 		NXTMotor leftMotor = new NXTMotor(MotorPort.B);
@@ -256,7 +259,7 @@ public class GuidanceAT {
 
 		while (true) {
 			showData(navigation, perception, control);
-
+			Sound.playSample(wavDatei, 100);
 			switch (currentStatus) {
 			case SCOUT:
 				// MONITOR (example)
