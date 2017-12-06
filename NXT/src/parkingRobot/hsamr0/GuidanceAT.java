@@ -215,33 +215,37 @@ public class GuidanceAT {
 	 */
 	protected static void showData(INavigation navigation, IPerception perception){
 		LCD.clear();
-		LCD.drawString("xResult: " + navigation.getxResult()*100,0,0);
-		LCD.drawString("yResult: " + navigation.getyResult()*100,0,1);
-		LCD.drawString("angleResult: " + navigation.getAngleResult()/Math.PI*180,0,2);
-		LCD.drawString("SK:" + navigation.getWinkelSchonKorrigiert(),0,4);
-		navigation.ueberpruefenObAktuellInKurve();
+//		LCD.drawString("Enc_X: " + navigation.getfusionMatrixContent(0,1)*100,0,0);
+//		LCD.drawString("Enc_Y: " + navigation.getfusionMatrixContent(0,2)*100,0,1);
+//		LCD.drawString("Enc_A: " + navigation.getfusionMatrixContent(0,3)/Math.PI*180,0,2);
+//		navigation.ueberpruefenObAktuellInKurve();
 //		LCD.drawString("In Kurve: " + navigation.getAktuellInKurve(), 0, 3);
-		LCD.drawString("RMS_angle:" + navigation.getRMS()/Math.PI*180, 0, 3);
-//		LCD.drawString("xMap: " + navigation.getxResultMap(),0,4);
-//		LCD.drawString("yMap: " + navigation.getyResultMap(),0,5);
-//		LCD.drawString("aMap:" + navigation.getAngleResultMap(),0,6);
-		navigation.updateRobotCloseToCurve();
-		LCD.drawString("CTC:" + navigation.getRobotCloseToCurve(), 0, 5);
-		LCD.drawString("Im KP:" + navigation.getAktuellenKurvenpunkt(), 0, 7);
-//		LCD.drawString("MouseX: " +  navigation.getfusionMatrixContent(1,1)*100,0,4);
-//		LCD.drawString("MouseY: " +  navigation.getfusionMatrixContent(1,2)*100,0,5);
-//		LCD.drawString("MouseA: " +  navigation.getfusionMatrixContent(1,3)*100,0,6);
-		
+//		LCD.drawString("Pose_X: " + navigation.getPose().getX()*100,0,4);
+//		LCD.drawString("Pose_Y: " + navigation.getPose().getY()*100,0,5);
+//		LCD.drawString("Pose_A:" + navigation.getPose().getHeading()/Math.PI*180,0,6);
+//		LCD.drawString("Im KP:" + navigation.getAktuellenKurvenpunkt(), 0, 7);
+//		LCD.drawString("MouseX: " +  navigation.getfusionMatrixContent(1,1),0,4);
+//		LCD.drawString("MouseY: " +  navigation.getfusionMatrixContent(1,2),0,5);
+//		LCD.drawString("MouseA: " +  navigation.getfusionMatrixContent(1,3),0,6);
+//		navigation.updateRobotCloseToCurve();
+//		LCD.drawString("CTC: " + navigation.getRobotCloseToCurve(), 0, 2);
 //		LCD.drawString("B:" + Integer.toString((int)perception.getBackSensorDistance()),0,3);
 //		LCD.drawString("F:" + Integer.toString((int)perception.getFrontSensorDistance()),0,4);
-//		LCD.drawString("BS:" + Integer.toString((int)perception.getBackSideSensorDistance()),0,5);
-//		LCD.drawString("FS:" + Integer.toString((int)perception.getFrontSideSensorDistance()),0,6);
+//		LCD.drawString("BS:" + Integer.toString((int)perception.getBackSideSensorDistance()),0,1);
+		LCD.drawString("FS:" + Integer.toString((int)perception.getFrontSideSensorDistance()),0,0);
 //		LCD.drawString("X:" + Integer.toString((int)perception.getUOdmometryDiffernce()),0,0);
 //		LCD.drawString("Y:" + Integer.toString((int)perception.getVOdometryDifference()),0,1);
-//		
-		
-//	LCD.drawString("X (in cm): " + (navigation.getPose().getX()*100), 0,5);
-//	LCD.drawString("Y (in cm): " + (navigation.getPose().getY()*100), 0, 6);
+		LCD.drawString("BackDetec: " + navigation.backBoundaryDetektiert(),0,1);
+		LCD.drawString("xBackBound: " + navigation.backBoundarxFrontSensor(),0,2);
+		LCD.drawString("yBackBound: " + navigation.backBoundaryFrontSensor(),0,3);
+		LCD.drawString("xFrontBound: " + navigation.frontBoundarxFrontSensor(),0,4);
+		LCD.drawString("yFrontBound: " + navigation.frontBoundaryFrontSensor(),0,5);
+//		LCD.drawString("xFrontAkt: " + navigation.frontBoundarxFrontSensorAktuell(), 0, 6);
+//		LCD.drawString("yFrontAkt: " + navigation.frontBoundaryFrontSensorAktuell(), 0, 7);
+//		LCD.drawString("X (in cm): " + (navigation.getPose().getX()*100), 0,0);
+		LCD.drawString("PLaenge: " + navigation.parklueckenLaenge() ,0,6);
+		LCD.drawString("FrontDetec: " + navigation.frontBoundaryDetektiert(),0,7);
+//		LCD.drawString("Y (in cm): " + (navigation.getPose().getY()*100), 0, 1);
 //	LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading()/Math.PI*180), 0, 7);
 		
 //		perception.showSensorData();

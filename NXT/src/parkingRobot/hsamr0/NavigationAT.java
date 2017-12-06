@@ -1,11 +1,13 @@
 package parkingRobot.hsamr10;
-
+/**Hinweis: Display Zeile mit Index 5 wird fuer Ausgabe von Fehlern fuer Navigation benutzt **/
 import lejos.geom.Line;
+import lejos.geom.Point;
 import lejos.nxt.LCD;
 import lejos.robotics.navigation.Pose;
 
 import parkingRobot.INavigation;
 import parkingRobot.IPerception;
+import parkingRobot.INavigation.ParkingSlot.ParkingSlotStatus;
 import parkingRobot.hsamr10.NavigationThread;
 //import test3.main;
 import parkingRobot.IMonitor;
@@ -103,11 +105,15 @@ public class NavigationAT implements INavigation{
 
 	static final double CIRCUMFERENCE_OF_MOUSE_NXT_FULL_TURN = 0; //noch ausmessen!!
 	
-	static final double DISTANCE_FrontSideSensorToRobotCenter = 2; //in cm, noch ausmessen! (TODO)
+	static final double DISTANCE_FrontSideSensorToRobotCenter = 0; //in cm, noch ausmessen! (TODO) -> erledigt
 	
 	static final double DISTANCE_BackSideSensorToRobotCenter = 2; //in cm, noch ausmessen(TODO)!; positiv wenn Sensor vor Zentrum des Roboters ist 
 	
-	static final double DISTANCE_RobotCenterToBarrier = 20; // in cm; Wert muesste stimmen, aber nochmal ueberpruefen (TODO)
+	static final double DISTANCE_RobotCenterToBarrierK0K7 = 20; // Abstand zur Bande/Hindernissen fuer Strecke nach Kurvenpunkten 7 und 0 (in cm); Wert muesste stimmen, aber nochmal ueberpruefen (TODO)
+	
+	static final double DISTANCE_RobotCenterToBarrierK3 = 15; // Abstand zur Bande/Hindernissen  Kurvenpunkt 3 (in cm); Wert muesste stimmen, aber nochmal ueberpruefen (TODO)
+	
+	static final double MIN_SLOT_DISTANCE = 45;
 	
 	/**
 	 * map array of line references, whose corresponding lines form a closed chain and represent the map of the robot course
@@ -124,7 +130,7 @@ public class NavigationAT implements INavigation{
 	/**
 	 * indicates if parking slot detection should be switched on (true) or off (false)
 	 */
-	boolean parkingSlotDetectionIsOn		= false; 
+	boolean parkingSlotDetectionIsOn		= true; 
 	
 	/**
 	 * thread started by the 'Navigation' class for background calculating
@@ -160,18 +166,32 @@ public class NavigationAT implements INavigation{
 	boolean aktuellInKurve = false;
 	double sensor;							//wird fuer fusionsFunktion fuer Pose benoetigt
 	private boolean off_track = false;
+	private int anzahlRunde = 1; //wird in WinkelKorrekturZwischenEcken erhoeht
 	
 	/**Kurvenmatrix in der alle Kurvenpunkte sowie deren Toleranzbereich für die Zuordnung der aktuellen Position zu einem Kurvenpunkt gespeichert sind
-	 * Spaltenformat: Kurvenindex(beginnend bei 0), xminBereich, xmaxBereich, yminBereich, ymaxBereich, xKurvenpunkt, yKurvenpunkt, Einfahrtwinkel in die nach dem aktuellen Kurvenpunkt folgende Kurve**/
-	double[][] Kurvenmatrix = new double[8][8];
+	 * Spaltenformat: Kurvenindex(beginnend bei 0), xminBereich, xmaxBereich, yminBereich, ymaxBereich, xKurvenpunkt, yKurvenpunkt, Einfahrtwinkel in die nach dem aktuellen Kurvenpunkt folgende Kurve, (CloseToCurve auf schon mal auf true = 1, noch nicht auf true = 0)**/
+	double[][] Kurvenmatrix = new double[8][9];
 	
-	/**Datenbank fuer Parkluecken
-	 * Spaltenformat: Parklueckenindex (beginnend bei 0), hinterer Punkt Parkluecke, vorderer Punkt Parkluecke
+	/**parkingSlots enthaelt alle erfassten Parkluecken
+	 * Der Konstruktor jeder Parkluecke benoetigt folgende Paramter:(int ID, Point backBoundaryPosition, Point frontBoundaryPosition, ParkingSlotStatus slotStatus, int slotMeasurementQuality)
 	 * -> Definition von hinterem und vorderem Punkt: 
 	 * Steht Roboter neben Parkluecke, befindet sich der hintere Punkt der Parkluecke in Fahrtrichtung gesehen hinter dem Roboter**/
-	double[][] Parkluecken = new double [30][3];
+	INavigation.ParkingSlot[] parkingSlots = new INavigation.ParkingSlot[15]; //15 Parkluecken mit Index 0 - 14 ansprechbar
 	
+	/**
+	 * Initialisierung der Laufvariable ParkingSlot. Hier werden die Werte jedes neu gefundenen Slots gespeichert,
+	 * bis diese als neues Objekt in die Datenbank aufgenommen werden.
+	 * Zur Information: Dem Konstruktor beim erstellen eines ParkingSlots muessen folgende Parameter mitgegeben werden:
+	 * 	(int ID, Point backBoundaryPosition, Point frontBoundaryPosition, ParkingSlotStatus slotStatus, int slotMeasurementQuality)**/
+	INavigation.ParkingSlot currentParkingSlot = new ParkingSlot(0, null, null, null, 0); //bisher wird aus currentParkingSlot verwendet: backBoundaryPosition, frontBoundaryPosition
 	
+	/**Anzahl der bereits gefundenen Parkluecken**/
+	int anzahlParkluecken = 0; 
+	
+//	/**Fuer Ueberpruefung notwendig, ob Parkluecke aktualisiert oder neu erstellt werden soll**/
+//	boolean parklueckeExistiertBereits = false;
+//	/**
+//	
 	/**
 	 * pose class containing bundled current X and Y location and corresponding heading angle phi
 	 * Pose wird im Moment am Ende aller Berechnungen auf xResult, yResult und angleResult gesetzt
@@ -200,15 +220,19 @@ public class NavigationAT implements INavigation{
 	public boolean robotCloseToCurve = false;
 	
 	/**folgende Variablen werden fuer detectParkingSlot benoetigt**/
-	private double backBoundarxFrontSensor;
-	private double backBoundaryFrontSensor;
-	private double backBoundarxBackSensor;
-	private double backBoundaryBackSensor;
-	private double frontBoundarxFrontSensor;
-	private double frontBoundaryFrontSensor;
-	private double frontBoundarxBackSensor;
-	private double frontBoundaryBackSensor;
-	
+	private double backBoundarxFrontSensor = 0;
+	private double backBoundaryFrontSensor = 0;
+	private double backBoundarxBackSensor = 0;
+	private double backBoundaryBackSensor = 0;
+	private double frontBoundarxFrontSensor = 0;
+	private double frontBoundaryFrontSensor = 0;
+	private double frontBoundarxBackSensor = 0;
+	private double frontBoundaryBackSensor = 0;
+	private double frontBoundarxFrontSensorAktuell = 0;
+	private double frontBoundaryFrontSensorAktuell = 0;
+	private boolean backBoundaryDetektiert = false; //wird benoetigt um in frontBoundary Erkennungsteil reinzuspringen
+	private boolean frontBoundaryDetektiert = false; //wird benoetigt um backBoundary nicht auf gleichem Streckenabschnitt erneut neu zu setzen
+	private double parklueckenLaenge = 0;
 	/**
 	 * provides the reference transfer so that the class knows its corresponding perception object (to obtain the measurement
 	 * information from) and starts the navigation thread.
@@ -236,6 +260,7 @@ public class NavigationAT implements INavigation{
 		Kurvenmatrix[0][5] = 180;
 		Kurvenmatrix[0][6] = 0;
 		Kurvenmatrix[0][7] = 90;
+		Kurvenmatrix[0][8] = 1;
 		Kurvenmatrix[1][1] = 165;
 		Kurvenmatrix[1][2] = 195;
 		Kurvenmatrix[1][3] = 15;
@@ -243,6 +268,7 @@ public class NavigationAT implements INavigation{
 		Kurvenmatrix[1][5] = 180;
 		Kurvenmatrix[1][6] = 60;
 		Kurvenmatrix[1][7] = 180;
+		Kurvenmatrix[1][8] = 1;
 		Kurvenmatrix[2][0] = 2;
 		Kurvenmatrix[2][1] = 120;
 		Kurvenmatrix[2][2] = 165;
@@ -251,6 +277,7 @@ public class NavigationAT implements INavigation{
 		Kurvenmatrix[2][5] = 150;
 		Kurvenmatrix[2][6] = 60;
 		Kurvenmatrix[2][7] = 270;
+		Kurvenmatrix[2][8] = 1;
 		Kurvenmatrix[3][0] = 3;
 		Kurvenmatrix[3][1] = 90;
 		Kurvenmatrix[3][2] = 165;
@@ -259,6 +286,7 @@ public class NavigationAT implements INavigation{
 		Kurvenmatrix[3][5] = 150;
 		Kurvenmatrix[3][6] = 30;
 		Kurvenmatrix[3][7] = 180;
+		Kurvenmatrix[3][8] = 1;
 		Kurvenmatrix[4][0] = 4;
 		Kurvenmatrix[4][1] = 15;
 		Kurvenmatrix[4][2] = 90;
@@ -267,6 +295,7 @@ public class NavigationAT implements INavigation{
 		Kurvenmatrix[4][5] = 30;
 		Kurvenmatrix[4][6] = 30;
 		Kurvenmatrix[4][7] = 90;
+		Kurvenmatrix[4][8] = 1;
 		Kurvenmatrix[5][0] = 5;
 		Kurvenmatrix[5][1] = 15;
 		Kurvenmatrix[5][2] = 50;
@@ -275,6 +304,7 @@ public class NavigationAT implements INavigation{
 		Kurvenmatrix[5][5] = 30;
 		Kurvenmatrix[5][6] = 60;
 		Kurvenmatrix[5][7] = 180;
+		Kurvenmatrix[5][8] = 1;
 		Kurvenmatrix[6][0] = 6;
 		Kurvenmatrix[6][1] = -20;
 		Kurvenmatrix[6][2] = 15;
@@ -283,6 +313,7 @@ public class NavigationAT implements INavigation{
 		Kurvenmatrix[6][5] = 0;
 		Kurvenmatrix[6][6] = 60;
 		Kurvenmatrix[6][7] = 270;
+		Kurvenmatrix[6][8] = 1;
 		Kurvenmatrix[7][0] = 7;
 		Kurvenmatrix[7][1] = -20;
 		Kurvenmatrix[7][2] = 90;
@@ -291,6 +322,7 @@ public class NavigationAT implements INavigation{
 		Kurvenmatrix[7][5] = 0;
 		Kurvenmatrix[7][6] = 0;
 		Kurvenmatrix[7][7] = 0;
+		Kurvenmatrix[7][8] = 1;
 	}
 	
 	
@@ -336,9 +368,9 @@ public class NavigationAT implements INavigation{
 //		perception.getUOdmometryDiffernce();
 		this.calculateLocationUsingMouseSensor(perception.getUOdmometryDiffernce(),perception.getVOdometryDifference());
 //		this.calculateLocationUsingCompass();
-	/**	if (this.parkingSlotDetectionIsOn)
+		if (this.parkingSlotDetectionIsOn)
 				this.detectParkingSlot();
-				**/
+				
 		
 		
 		// MONITOR (example)
@@ -357,7 +389,7 @@ public class NavigationAT implements INavigation{
 	 * @see parkingRobot.INavigation#getParkingSlots()
 	 */
 	public synchronized ParkingSlot[] getParkingSlots() {
-		return null;
+		return parkingSlots; //hier Feld zurueckgeben
 	}
 	
 	
@@ -534,19 +566,25 @@ public class NavigationAT implements INavigation{
 		angleResult = fusionMatrix[0][3]; //  + fusionMatrix[1][3] + fusionMatrix[2][3])/3 
 	
 		/** 
-		 * Hier wird an der aktuellen Pose immer dann eine Korrektur vorgenommen, wenn sich der Roboter an einer Ecke befindet 
+		 * Falls sich Roboter auf dem Track befindet (z.B. bei Parkplatzsuche) werden Informationen der Strecke genutzt um Genauigkeit der aktuellen Position zu verbessern.
+		 * Mit PositionskorrekturAnEcken() werden x und y an Eckpunkten auf den Eckpunkt gesetzt.
+		 * Mit WinkelkorrekturZwischenEcken() wird zuerst der Mittelwert der Abweichung der Blickrichtung (heading) gebildet und diese anschließend auf ungefaehr halber Strecke zwischen zwei Ecken zum aktuellen Blickwinkel aufaddiert/abgezogen.
+		 * Mit PositionFuerTabletMitPositionskorrekturAufGeraden() werden x bzw. y fuer eine schoene Darstellung auf dem Tablet genullt. 
 		 */
-		this.ueberpruefenObAktuellInKurve(); //setzt aktuellInKurve auf true oder false
-		this.PositionskorrekturAnEcken();
-		this.WinkelkorrekturZwischenEcken();
+		
+		if(!off_track) {
+			this.ueberpruefenObAktuellInKurve(); //setzt aktuellInKurve auf true oder false
+			this.PositionskorrekturAnEcken();
+			this.WinkelkorrekturZwischenEcken();
+			this.PositionFuerTabletMitPositionskorrekturAufGeraden(); // berechnet xResultMap und yResultMap
+		}
 		
 		/** Fusionierte Position soll die Eckenkorrektur uebernehmen, diese wird dann spaeter auch auf Pose uebtertragen
 		 * -> hier alle Sensoren eintragen welche die Eckenkorrektur uebernehmen sollen**/
 		fusionMatrix[0][1] = xResult;
 		fusionMatrix[0][2] = yResult;
 		fusionMatrix[0][3] = angleResult;
-		/**xResultMap und yResultMap werden berechnet: Auf gerader Strecke wird entsprechendes x bzw. y genullt**/
-		this.PositionFuerTabletMitPositionskorrekturAufGeraden(); // berechnet xResultMap und yResultMap
+		
 	
 		this.pose.setLocation((float)xResult, (float)yResult); //x und y werden bereits in setPoseMitPositionskorrektur gesetzt
 		this.pose.setHeading((float)angleResult);		 		
@@ -581,6 +619,7 @@ public class NavigationAT implements INavigation{
 					winkelSchonKorrigiert = false;
 					angleResultAktuellerMittelwert = 0;
 					anzahlDurchlaufeMittelwert = 1;
+				
 					/**sobald Kurve beendet, befindet man sich optimalerweise wieder in Geradeaus-Fahrt
 					 * -> Blickrichtung koennte hier evt. korrigiert werden oder Kalibrierung fuer Kompass waere hier moeglich**/
 					
@@ -604,82 +643,86 @@ public class NavigationAT implements INavigation{
 	// Bemerkung: Merkwuerdigerweise wurden die beiden Parameter 'angleResultAktuellerMittelwert' und 'anzahlDurchlaufeMittelwert' in der zweiten if-Schleife in jeder case Anwendung nicht korrekt gesetzt (obwohl winkelSchonKorrigiert korrekt geaendert wurde)
 	// Das Setzen der Werte der beiden Paramter wurde nun in die Methode PositionskorrekturAnEcken() verlegt. Somit werden erst an jeder Ecke die Werte gesetzt (was voellig ausreichend ist)
 	private void WinkelkorrekturZwischenEcken() {
-		switch (aktuellerKurvenpunkt) {
-		case 0: if(yResult*100 > 10 && yResult*100 < 30) { //waren 10, 30
-					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
-					anzahlDurchlaufeMittelwert++;
-				}
-				if(yResult*100 > 15 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (90*Math.PI/180 - angleResultAktuellerMittelwert); //90 Grad muss in Einheit von angleResult geaendert werden
-					winkelSchonKorrigiert = true; //wird in PositionskorrekturAnEcken Methode auf false gesetzt
-				}
-				break;
-		case 1: if(xResult*100 < 175 && xResult*100 > 170) {
-					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
-					anzahlDurchlaufeMittelwert++;
-				}
-				if(xResult*100 < 170 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (180*Math.PI/180 - angleResultAktuellerMittelwert);
-					winkelSchonKorrigiert = true; 
-				}
-				break;
-		case 2: if(yResult*100 < 55 && yResult*100 > 50) {
-					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
-					anzahlDurchlaufeMittelwert++;
-				}
-				if(yResult*100 < 50 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (270*Math.PI/180 - angleResultAktuellerMittelwert);
-					winkelSchonKorrigiert = true; 
-				}
-				break;
-		case 3: if(xResult*100 < 140 && xResult*100 > 90) {
-					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
-					anzahlDurchlaufeMittelwert++;
-				}
-				if(xResult*100 < 90 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (180*Math.PI/180 - angleResultAktuellerMittelwert);
-					winkelSchonKorrigiert = true; 
-				}
-				break;
-		case 4: if(yResult*100 > 35 && yResult*100 < 40) {
-					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
-					anzahlDurchlaufeMittelwert++;
-				}
-				if(yResult*100 > 40 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (90*Math.PI/180 - angleResultAktuellerMittelwert);
-					winkelSchonKorrigiert = true; 
-				}
-				break;
-		case 5: if(xResult*100 < 25 && xResult*100 > 20) {
-					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
-					anzahlDurchlaufeMittelwert++;
-				}
-				if(xResult*100 < 20 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (180*Math.PI/180 - angleResultAktuellerMittelwert);
-					winkelSchonKorrigiert = true; 
-				}
-				break;
-		case 6: if(yResult*100 < 55 && yResult*100 > 25) {
-					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
-					anzahlDurchlaufeMittelwert++;
-				}
-				if(yResult*100 < 25 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (270*Math.PI/180 - angleResultAktuellerMittelwert);
-					winkelSchonKorrigiert = true; 
-				}
-				break;
-		case 7: if(xResult*100 > 30 && xResult*100 < 70) { 
-					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
-					anzahlDurchlaufeMittelwert++;
-				}
-				if(xResult*100 > 70 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult - angleResultAktuellerMittelwert;
-					winkelSchonKorrigiert = true; 
-				}
-				break;
+		if (!off_track) {
+			switch (aktuellerKurvenpunkt) {
+			case 0: if(yResult*100 > 10 && yResult*100 < 30) { //waren 10, 30
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if(yResult*100 > 15 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (90*Math.PI/180 - angleResultAktuellerMittelwert); //90 Grad muss in Einheit von angleResult geaendert werden
+						winkelSchonKorrigiert = true; //wird in PositionskorrekturAnEcken Methode auf false gesetzt
+					}
+					break;
+			case 1: if(xResult*100 < 175 && xResult*100 > 170) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if(xResult*100 < 170 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (180*Math.PI/180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true; 
+					}
+					break;
+			case 2: if(yResult*100 < 55 && yResult*100 > 50) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if(yResult*100 < 50 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (270*Math.PI/180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true; 
+					}
+					break;
+			case 3: if(xResult*100 < 140 && xResult*100 > 90) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if(xResult*100 < 90 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (180*Math.PI/180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true; 
+					}
+					break;
+			case 4: if(yResult*100 > 35 && yResult*100 < 40) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if(yResult*100 > 40 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (90*Math.PI/180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true; 
+					}
+					break;
+			case 5: if(xResult*100 < 25 && xResult*100 > 20) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if(xResult*100 < 20 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (180*Math.PI/180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true; 
+					}
+					break;
+			case 6: if(yResult*100 < 55 && yResult*100 > 25) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if(yResult*100 < 25 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (270*Math.PI/180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true; 
+						anzahlRunde++;//nochmal ueberdenken ob hier richtiger Ort
+					}
+					break;
+			case 7: if(xResult*100 > 30 && xResult*100 < 70) { 
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert*(anzahlDurchlaufeMittelwert-1)/anzahlDurchlaufeMittelwert + angleResult/anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if(xResult*100 > 70 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult - angleResultAktuellerMittelwert;
+						winkelSchonKorrigiert = true; 
+					}
+					break;
+			}
 		}
 	}
 	
+	/**xResultMap und yResultMap werden berechnet: Auf gerader Strecke wird entsprechendes x bzw. y genullt**/
 	private void PositionFuerTabletMitPositionskorrekturAufGeraden() { //hat bei Wechsel auf case 0 nicht yPose hochgezaehlt
 			
 			switch (aktuellerKurvenpunkt){ 							//geaendert zu von this.getAktullenKurvenpunkt!! -> ueberpruefen obs noch funktioniert
@@ -722,64 +765,72 @@ public class NavigationAT implements INavigation{
 	public void updateRobotCloseToCurve() {								//ACHTUNG: Aktuelle Annahme -> wegen return kein break noetig
 																// TODO: Luke und Gregor sagen, dass sie mit setCloseToCurve = false
 		switch (aktuellerKurvenpunkt){ 							//geaendert zu von this.getAktullenKurvenpunkt!! -> ueberpruefen obs noch funktioniert
-		case 0: if (yResult*100 > 40) {
+		case 0: if (yResult*100 > 40 && Kurvenmatrix[0][8]== (double)anzahlRunde) {
 					robotCloseToCurve = true;
+					Kurvenmatrix[0][8]++;
 					break;
 				}
 				else {
 					robotCloseToCurve = false;
 					break;
 				}
-		case 1: if (xResult*100 < 170) {
+		case 1: if (xResult*100 < 170 && Kurvenmatrix[1][8]== (double)anzahlRunde) {
 					robotCloseToCurve = true;
+					Kurvenmatrix[1][8]++;
 					break;
 				}
 				else {
 					robotCloseToCurve = false;
 					break;
 				}
-		case 2:	if (yResult*100 < 50) {
+		case 2:	if (yResult*100 < 50 && Kurvenmatrix[2][8]== (double)anzahlRunde) {
 					robotCloseToCurve = true;
+					Kurvenmatrix[2][8]++;
 					break;
 				}
 				else {
 					robotCloseToCurve = false;
 					break;
 				}
-		case 3: if (xResult*100 < 45) {
+		case 3: if (xResult*100 < 45 && Kurvenmatrix[3][8] == (double)anzahlRunde) {
 					robotCloseToCurve = true;
+					Kurvenmatrix[3][8]++;
 					break;
 				}
 				else {
 					robotCloseToCurve = false;
 					break;
 				}
-		case 4: if (yResult*100 > 40) {
+		case 4: if (yResult*100 > 40 && Kurvenmatrix[4][8]== (double)anzahlRunde) {
 					robotCloseToCurve = true;
+					Kurvenmatrix[4][8]++;
 					break;
 				}
 				else {
 					robotCloseToCurve = false;
 					break;
 				}
-		case 5: if (xResult*100 < 20) {
+		case 5: if (xResult*100 < 20 && Kurvenmatrix[5][8]== (double)anzahlRunde) {
 					robotCloseToCurve = true;
+					Kurvenmatrix[5][8]++;
 					break;
 				}
 				else {
 					robotCloseToCurve = false;
 					break;
 				}
-		case 6: if (yResult*100 < 20) {
+		case 6: if (yResult*100 < 20 && Kurvenmatrix[6][8]== (double)anzahlRunde) {
 					robotCloseToCurve = true;
+					Kurvenmatrix[6][8]++;
 					break;
 				}
 				else {
 					robotCloseToCurve = false;
 					break;
 				}
-		case 7:  if (xResult*100 > 170) {
+		case 7:  if (xResult*100 > 170 && Kurvenmatrix[7][8]== (double)anzahlRunde) {
 					robotCloseToCurve = true;
+					Kurvenmatrix[7][8]++;
 						break;
 				}
 				else {
@@ -804,28 +855,142 @@ public class NavigationAT implements INavigation{
 	/** Methode zur Erkennung und Eintragung von Parkluecken in eine Datenbank
 	 * Hinweis: Methode wird nur aufgerufen falls parkingSlotDetection auf true gesetzt
 	 * Die Methode ermittelt nicht die vorderen Positionsecken der Parkluecke sondern die Positionen auf halber Tiefe in den Parkluecken!**/
-	/**private void detectParkingSlot(){
+	private void detectParkingSlot(){
 	
-		double aktuellFrontSideSensorDistance = perception.getFrontSideSensorDistance();
-		if(aktuellFrontSideSensorDistance > 15) {			//ACHTUNG: Korrekt so auf perception zuzugreifen?? Ja muesste passen
-																	//Hier die Tiefe angeben die Parkluecke mindestens haben muss
+//		double aktuellFrontSideSensorDistance = perception.getFrontSideSensorDistance();
+		if(perception.getFrontSideSensorDistance() > 250 && !backBoundaryDetektiert && !frontBoundaryDetektiert) {	//   Parkluecken nach Kurvenpunkten 7 und 0 sind mit 20cm am weitesten entfernt. 5 cm Toleranz eingeplant (evt. nicht aussreichend)
+			backBoundaryDetektiert = true;
 			switch(aktuellerKurvenpunkt) {
-			case 0: backBoundarxFrontSensor = this.pose.getX()*100 + DISTANCE_RobotCenterToBarrier + (aktuellFrontSideSensorDistance -DISTANCE_RobotCenterToBarrier)/2; //y Position gut, fuer x Position evt. ein spaeteren Wert nehmen, da zu frueh ermittelt und evt noch an Kante
-					backBoundaryFrontSensor = this.pose.getY()*100 + DISTANCE_FrontSideSensorToRobotCenter;
-			case 1: case 2 : case 4: case 5: case 6: //break, da es keine Parkluecken auf diesen Strecken gibt
-					break;
-			case 3: backBoundarxFrontSensor = this.pose.getX()*100 - DISTANCE_FrontSideSensorToRobotCenter;
-					backBoundaryFrontSensor = this.pose.getY()*100 + DISTANCE_RobotCenterToBarrier + (aktuellFrontSideSensorDistance -DISTANCE_RobotCenterToBarrier)/2;
-			case 7: backBoundarxFrontSensor = this.pose.getX()*100 + DISTANCE_FrontSideSensorToRobotCenter;
-					backBoundaryFrontSensor = this.pose.getY()*100 - DISTANCE_RobotCenterToBarrier - (aktuellFrontSideSensorDistance -DISTANCE_RobotCenterToBarrier)/2;
-											
-											
-											
-			if (perception.getBackSideSensorDistance() > 15)
-				
+				case 0: backBoundarxFrontSensor = this.pose.getX()*100 -DISTANCE_RobotCenterToBarrierK0K7; //y Position gut, fuer x Position evt. ein spaeteren Wert nehmen, da zu frueh ermittelt und evt noch an Kante
+						backBoundaryFrontSensor = this.pose.getY()*100 + DISTANCE_FrontSideSensorToRobotCenter;
+						Point backBoundarPoint = new Point((float)backBoundarxFrontSensor, (float)backBoundaryFrontSensor); 
+						currentParkingSlot.setBackBoundaryPosition(backBoundarPoint);	//diesen Umweg damit Punkt nicht global gespeichert sondern in currentParkingSlot als Attribut gespeichert wird
+						break;
+				case 1: case 2 : case 4: case 5: case 6: //break, da es keine Parkluecken auf diesen Strecken geben sollte -> hier wuerde 
+						LCD.drawString("Auf unerwartetem Streckenabschnitt Parkluecke entdeckt",0,5);
+						break;
+				case 3: backBoundarxFrontSensor = this.pose.getX()*100 - DISTANCE_FrontSideSensorToRobotCenter;
+						backBoundaryFrontSensor = this.pose.getY()*100 + DISTANCE_RobotCenterToBarrierK3;
+						break;
+				case 7: backBoundarxFrontSensor = this.pose.getX()*100 + DISTANCE_FrontSideSensorToRobotCenter;
+						backBoundaryFrontSensor = this.pose.getY()*100 - DISTANCE_RobotCenterToBarrierK0K7;
+						break;
+			}
 		}
+												
+												
+		/**Diese Abfrage soll die zwei wichtigen Punkte der Parkluecken bestimmen und unter frontBoundarxFrontSensor und frontBounaryFrontSensor abspeichern.
+		 * Anschließend soll mit diesen Punkten gebprueft werden ob Parkluecke bereits bekannt -> aktualisieren
+		 * 																	   zu klein -> nichts machen, evt Ausgaben: Parkluecke zu klein
+		 * 																	   ausreichend gross-> in Datenbank aufnehmen**/						
+		
+//		aktuellFrontSideSensorDistance = perception.getFrontSideSensorDistance(); // Sensorwert aktualisieren damit noch im gleichen detectParkingSlot Aufruf in Abfrage reingesprungen werden kann. Bei geringem threadSleep eig. nicht unbedingt noetig			
+		if (perception.getFrontSideSensorDistance() > 250 && backBoundaryDetektiert) { //Szene: Hinterer Parklueckenpunkt wurde vermerkert. Jetzt schauen ob Parkluecke gross genug			
+			switch(aktuellerKurvenpunkt) {
+				case 0: frontBoundarxFrontSensorAktuell = this.pose.getX()*100 -DISTANCE_RobotCenterToBarrierK0K7; // hierbei handelt es sich nur um vorlaeufige Positionen der Parkluecken
+						frontBoundaryFrontSensorAktuell = this.pose.getY()*100 + DISTANCE_FrontSideSensorToRobotCenter;
+						break;
+				case 1: case 2 : case 4: case 5: case 6: //break, da es keine Parkluecken auf diesen Strecken gibt
+						break;
+				case 3: frontBoundarxFrontSensorAktuell = this.pose.getX()*100 - DISTANCE_FrontSideSensorToRobotCenter;
+						frontBoundaryFrontSensorAktuell = this.pose.getY()*100 + DISTANCE_RobotCenterToBarrierK3;
+						break;
+				case 7: frontBoundarxFrontSensorAktuell = this.pose.getX()*100 + DISTANCE_FrontSideSensorToRobotCenter;
+						frontBoundaryFrontSensorAktuell = this.pose.getY()*100 - DISTANCE_RobotCenterToBarrierK0K7;
+						break;
+			}
+		}
+		if (perception.getFrontSideSensorDistance() < 250 && backBoundaryDetektiert) { //hier kommen wir rein wenn der vom Sensor erfasste Wert kleiner/gleich 25 ist, Parkluecke also vorbei ist (oder backBoundaryDetektiert auf false steht - am Ende das nochmal ueberpruefen ob ok)
+			backBoundaryDetektiert = false;
+			frontBoundaryDetektiert = true;
+			frontBoundarxFrontSensor = frontBoundarxFrontSensorAktuell; //x Koordinate vom vorderen Parklueckenpunkt wird gespeichert 
+			frontBoundaryFrontSensor = frontBoundaryFrontSensorAktuell; //y Koordinate vom hinteren Parklueckenpunkt wird gespeichert
+			Point frontBoundarPoint = new Point((float)frontBoundarxFrontSensor, (float)frontBoundaryFrontSensor);
+			currentParkingSlot.setFrontBoundaryPosition(frontBoundarPoint);
+			currentParkingSlot.setStatus(ParkingSlotStatus.SUITABLE_FOR_PARKING); //vorerst einfach so festgelegt, spaeter evt nicht fix machen
+			currentParkingSlot.setMeasurementQuality(1);						  //vorerst einfach so festgelegt, spaeter evt nicht fix machen
+			/** Je nach Kurvenpunkt wird nun ueberprueft ob Parkluecke ausreichend gross ist und diese anschliessend aktualisiert bzw. hinzugefuegt**/
+			switch(aktuellerKurvenpunkt) {
+				case 0: if (frontBoundaryFrontSensor > (backBoundaryFrontSensor + MIN_SLOT_DISTANCE)) { //Parkluecke soll vorerst mindestens 45cm groß sein
+							if(parklueckeExistiertBereits()) {
+								ParklueckeAktualisieren(); //Im Falle, dass Parkluecke bereits existiert sollen die neu erfassten Boundarypositionen mit den alten fusioniert werden (Mittelwert)
+								frontBoundaryDetektiert = false;
+							}
+							else {
+								parkingSlots[anzahlParkluecken] = new ParkingSlot(anzahlParkluecken, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(), currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality()); //an Position +1 einfuegen, da currentParkingSlot bereits an Position 0 in Array -> falsch, currentParkingSlot sollte eigentlich nur ID von 0 haben, dem Feld aber nicht hinzugefuegt worden sein 
+								anzahlParkluecken++;
+								frontBoundaryDetektiert = false;
+							}
+						}
+						break;
+				case 1: case 2 : case 4: case 5: case 6:
+						break;
+				case 3: if (frontBoundarxFrontSensor < (backBoundarxFrontSensor - MIN_SLOT_DISTANCE)) { //Parkluecke soll vorerst mindestens 45cm groß sein
+							if(parklueckeExistiertBereits()) {
+									ParklueckeAktualisieren(); //Im Falle, dass Parkluecke bereits existiert sollen die neu erfassten Boundarypositionen mit den alten fusioniert werden (Mittelwert)
+									frontBoundaryDetektiert = false;
+							}
+							else {
+								parkingSlots[anzahlParkluecken] = new ParkingSlot(anzahlParkluecken, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(), currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality());
+								anzahlParkluecken++;
+								frontBoundaryDetektiert = false;
+							}
+						}
+						break;
+				case 7: parklueckenLaenge = frontBoundarxFrontSensor - backBoundarxFrontSensor;
+					if (parklueckenLaenge > MIN_SLOT_DISTANCE) { //Parkluecke soll vorerst mindestens 45cm groß sein
+							if(parklueckeExistiertBereits()) {
+								ParklueckeAktualisieren(); //Im Falle, dass Parkluecke bereits existiert sollen die neu erfassten Boundarypositionen mit den alten fusioniert werden (Mittelwert)
+								frontBoundaryDetektiert = false;
+							}
+							else {
+							parkingSlots[anzahlParkluecken] = new ParkingSlot(anzahlParkluecken, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(), currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality());
+							anzahlParkluecken++;
+							frontBoundaryDetektiert = false;
+							}
+						}
+						break;
+				
+			}	
+		}
+	}
+	/** Hier wird ueberprueft ob Daten der aktuell hinzuzufuegenden Parkluecke ungefaehr mit einer bereits vorhandenen Parkluecke uebereinstimmen**/
+	private boolean parklueckeExistiertBereits() {
+		return false; //vorerst fuers Testen auf false, Aktualisierung der Parkluecke somit deaktiviert und auch nicht moeglich
+	}
 	
-	}**/
+	private void ParklueckeAktualisieren() {
+		//erst implementieren wenn Rest laeuft
+	}
+	
+	/**Methoden nur fuer Ausgabe**/
+	public boolean backBoundaryDetektiert() {
+		return backBoundaryDetektiert;
+	}
+	public boolean frontBoundaryDetektiert() {
+		return frontBoundaryDetektiert;
+	}
+	public double backBoundarxFrontSensor() {
+		return backBoundarxFrontSensor;
+	}
+	public double backBoundaryFrontSensor() {
+		return backBoundaryFrontSensor;
+	}
+	public double frontBoundarxFrontSensor() {
+		return frontBoundarxFrontSensor;
+	}
+	public double frontBoundaryFrontSensor() {
+		return frontBoundaryFrontSensor;
+	}
+	public double frontBoundarxFrontSensorAktuell() {
+		return frontBoundarxFrontSensorAktuell;
+	}
+	public double frontBoundaryFrontSensorAktuell() {
+		return frontBoundaryFrontSensorAktuell;
+	}
+	public double parklueckenLaenge() {
+		return parklueckenLaenge;
+	}
 }
 /**TODO:
 	1. Bei setLocation xResult*100 und Winkel bereits richtig eintragen, damit Pose bereits in richtiger Einheit gespeichert wird
@@ -833,4 +998,23 @@ public class NavigationAT implements INavigation{
 	2.Luke eine Variable die true gibt wenn 10 cm vor Kurve, sobald in Kurve aber sofort wieder auf true -> done
 	4. Gregor Mittelpunkt liefern
 	3. Parkluecke erkennen 
+	5. T Anfangspunkte geben, nicht mitte!
+	6. Ueberpruefen ob Parkplaetze halbwegs korrekt eingetragen werden
+	7. Mit Luke und Gregor ueber Loesung reden
+	8. setParkingDetection auf false machen und ueberpruefen ob T es aendern kann
+**/
+
+/** Ermittlung der Parklueckenpunkte fuer Gregor mit Verwendung der Mitte zwischen hinterstem (tiefstem Punkt) der Parkluecke und vorderem Bandenpunkt:
+
+
+switch(aktuellerKurvenpunkt) {
+case 0: backBoundarxFrontSensor = this.pose.getX()*100 + DISTANCE_RobotCenterToBarrier + (aktuellFrontSideSensorDistance -DISTANCE_RobotCenterToBarrier)/2; //y Position gut, fuer x Position evt. ein spaeteren Wert nehmen, da zu frueh ermittelt und evt noch an Kante
+		backBoundaryFrontSensor = this.pose.getY()*100 + DISTANCE_FrontSideSensorToRobotCenter;
+case 1: case 2 : case 4: case 5: case 6: //break, da es keine Parkluecken auf diesen Strecken gibt
+		break;
+case 3: backBoundarxFrontSensor = this.pose.getX()*100 - DISTANCE_FrontSideSensorToRobotCenter;
+		backBoundaryFrontSensor = this.pose.getY()*100 + DISTANCE_RobotCenterToBarrier + (aktuellFrontSideSensorDistance -DISTANCE_RobotCenterToBarrier)/2;
+case 7: backBoundarxFrontSensor = this.pose.getX()*100 + DISTANCE_FrontSideSensorToRobotCenter;
+		backBoundaryFrontSensor = this.pose.getY()*100 - DISTANCE_RobotCenterToBarrier - (aktuellFrontSideSensorDistance -DISTANCE_RobotCenterToBarrier)/2;
+		evt. chartingLogger verwenden
 **/
