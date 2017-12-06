@@ -386,6 +386,8 @@ public class GuidanceAT {
 					} // wait for button release
 				} else if (hmi.getMode() == parkingRobot.INxtHmi.Mode.DISCONNECT) {
 					currentStatus = CurrentStatus.EXIT;
+				} else if (control.getDemoStatus()) {
+					currentStatus = CurrentStatus.SCOUT;
 				}
 				break;
 			case INACTIVE:
@@ -493,6 +495,7 @@ public class GuidanceAT {
 			// into action
 			if (lastLineStatus != currLineStatus) {
 				control.resetIntegralPID();
+				control.resetIntegralRWD();
 				control.setCtrlMode(ControlMode.LINE_CTRL);
 			}
 			// while action
@@ -516,6 +519,7 @@ public class GuidanceAT {
 
 			// into action
 			if (lastLineStatus != currLineStatus) {
+				control.resetIntegralRWD();
 				control.updateStartPose();
 				control.setCtrlMode(ControlMode.RIGHT_CRV_CTRL);
 			}
@@ -542,6 +546,7 @@ public class GuidanceAT {
 			// into action
 			if (lastLineStatus != currLineStatus) {
 				control.updateStartPose();
+				control.resetIntegralRWD();
 				control.setCtrlMode(ControlMode.LEFT_CRV_CTRL);
 			}
 
