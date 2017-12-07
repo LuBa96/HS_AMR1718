@@ -66,7 +66,7 @@ public class HmiSenderThread extends Thread{
 			RConsole.println("Status data geflusht.");
 			
 			// getParkingSlots() returns null until it is implemented
-			if (hmi.navigation.getParkingSlots() == null)
+			if (hmi.navigation.anzahlParkluecken() == 0)
 			{
 				// do nothing
 			}
@@ -74,7 +74,7 @@ public class HmiSenderThread extends Thread{
 			{
 				// write new parking slot - these are aperiodic information, thus should be sent as early as possible, 
 				// but less important than status updates.
-				int newSlots = hmi.navigation.getParkingSlots().length - hmi.noOfParkingSlots;
+				int newSlots = hmi.navigation.anzahlParkluecken() - hmi.noOfParkingSlots;
 
 				hmi.noOfParkingSlots += newSlots; // Record new slots
 

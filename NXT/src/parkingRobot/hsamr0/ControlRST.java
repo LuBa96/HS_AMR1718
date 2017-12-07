@@ -622,6 +622,12 @@ public class ControlRST implements IControl {
 			}
 		
 		}
+		else{
+			boolTurnR = false;
+			boolTurnL = false;
+			boolTurn = false;
+			
+		}
 		/**
 		 * regular straight driving mode KP = 0.1 KI = 0.002 KD = 0.06
 		 */
