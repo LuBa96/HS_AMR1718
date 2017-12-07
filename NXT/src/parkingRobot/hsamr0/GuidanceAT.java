@@ -715,6 +715,6 @@ public class GuidanceAT {
 	 *            The Point the path ends.
 	 */
 	private static void setTransformedCoordinates(Point startPoint, Point endPoint) {
-
+//hallo
 	}
 }
