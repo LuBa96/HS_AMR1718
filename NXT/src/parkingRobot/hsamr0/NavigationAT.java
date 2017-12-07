@@ -1,4 +1,4 @@
-package parkingRobot.hsamr10;
+package parkingRobot.hsamr0;
 /**Hinweis: Display Zeile mit Index 5 wird fuer Ausgabe von Fehlern fuer Navigation benutzt **/
 import lejos.geom.Line;
 import lejos.geom.Point;
@@ -134,6 +134,7 @@ public class NavigationAT implements INavigation{
 	 */
 	boolean parkingSlotDetectionIsOn		= true; 
 	
+	
 	/**
 	 * thread started by the 'Navigation' class for background calculating
 	 */
@@ -165,7 +166,7 @@ public class NavigationAT implements INavigation{
 	 * Spaltenformat: Index fuer den Sensor (beginnend bei 0), vom Sensor ermittelte x-Koordinate, y-Koordidate, Blickrichtung
 	 * ACHTUNG: Fuer die Ausgabe der Encodersensoren muessen x- und y- Koordinaten *100 und der Winkel /Math.PI*180 gerechnet werden**/
 	double[][] fusionMatrix = new double[3][4]; 
-	boolean aktuellInKurve = false;
+//	boolean aktuellInKurve = false;
 	double sensor;							//wird fuer fusionsFunktion fuer Pose benoetigt
 	private boolean off_track = false;
 	private int anzahlRunde = 1; //wird in WinkelKorrekturZwischenEcken erhoeht
@@ -360,9 +361,9 @@ public class NavigationAT implements INavigation{
 		return aktuellerKurvenpunkt;
 	}
 
-	public boolean getAktuellInKurve() {
-		return aktuellInKurve;
-	}
+//	public boolean getAktuellInKurve() {
+//		return aktuellInKurve;
+//	}
 	
 	public boolean getWinkelSchonKorrigiert() {
 		return winkelSchonKorrigiert;
@@ -371,6 +372,7 @@ public class NavigationAT implements INavigation{
 	public void setOffTrack(boolean isOn) {
 		off_track = isOn;
 	}
+
 	// 	Class control
 	
 	/* (non-Javadoc)
@@ -588,8 +590,8 @@ public class NavigationAT implements INavigation{
 		 */
 		
 		if(!off_track) {
-			this.ueberpruefenObAktuellInKurve(); //setzt aktuellInKurve auf true oder false
-			this.PositionskorrekturAnEcken();
+//			this.ueberpruefenObAktuellInKurve(); //setzt aktuellInKurve auf true oder false
+//			this.PositionskorrekturAnEcken();
 			this.WinkelkorrekturZwischenEcken();
 			this.PositionFuerTabletMitPositionskorrekturAufGeraden(); // berechnet xResultMap und yResultMap
 		}
@@ -609,28 +611,26 @@ public class NavigationAT implements INavigation{
 	/**Um festzustellen ob sich der Roboter in einer Kurve befindet, gilt das Kriterium, dass der aktuelle Winkel um mehr als 40 Grad vom Winkel der Strecke vor der Kurvenabfahrt abweichen muss. 
 	 * Ob groe�er oder kleiner wurde nicht unterschieden, da nicht notwendig.
 	 */
-	public void ueberpruefenObAktuellInKurve() {
-		if(this.getPose().getHeading()/Math.PI*180 > Kurvenmatrix[aktuellerKurvenpunkt][7] +25 || this.getPose().getHeading()/Math.PI*180 < Kurvenmatrix[aktuellerKurvenpunkt][7]-25) {	//fusionMatrix[0][3]; (this.getPose().getHeading()> 35) || (this.getPose().getHeading()< -35)
-			aktuellInKurve = true; //aktuell hier noch ein Problem bei ueber einem Durchlauf, da bei ca. 340 Grad erste Bedingung sofort erfuellt -> Winkel nach Kurven entweder mit Methode korrigieren oder absolut (Kompass)
-		}
-		else {
-			aktuellInKurve = false;
-		}
-	}
+//	public void ueberpruefenObAktuellInKurve() {
+//		if(this.getPose().getHeading()/Math.PI*180 > Kurvenmatrix[aktuellerKurvenpunkt][7] +25 || this.getPose().getHeading()/Math.PI*180 < Kurvenmatrix[aktuellerKurvenpunkt][7]-25) {	//fusionMatrix[0][3]; (this.getPose().getHeading()> 35) || (this.getPose().getHeading()< -35)
+//			aktuellInKurve = true; //aktuell hier noch ein Problem bei ueber einem Durchlauf, da bei ca. 340 Grad erste Bedingung sofort erfuellt -> Winkel nach Kurven entweder mit Methode korrigieren oder absolut (Kompass)
+//		}
+//		else {
+//			aktuellInKurve = false;
+//		}
+//	}
 	
 	/**Da Streckenkurs bekannt, wird an jeder Kurve des Parkours eine Korrektur der Position vorgenommen.
 	 * Dabei werden sowohl Encoder, Maussensor und die Pose-Positionen ueberschrieben
 	 * Im Parkmodus greift diese Korrektur nicht**/
-	private void PositionskorrekturAnEcken() {
-		if((!this.off_track && aktuellInKurve ) ) {  // && aktuellInKurve booleansche Variable die angibt ob man sich in Kurve befindet implementieren
+	public void PositionskorrekturAnEcken() {
 			/** Aktuell gefahrene Kurve zuordnen */
 			for (int i=0; i<8; i++) {
-				if((aktuellInKurve && xResult*100 > Kurvenmatrix[i][1]) && (xResult*100 < Kurvenmatrix[i][2]) && (yResult*100 > Kurvenmatrix[i][3]) && (yResult*100 < Kurvenmatrix[i][4])) {
+				if((xResult*100 > Kurvenmatrix[i][1]) && (xResult*100 < Kurvenmatrix[i][2]) && (yResult*100 > Kurvenmatrix[i][3]) && (yResult*100 < Kurvenmatrix[i][4])) {
 				//	System.out.println("Roboter befindet sich am Kurvenpunkt" + i);
 					aktuellerKurvenpunkt = i;
 					xResult = Kurvenmatrix[i][5]/100; //xResult hat Einheit von 1/100*mm, Kurvenmatrix hat bereits Einheit mm					
 					yResult = Kurvenmatrix[i][6]/100;
-					aktuellInKurve = false;
 					winkelSchonKorrigiert = false;
 					angleResultAktuellerMittelwert = 0;
 					anzahlDurchlaufeMittelwert = 1;
@@ -648,7 +648,7 @@ public class NavigationAT implements INavigation{
 					 * - wenn man sich angeblich in Kurve befindet, der aktuellen Position aber kein Kurvenpunkt zugeordnet werden kann
 					 -> vorerst wird an aktueller Position keine Aenderung vorgenommen (else Schleife bleibt leer)**/
 				}
-			}
+			
 		}
 	}
 	/** Methode um Winkel durch Mittelwertbildung zwischen den Kurven zu optimieren. Fuer die xResultMap, yResultMap, angleResultMap Daten werden die Paramteter stumpf gesetzt.

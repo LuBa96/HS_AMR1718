@@ -49,9 +49,11 @@ public interface INavigation {
 	
 	public int getAktuellenKurvenpunkt();
 
-	public boolean getAktuellInKurve();
+//	public boolean getAktuellInKurve();
 	
-	public void ueberpruefenObAktuellInKurve();
+//	public void ueberpruefenObAktuellInKurve();
+	
+	public void PositionskorrekturAnEcken();
 	
 
 	public double getxResult();

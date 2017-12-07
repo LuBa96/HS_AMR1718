@@ -4,42 +4,55 @@ import lejos.nxt.Button;
 import lejos.nxt.MotorPort;
 import lejos.nxt.NXTMotor;
 import lejos.robotics.navigation.Pose;
-
 import parkingRobot.IControl;
 import parkingRobot.IControl.*;
 import parkingRobot.INxtHmi;
 import parkingRobot.INavigation;
+import parkingRobot.INavigation.ParkingSlot;
 import parkingRobot.IPerception;
 import parkingRobot.IMonitor;
 
 import lejos.geom.Line;
+import lejos.geom.Point;
 import lejos.nxt.LCD;
+
 import parkingRobot.hsamr0.ControlRST;
 import parkingRobot.hsamr0.HmiPLT;
 import parkingRobot.hsamr0.NavigationAT;
 import parkingRobot.hsamr0.PerceptionPMP;
 
-
+//TODO check how the monitor works
+//TODO check how type Pose works
+//TODO introduce and implement underlying states of PARK_THIS
+//TODO get rid of HmiMode PARK_NEXT
+//TODO maybe transition check if DEMO is finished from control
+//TODO implement sub-states for turns in SCOUT
 
 /**
- * Main class for 'Hauptseminar AMR' project 'autonomous parking' for students of electrical engineering
- * with specialization 'automation, measurement and control'.
+ * Main class for 'Hauptseminar AMR' project 'autonomous parking' for students
+ * of electrical engineering with specialization 'automation, measurement and
+ * control'.
  * <p>
- * Task of the robotic project is to develop an mobile robot based on the Lego NXT system witch can perform
- * parking maneuvers on an predefined course. To fulfill the interdisciplinary aspect of this project the software
- * structure is divided in 5 parts: human machine interface, guidance, control, perception and navigation.
+ * Task of the robotic project is to develop an mobile robot based on the Lego
+ * NXT system witch can perform parking maneuvers on an predefined course. To
+ * fulfill the interdisciplinary aspect of this project the software structure
+ * is divided in 5 parts: human machine interface, guidance, control, perception
+ * and navigation.
  * <p>
- * Guidance is to be realized in this main class. The course of actions is to be controlled by one or more finite
- * state machines (FSM). It may be advantageous to nest more than one FSM.
+ * Guidance is to be realized in this main class. The course of actions is to be
+ * controlled by one or more finite state machines (FSM). It may be advantageous
+ * to nest more than one FSM.
  * <p>
- * For the other parts there are interfaces defined and every part has to be realized in one main module class.
- * Every class (except guidance) has additionally to start its own thread for background computation.
+ * For the other parts there are interfaces defined and every part has to be
+ * realized in one main module class. Every class (except guidance) has
+ * additionally to start its own thread for background computation.
  * <p>
- * It is important that data witch is accessed by more than one main module class thread is only handled in a
- * synchronized context to avoid inconsistent or corrupt data!
+ * It is important that data witch is accessed by more than one main module
+ * class thread is only handled in a synchronized context to avoid inconsistent
+ * or corrupt data!
  */
 public class GuidanceAT {
-	
+
 	/**
 	 * states for the main finite state machine. This main states are requirements
 	 * because they invoke different display modes in the human machine interface.
@@ -52,7 +65,7 @@ public class GuidanceAT {
 		/**
 		 * Indicates that robot is performing an parking maneuver
 		 */
-		DRIVING,
+		PARK_THIS,
 		/**
 		 * Indicates the robot is performing a demo as part of the assignment for
 		 * control
@@ -60,11 +73,10 @@ public class GuidanceAT {
 		DEMO,
 		/**
 		 * Indicates that the robot is currently standing still
-
 		 */
 		INACTIVE,
 		/**
-		 * indicates that shutdown of main program has initiated
+		 * Indicates that robot is shutting down
 		 */
 		EXIT
 	}
@@ -121,12 +133,13 @@ public class GuidanceAT {
 		 */
 		PARK_INACTIVE
 	}
+
 	/**
 	 * state in which the main finite state machine is running at the moment
 	 */
-	protected static CurrentStatus currentStatus 	= CurrentStatus.DRIVING;
+	protected static CurrentStatus currentStatus = CurrentStatus.INACTIVE;
 	/**
-	 * state in which the main finite state machine was running before entering the actual state
+	 * current underlying state of FOLLOW_LINE
 	 */
 	protected static CurrentLineStatus currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
 	/**
@@ -153,11 +166,10 @@ public class GuidanceAT {
 	 * and the last line ends where the first line starts. This documentation for
 	 * line0 hold for all lines.
 	 */
-	static Line line0 = new Line(  0,  0, 180,  0);
-	static Line line1 = new Line(180,  0, 180, 60);
+	static Line line0 = new Line(0, 0, 180, 0);
+	static Line line1 = new Line(180, 0, 180, 60);
 	static Line line2 = new Line(180, 60, 150, 60);
 	static Line line3 = new Line(150, 60, 150, 30);
-
 	static Line line4 = new Line(150, 30, 30, 30);
 	static Line line5 = new Line(30, 30, 30, 60);
 	static Line line6 = new Line(30, 60, 0, 60);
@@ -213,28 +225,30 @@ public class GuidanceAT {
 	 * This array holds the coefficients of the path polynomial
 	 */
 	static double[] coEffs;
+
 	/**
 	 * main method of project 'ParkingRobot'
 	 * 
-	 * @param args standard string arguments for main method
-	 * @throws Exception exception for thread management
+	 * @param args
+	 *            standard string arguments for main method
+	 * @throws Exception
+	 *             exception for thread management
 	 */
 	public static void main(String[] args) throws Exception {
 		currentStatus = CurrentStatus.INACTIVE;
 		lastStatus = CurrentStatus.EXIT;
 
 		// Generate objects
-		
-		NXTMotor leftMotor  = new NXTMotor(MotorPort.B);
+
+		NXTMotor leftMotor = new NXTMotor(MotorPort.B);
 		NXTMotor rightMotor = new NXTMotor(MotorPort.A);
-		
+
 		IMonitor monitor = new Monitor();
 
 		IPerception perception = new PerceptionPMP(leftMotor, rightMotor, monitor);
 		perception.calibrateLineSensors();
-		
-		INavigation navigation = new NavigationAT(perception, monitor);
 
+		INavigation navigation = new NavigationAT(perception, monitor);
 		IControl control = new ControlRST(perception, navigation, leftMotor, rightMotor, monitor);
 		INxtHmi hmi = new HmiPLT(perception, navigation, control, monitor);
 
@@ -265,7 +279,7 @@ public class GuidanceAT {
 			// While action
 			{
 				// execute underlying state machine
-				followLineSubStateMachine(control);
+				followLineSubStateMachine(control, navigation);
 			}
 
 				// State transition check
@@ -426,32 +440,28 @@ public class GuidanceAT {
 				break;
 			default:
 				break;
-        	}
-        		
-        	Thread.sleep(100);        	
+			}
+
+			Thread.sleep(100);
 		}
 	}
-	
-	
+
 	/**
 	 * returns the actual state of the main finite state machine as defined by the
 	 * requirements
-
 	 * 
 	 * @return actual state of the main finite state machine
 	 */
-	public static CurrentStatus getCurrentStatus(){
+	public static CurrentStatus getCurrentStatus() {
 		return GuidanceAT.currentStatus;
 	}
-	
+
 	/**
 	 * plots the actual pose on the robots display
 	 * 
-	 * @param navigation reference to the navigation class for getting pose information
+	 * @param navigation
+	 *            reference to the navigation class for getting pose information
 	 */
-
-
-
 	protected static void showData(INavigation navigation, IPerception perception, IControl control) {
 		LCD.clear();
 
@@ -462,8 +472,11 @@ public class GuidanceAT {
 		//LCD.drawString("left: " + (perception.getLeftLineSensorValue()), 0, 3);
 		//LCD.drawString("right: " + (perception.getRightLineSensorValue()), 0, 4);
 		// perception.showSensorData();
-		LCD.drawString("X': " + (control.getYstrich()),0,3);
-		LCD.drawString("Y': " + (control.getYstrich()),0,4);
+//		LCD.drawString("X': " + (control.getYstrich()),0,3);
+//		LCD.drawString("Y': " + (control.getYstrich()),0,4);
+		LCD.drawString("Mode: " + currentStatus, 0, 5);
+		LCD.drawString("UMode: " + currLineStatus, 0, 6);
+		LCD.drawString("KP: " + navigation.getAktuellenKurvenpunkt(),0,3);
 
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
@@ -479,7 +492,7 @@ public class GuidanceAT {
 	 * the moment. Will make the robot follow the line, which can also be used
 	 * during PARK_THIS
 	 */
-	private static void followLineSubStateMachine(IControl control) {
+	private static void followLineSubStateMachine(IControl control, INavigation navigation) {
 		switch (currLineStatus) {
 		case FOLLOW_LINE_STRAIGHT:
 			// into action
@@ -528,6 +541,7 @@ public class GuidanceAT {
 			// leave action
 			if (currLineStatus != lastLineStatus) {
 				control.setCtrlMode(ControlMode.INACTIVE);
+				navigation.PositionskorrekturAnEcken();
 			}
 			break;
 		case FOLLOW_LINE_LEFT:
@@ -554,6 +568,7 @@ public class GuidanceAT {
 			// leave action
 			if (currLineStatus != lastLineStatus) {
 				control.setCtrlMode(ControlMode.INACTIVE);
+				navigation.PositionskorrekturAnEcken();
 			}
 			break;
 		// there is no transition into this state yet
@@ -606,7 +621,7 @@ public class GuidanceAT {
 			}
 
 			// while action
-			followLineSubStateMachine(control);
+			followLineSubStateMachine(control, navigation);
 
 			// state transition
 			lastParkStatus = currParkStatus;
