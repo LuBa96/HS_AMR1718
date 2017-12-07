@@ -8,7 +8,9 @@ import lejos.robotics.navigation.Pose;
 import parkingRobot.INavigation;
 import parkingRobot.IPerception;
 import parkingRobot.INavigation.ParkingSlot.ParkingSlotStatus;
-import parkingRobot.hsamr10.NavigationThread;
+
+import parkingRobot.hsamr0.NavigationThread;
+
 //import test3.main;
 import parkingRobot.IMonitor;
 import java.lang.*;
@@ -53,7 +55,7 @@ public class NavigationAT implements INavigation{
 	 * reference to data class for measurement of the left wheels angle difference between actual an last request and the
 	 * corresponding time difference
 	 */
-	IPerception.AngleDifferenceMeasurement angleMeasurementLeft 	= 	null; //Unterschied zu encoderSensor?? zusätzlich noch Zeitdifferenz?
+	IPerception.AngleDifferenceMeasurement angleMeasurementLeft 	= 	null; //Unterschied zu encoderSensor?? zusï¿½tzlich noch Zeitdifferenz?
 	/**
 	 * reference to data class for measurement of the right wheels angle difference between actual an last request and the
 	 * corresponding time difference
@@ -155,11 +157,11 @@ public class NavigationAT implements INavigation{
 	
 	/**Falls sich der Roboter in einer Kurve befindet, entspricht der aktuelle Kurvenpunkt dieser Kurve.
 	 * Befindet er sich hinter einer Kurve entspricht der aktuelel Kurvenpunkt weiterhin der vorher durchfahrenen Kurve.
-	 * Für Numerierung der Kurvenpunkte, siehe Dropbox Ordner Navigation -> Kurvenpunktfestlegung**/
+	 * Fï¿½r Numerierung der Kurvenpunkte, siehe Dropbox Ordner Navigation -> Kurvenpunktfestlegung**/
 	public int aktuellerKurvenpunkt = 7; //Startpunkt des Roboters entspricht Kurvenpunkt 7
 	
 	
-	/**fusionMatrix wird fuer fusionsFunktion der Pose benoetigt. Die Zeilen der Matrix stehen für die verschiedenen Sensoren wobei:Encorder (0), Maussensor (1), Kompass (2)
+	/**fusionMatrix wird fuer fusionsFunktion der Pose benoetigt. Die Zeilen der Matrix stehen fï¿½r die verschiedenen Sensoren wobei:Encorder (0), Maussensor (1), Kompass (2)
 	 * Spaltenformat: Index fuer den Sensor (beginnend bei 0), vom Sensor ermittelte x-Koordinate, y-Koordidate, Blickrichtung
 	 * ACHTUNG: Fuer die Ausgabe der Encodersensoren muessen x- und y- Koordinaten *100 und der Winkel /Math.PI*180 gerechnet werden**/
 	double[][] fusionMatrix = new double[3][4]; 
@@ -168,7 +170,7 @@ public class NavigationAT implements INavigation{
 	private boolean off_track = false;
 	private int anzahlRunde = 1; //wird in WinkelKorrekturZwischenEcken erhoeht
 	
-	/**Kurvenmatrix in der alle Kurvenpunkte sowie deren Toleranzbereich für die Zuordnung der aktuellen Position zu einem Kurvenpunkt gespeichert sind
+	/**Kurvenmatrix in der alle Kurvenpunkte sowie deren Toleranzbereich fï¿½r die Zuordnung der aktuellen Position zu einem Kurvenpunkt gespeichert sind
 	 * Spaltenformat: Kurvenindex(beginnend bei 0), xminBereich, xmaxBereich, yminBereich, ymaxBereich, xKurvenpunkt, yKurvenpunkt, Einfahrtwinkel in die nach dem aktuellen Kurvenpunkt folgende Kurve, (CloseToCurve auf schon mal auf true = 1, noch nicht auf true = 0)**/
 	double[][] Kurvenmatrix = new double[8][9];
 	
@@ -206,13 +208,13 @@ public class NavigationAT implements INavigation{
 	double angleResult = 0;
 	
 	/**Fuer Karte: fusioniertePose mit Ecken- und Geradenkorrektur (sollte beides beim parken deaktiviert sein)
-	 * xResultMap, yResultMap bereits in mm; angleReslutMap in °**/
+	 * xResultMap, yResultMap bereits in mm; angleReslutMap in ï¿½**/
 	
 	double xResultMap = 0;
 	double yResultMap = 0;
 	double angleResultMap = 0;
 	
-	/**folgende Variablen werden für WinkelkorrekturZwischenEcken benoetigt**/
+	/**folgende Variablen werden fï¿½r WinkelkorrekturZwischenEcken benoetigt**/
 	private int anzahlDurchlaufeMittelwert = 1; //gibt Anzahl der aktuellen Messwerte inklusive des neuen Messwertes fuer Berechnung des Mittelwertes an
 	private double angleResultAktuellerMittelwert = 0;
 	private boolean winkelSchonKorrigiert = false;
@@ -521,14 +523,14 @@ public class NavigationAT implements INavigation{
 		
 		double dheading = -dx/CIRCUMFERENCE_OF_MOUSE_CIRCLE__NXT_FULL_TURN*2*(double)Math.PI; //funktioniert nur beim Stehen, Kreisbogenlaenge muss je nach dy Anteil angepasst werden -> Nein doch nicht! Ausschliesslich dx ist fuer Drehung verantwortlich
 		heading += dheading; //zum Testen heading einfach mit dx und dy vorgeben, update: jetzt mit dx und last_dx bestimmen
-			//Ueberlaufe verhindern //fuer cos, sin Funktionen für 'Position bestimmen' Ueberlauf nicht schlimm. Nur fuer Schoenheit
+			//Ueberlaufe verhindern //fuer cos, sin Funktionen fï¿½r 'Position bestimmen' Ueberlauf nicht schlimm. Nur fuer Schoenheit
 			while (heading>2*Math.PI) {
 				heading-= 2*Math.PI;
 				}
 			while (heading<0) {
 				heading+= 2*Math.PI;
 				}
-			//System.out.println("Heading:  " + heading/(2*Math.PI)*360 + "°");
+			//System.out.println("Heading:  " + heading/(2*Math.PI)*360 + "ï¿½");
 		
 		//Position bestimmen (bei Naeherung von Geradeausfahrt mit bestimmtem Winkel)
 		dPos_x = dy*((double) Math.cos(heading));	//cos liefert nur double werte -> convertierung in double
@@ -581,7 +583,7 @@ public class NavigationAT implements INavigation{
 		/** 
 		 * Falls sich Roboter auf dem Track befindet (z.B. bei Parkplatzsuche) werden Informationen der Strecke genutzt um Genauigkeit der aktuellen Position zu verbessern.
 		 * Mit PositionskorrekturAnEcken() werden x und y an Eckpunkten auf den Eckpunkt gesetzt.
-		 * Mit WinkelkorrekturZwischenEcken() wird zuerst der Mittelwert der Abweichung der Blickrichtung (heading) gebildet und diese anschließend auf ungefaehr halber Strecke zwischen zwei Ecken zum aktuellen Blickwinkel aufaddiert/abgezogen.
+		 * Mit WinkelkorrekturZwischenEcken() wird zuerst der Mittelwert der Abweichung der Blickrichtung (heading) gebildet und diese anschlieï¿½end auf ungefaehr halber Strecke zwischen zwei Ecken zum aktuellen Blickwinkel aufaddiert/abgezogen.
 		 * Mit PositionFuerTabletMitPositionskorrekturAufGeraden() werden x bzw. y fuer eine schoene Darstellung auf dem Tablet genullt. 
 		 */
 		
@@ -605,7 +607,7 @@ public class NavigationAT implements INavigation{
 	}
 	
 	/**Um festzustellen ob sich der Roboter in einer Kurve befindet, gilt das Kriterium, dass der aktuelle Winkel um mehr als 40 Grad vom Winkel der Strecke vor der Kurvenabfahrt abweichen muss. 
-	 * Ob groeßer oder kleiner wurde nicht unterschieden, da nicht notwendig.
+	 * Ob groeï¿½er oder kleiner wurde nicht unterschieden, da nicht notwendig.
 	 */
 	public void ueberpruefenObAktuellInKurve() {
 		if(this.getPose().getHeading()/Math.PI*180 > Kurvenmatrix[aktuellerKurvenpunkt][7] +25 || this.getPose().getHeading()/Math.PI*180 < Kurvenmatrix[aktuellerKurvenpunkt][7]-25) {	//fusionMatrix[0][3]; (this.getPose().getHeading()> 35) || (this.getPose().getHeading()< -35)
@@ -854,7 +856,18 @@ public class NavigationAT implements INavigation{
 				}
 		}
 	}
-		
+
+	/**
+	 * Methode um Winkel durch Mittelwertbildung zwischen den Kurven zu
+	 * optimieren. Fuer die xResultMap, yResultMap, angleResultMap Daten werden
+	 * die Paramteter stumpf gesetzt. Hier soll durch Mittelwertbildung auf ca.
+	 * halber Strecke der Winkel einmal um den vom Mittelwert abweichenden Wert
+	 * korrigiert werden. Das Parameter aktuellerKurvenpunkt wird deshalb
+	 * verwendet, weil dieser auch nach der Kurve noch auf dem letzten
+	 * Kurvenpunkt bestehen bleibt. Dieser repraesentiert also ebenso die
+	 * Strecke nach dem aktuellen Kurvenpunkt TODO: Parameter noch soweit
+	 * anpassen wie Pendelbewegung nach Kurvenausfahrt zu erkennen
+	 **/
 	public boolean getRobotCloseToCurve() {
 		return robotCloseToCurve;
 	}
@@ -957,7 +970,7 @@ public class NavigationAT implements INavigation{
 		/** Je nach Kurvenpunkt wird nun ueberprueft ob Parkluecke ausreichend gross ist und diese anschliessend aktualisiert bzw. hinzugefuegt**/
 		switch(aktuellerKurvenpunkt) {
 			case 0: parklueckenLaenge = frontBoundaryFrontSensor - backBoundaryFrontSensor;
-					if (parklueckenLaenge > MIN_SLOT_DISTANCE) { //Parkluecke soll vorerst mindestens 45cm groß sein
+					if (parklueckenLaenge > MIN_SLOT_DISTANCE) { //Parkluecke soll vorerst mindestens 45cm groï¿½ sein
 						if(parklueckeExistiertBereits()) {
 							ParklueckeAktualisieren(); //Im Falle, dass Parkluecke bereits existiert sollen die neu erfassten Boundarypositionen mit den alten fusioniert werden (Mittelwert)
 						}
@@ -970,7 +983,7 @@ public class NavigationAT implements INavigation{
 			case 1: case 2 : case 4: case 5: case 6:
 					break;
 			case 3: parklueckenLaenge = backBoundarxFrontSensor - frontBoundarxFrontSensor;
-					if (parklueckenLaenge > MIN_SLOT_DISTANCE) { //Parkluecke soll vorerst mindestens 45cm groß sein
+					if (parklueckenLaenge > MIN_SLOT_DISTANCE) { //Parkluecke soll vorerst mindestens 45cm groï¿½ sein
 						if(parklueckeExistiertBereits()) {
 								ParklueckeAktualisieren(); //Im Falle, dass Parkluecke bereits existiert sollen die neu erfassten Boundarypositionen mit den alten fusioniert werden (Mittelwert)
 						}
@@ -981,7 +994,7 @@ public class NavigationAT implements INavigation{
 					}
 					break;
 			case 7: parklueckenLaenge = frontBoundarxFrontSensor - backBoundarxFrontSensor;
-					if (parklueckenLaenge > MIN_SLOT_DISTANCE) { //Parkluecke soll vorerst mindestens 45cm groß sein
+					if (parklueckenLaenge > MIN_SLOT_DISTANCE) { //Parkluecke soll vorerst mindestens 45cm groï¿½ sein
 						if(parklueckeExistiertBereits()) {
 							ParklueckeAktualisieren(); //Im Falle, dass Parkluecke bereits existiert sollen die neu erfassten Boundarypositionen mit den alten fusioniert werden (Mittelwert)
 						}
