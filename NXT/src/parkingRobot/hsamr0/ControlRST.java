@@ -1,4 +1,4 @@
-5package parkingRobot.hsamr0;
+package parkingRobot.hsamr0;
 
 import lejos.robotics.navigation.Pose;
 import parkingRobot.IControl;
