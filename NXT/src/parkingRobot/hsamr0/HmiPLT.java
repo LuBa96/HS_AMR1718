@@ -125,7 +125,7 @@ public class HmiPLT implements INxtHmi{
 	}
 	
 
-
+//test
 	@Override
 	public int getSelectedParkingSlot() {
 		return selectedParkingSlot;
