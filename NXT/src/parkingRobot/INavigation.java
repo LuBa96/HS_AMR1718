@@ -68,7 +68,7 @@ public interface INavigation {
 	public void setRobotCloseToCurveToFalse();
 	
 	public boolean backBoundaryDetektiert();
-	public boolean frontBoundaryDetektiert();
+//	public boolean frontBoundaryDetektiert();
 	public double backBoundarxFrontSensor();
 	public double backBoundaryFrontSensor();
 	public double frontBoundarxFrontSensor();
@@ -76,6 +76,8 @@ public interface INavigation {
 	public double frontBoundarxFrontSensorAktuell();
 	public double frontBoundaryFrontSensorAktuell();
 	public double parklueckenLaenge();
+	public int anzahlParkluecken();
+	public ParkingSlot getAktuellstenParkplatz();
 	// Outputs
 	
 	/**
@@ -101,7 +103,7 @@ public interface INavigation {
 	 * - slot status (whether it is/is not suitable for parking),
 	 * - measured position of the slot begin front boundary, 
 	 * - measured position of the slot back boundary,
-	 * - quality of parking slot measurement (die Güte der Parklückenvermessung).
+	 * - quality of parking slot measurement (die GÃ¼te der ParklÃ¼ckenvermessung).
 	 * 
 	 * @author IfA
 	 */
@@ -239,5 +241,7 @@ public interface INavigation {
 		public int getMeasurementQuality() {
 			return measurementQuality;
 		}
+		
+		
 	}	
 }
