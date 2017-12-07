@@ -123,7 +123,7 @@ public class HmiPLT implements INxtHmi{
 		hmiSenderThread.start();
 	
 	}
-	
+	//uohsbdfohuafv
 
 //test
 	@Override
