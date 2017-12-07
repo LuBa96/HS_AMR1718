@@ -99,7 +99,7 @@ public class ControlRST implements IControl {
 	int grey = 0;
 	int lowerThreshold = 20;
 	int maxPower = 0;
-	int counter=0;
+	int counter = 0;
 
 	/**
 	 * distinguish between straight driving and curving. PID optimized for
@@ -279,8 +279,8 @@ public class ControlRST implements IControl {
 	public void updateStartPose() {
 		this.startPosition = navigation.getPose();
 		startAngleDeg = (int) (this.startPosition.getHeading() / Math.PI * 180);
-		startX = this.startPosition.getX()*100;
-		startY = this.startPosition.getY()*100;
+		startX = this.startPosition.getX() * 100;
+		startY = this.startPosition.getY() * 100;
 
 	}
 
@@ -297,7 +297,7 @@ public class ControlRST implements IControl {
 	public void setStartTime(int startTime) {
 		this.lastTime = startTime;
 	}
-	
+
 	public boolean getDemoStatus() {
 		return demoFin;
 	}
@@ -457,14 +457,14 @@ public class ControlRST implements IControl {
 		/**
 		 * x'=x*cos(phi)+y*sin(phi)
 		 */
-		xRotKOS = (this.currentPosition.getX()*100) * Math.cos(0)
-				+ (this.currentPosition.getY()*100) * Math.sin(0);
+		xRotKOS = (this.currentPosition.getX() * 100) * Math.cos(0)
+				+ (this.currentPosition.getY() * 100) * Math.sin(0);
 
 		/**
 		 * y'=-x*sin(phi)+y*cos(phi)
 		 */
-		yRotKOS = (this.currentPosition.getY()*100) * Math.cos(0)
-				- (this.currentPosition.getX()*100) * Math.sin(0);
+		yRotKOS = (this.currentPosition.getY() * 100) * Math.cos(0)
+				- (this.currentPosition.getX() * 100) * Math.sin(0);
 
 		errYAlt = yRotKOS - errYAlt;
 
@@ -600,16 +600,10 @@ public class ControlRST implements IControl {
 		 * lower threshold for exiting the boolTurn mode continue in boolTurn
 		 * mode
 		 */
-		if (counter > 0)
-		{
-			counter=counter-1;
-		}
-
-		if ((!(boolTurn)) && ((e > upperThreshold) || (e < -upperThreshold))) {
+		if ((e > upperThreshold) || (e < -upperThreshold)) {
 			/**
 			 * State Transition: straight --> curve
 			 */
-			if (counter <= 0){
 			if (e < 0) {
 				boolTurnR = true;
 				boolTurnL = false;
@@ -618,15 +612,12 @@ public class ControlRST implements IControl {
 				boolTurnR = false;
 			}
 			boolTurn = true;
-			counter = 14;
-			}
-		
-		}
-		else{
+
+		} else {
 			boolTurnR = false;
 			boolTurnL = false;
 			boolTurn = false;
-			
+
 		}
 		/**
 		 * regular straight driving mode KP = 0.1 KI = 0.002 KD = 0.06
@@ -696,44 +687,44 @@ public class ControlRST implements IControl {
 	 *            > 0 right curve
 	 */
 	private void exec_driveCurve90() {
-		double xMomentary = this.currentPosition.getX()*100;
-		double yMomentary = this.currentPosition.getY()*100;
+		double xMomentary = this.currentPosition.getX() * 100;
+		double yMomentary = this.currentPosition.getY() * 100;
 		angleDeg = (int) (this.currentPosition.getHeading() / Math.PI * 180);
 		double disMomentary = Math.sqrt(Math.pow((xMomentary - startX), 2)
 				+ Math.pow((yMomentary - startY), 2));
-		if (disMomentary<=4.5)
-			drive(5,0);
-		else{
-		// left curve
-		switch (currentCTRLMODE) {
-		case LEFT_CRV_CTRL:
-			if ((angleDeg - startAngleDeg) <= 80) {
-				drive(0, 40);
-				//Sound.buzz();
-			} else {
-				boolTurn = false;
-				boolTurnL = false;
+		if (disMomentary <= 4.5)
+			drive(5, 0);
+		else {
+			// left curve
+			switch (currentCTRLMODE) {
+			case LEFT_CRV_CTRL:
+				if ((angleDeg - startAngleDeg) <= 80) {
+					drive(0, 40);
+					// Sound.buzz();
+				} else {
+					boolTurn = false;
+					boolTurnL = false;
+					rightMotor.stop();
+					leftMotor.stop();
+				}
+				break;
+			// right curve
+			case RIGHT_CRV_CTRL:
+				if ((angleDeg - startAngleDeg) >= -80) {
+					drive(0, -40);
+					// Sound.buzz();
+				} else {
+					boolTurn = false;
+					boolTurnR = false;
+					rightMotor.stop();
+					leftMotor.stop();
+				}
+				break;
+			default:
 				rightMotor.stop();
 				leftMotor.stop();
+				break;
 			}
-			break;
-		// right curve
-		case RIGHT_CRV_CTRL:
-			if ((angleDeg - startAngleDeg) >= -80) {
-				drive(0, -40);
-				//Sound.buzz();
-			} else {
-				boolTurn = false;
-				boolTurnR = false;
-				rightMotor.stop();
-				leftMotor.stop();
-			}
-			break;
-		default:
-			rightMotor.stop();
-			leftMotor.stop();
-			break;
-		}
 		}
 	}
 
@@ -927,8 +918,8 @@ public class ControlRST implements IControl {
 	 */
 	private void Control_Demo_1() {
 
-		double x = this.currentPosition.getX()*100;
-		double y = this.currentPosition.getY()*100;
+		double x = this.currentPosition.getX() * 100;
+		double y = this.currentPosition.getY() * 100;
 		double dis = Math.sqrt(x * x + y * y);
 		/**
 		 * 120 cm with 10 cm/s straight driving
@@ -965,8 +956,8 @@ public class ControlRST implements IControl {
 				Sound.systemSound(true, 1);
 				demo3 = true;
 				demo2 = false;
-				startX = navigation.getPose().getX()*100;
-				startY = navigation.getPose().getY()*100;
+				startX = navigation.getPose().getX() * 100;
+				startY = navigation.getPose().getY() * 100;
 				leftMotor.stop();
 				rightMotor.stop();
 				// reset esumL and esumR, otherwise the accumulated error for
