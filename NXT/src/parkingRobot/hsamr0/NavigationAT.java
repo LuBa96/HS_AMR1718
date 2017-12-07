@@ -1094,3 +1094,4 @@ case 7: backBoundarxFrontSensor = this.pose.getX()*100 + DISTANCE_FrontSideSenso
 		backBoundaryFrontSensor = this.pose.getY()*100 - DISTANCE_RobotCenterToBarrier - (aktuellFrontSideSensorDistance -DISTANCE_RobotCenterToBarrier)/2;
 		evt. chartingLogger verwenden
 **/
+//test
