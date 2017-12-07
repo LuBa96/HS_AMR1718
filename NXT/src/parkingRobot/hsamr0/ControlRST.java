@@ -695,7 +695,7 @@ public class ControlRST implements IControl {
 		angleDeg = (int) (this.currentPosition.getHeading() / Math.PI * 180);
 		double disMomentary = Math.sqrt(Math.pow((xMomentary - startX), 2)
 				+ Math.pow((yMomentary - startY), 2));
-		if (disMomentary<=3)
+		if (disMomentary<=4.5)
 			drive(5,0);
 		else{
 		// left curve

@@ -65,7 +65,7 @@ public interface INavigation {
 	public boolean getWinkelSchonKorrigiert();
 	public double getRMS();
 	
-	public void updateRobotCloseToCurve();
+//	public void updateRobotCloseToCurve();
 	public boolean getRobotCloseToCurve();
 	public void setRobotCloseToCurveToFalse();
 	
