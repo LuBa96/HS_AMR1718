@@ -198,7 +198,7 @@ public class ControlRST implements IControl {
 		ealtL = 0;
 		ealtR = 0;
 		upperThreshold = 70;
-		maxPower = 100;
+		maxPower = 90;
 
 		/**
 		 * distinguish between straight driving and curving. PID optimized for
@@ -320,11 +320,6 @@ public class ControlRST implements IControl {
 		case LINE_CTRL:
 			update_SETPOSE_Parameter();
 			update_LINECTRL_Parameter();
-			// update_SETPOSE_Parameter();
-			// update_LINECTRL_Parameter();
-			// exec_SETPOSE_ALGO();
-			// LCD.drawString("x': " + xRotKOS, 0, 6);
-			// LCD.drawString("y': " + yRotKOS, 0, 7);
 			exec_LINECTRL_ALGO();
 			break;
 		case LEFT_CRV_CTRL:
@@ -658,27 +653,7 @@ public class ControlRST implements IControl {
 
 	}
 
-	/*
-	 * private void driveCurve(int e) { double y;
-	 * 
-	 * if ((e > 0) || boolTurnL) {
-	 * 
-	 * if (boolTurnR) { // if the robot has been in a right curve in the last
-	 * cycle it // may not change into left curve right // until the next cycle
-	 * finishes boolTurnR = false; y = PID_control(e, 0.15, 0.02, 0.02, 1);
-	 * rightMotor.setPower((int) (maxPower / 2) + (int) y);
-	 * leftMotor.setPower((int) (maxPower / 2) - (int) y); } else { boolTurnL =
-	 * true; rightMotor.setPower((int) (maxPower * 2 / 3));
-	 * leftMotor.setPower((int) (-maxPower / 5)); } }
-	 * 
-	 * else if ((e < 0) || boolTurnR) { if (boolTurnL) { y = PID_control(e,
-	 * 0.15, 0.02, 0.02, 1); boolTurnL = false; rightMotor.setPower((int)
-	 * (maxPower / 2) - (int) y); leftMotor.setPower((int) (maxPower / 2) +
-	 * (int) y); } else { boolTurnR = true; rightMotor.setPower((int) (-maxPower
-	 * / 5)); leftMotor.setPower((int) (maxPower * 2 / 3)); } }
-	 * 
-	 * }
-	 */
+	
 
 	/**
 	 * robot turns 90 degrees for curve mode
@@ -692,7 +667,7 @@ public class ControlRST implements IControl {
 		angleDeg = (int) (this.currentPosition.getHeading() / Math.PI * 180);
 		double disMomentary = Math.sqrt(Math.pow((xMomentary - startX), 2)
 				+ Math.pow((yMomentary - startY), 2));
-		if (disMomentary <= 4.5)
+		if (disMomentary <= 4)
 			drive(5, 0);
 		else {
 			// left curve
