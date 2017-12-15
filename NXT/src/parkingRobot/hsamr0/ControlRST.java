@@ -531,7 +531,17 @@ public class ControlRST implements IControl {
 	 * // MONITOR (example) // monitor.writeControlComment("go straight"); // }
 	 * // }
 	 */
-
+/**
+ * this method detects a right or left turn by checking if a typical pattern:
+ * both white (grey)-->black and white-->both bright white
+ * is detected
+ */
+	private void detectTurn()
+	{
+		this.lineSensorRight = perception.getRightLineSensorValue();
+		this.lineSensorLeft = perception.getLeftLineSensorValue();
+	}
+	
 	private void exec_LINECTRL_ALGO() {
 		/**
 		 * Idea: the robot is on its correct path, when it is positioned
