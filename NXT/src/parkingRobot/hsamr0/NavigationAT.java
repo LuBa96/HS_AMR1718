@@ -16,7 +16,7 @@ import parkingRobot.hsamr0.NavigationThread;
 import parkingRobot.IMonitor;
 import java.lang.*;
 import java.util.*;
-//test
+
 /**
  * A executable basic example implementation of the corresponding interface
  * provided by the Institute of Automation with limited functionality:
@@ -113,14 +113,14 @@ public class NavigationAT implements INavigation {
 	/**
 	 * robot specific constant: radius of left wheel
 	 */
-	static final double LEFT_WHEEL_RADIUS = 0.031; // 0.031 only rough guess, to
+	static final double LEFT_WHEEL_RADIUS = 0.027; // 0.031 only rough guess, to
 													// be measured exactly and
 													// maybe refined by
 													// experiments
 	/**
 	 * robot specific constant: radius of right wheel
 	 */
-	static final double RIGHT_WHEEL_RADIUS = 0.031; // only rough guess, to be
+	static final double RIGHT_WHEEL_RADIUS = 0.027; // only rough guess, to be
 													// measured exactly and
 													// maybe refined by
 													// experiments
@@ -918,12 +918,15 @@ public class NavigationAT implements INavigation {
 				}
 				break;
 			case 3:
-				if (xResult * 100 < 140 && xResult * 100 > 90) {
+				if (xResult*100 > 145) {
+					angleResult = 180* Math.PI/180;
+				}
+				if (xResult * 100 < 145 && xResult * 100 > 120) {
 					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
 							/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
 					anzahlDurchlaufeMittelwert++;
 				}
-				if (xResult * 100 < 90 && winkelSchonKorrigiert == false) {
+				if (xResult * 100 < 120 && winkelSchonKorrigiert == false) {
 					angleResult = angleResult + (180 * Math.PI / 180 - angleResultAktuellerMittelwert);
 					winkelSchonKorrigiert = true;
 				}
@@ -951,24 +954,27 @@ public class NavigationAT implements INavigation {
 				}
 				break;
 			case 6:
-				if (yResult * 100 < 55 && yResult * 100 > 25) {
+				if (yResult * 100 < 55 && yResult * 100 > 45) {
 					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
 							/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
 					anzahlDurchlaufeMittelwert++;
 				}
-				if (yResult * 100 < 25 && winkelSchonKorrigiert == false) {
+				if (yResult * 100 < 45 && winkelSchonKorrigiert == false) {
 					angleResult = angleResult + (270 * Math.PI / 180 - angleResultAktuellerMittelwert);
 					winkelSchonKorrigiert = true;
 					anzahlRunde++;// nochmal ueberdenken ob hier richtiger Ort
 				}
 				break;
 			case 7:
-				if (xResult * 100 > 30 && xResult * 100 < 70) {
+				if (xResult*100 < 5) {
+					angleResult = 0;
+				}
+				if (xResult * 100 > 5 && xResult * 100 < 30) {
 					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
 							/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
 					anzahlDurchlaufeMittelwert++;
 				}
-				if (xResult * 100 > 70 && winkelSchonKorrigiert == false) {
+				if (xResult * 100 > 50 && winkelSchonKorrigiert == false) {
 					angleResult = angleResult - angleResultAktuellerMittelwert;
 					winkelSchonKorrigiert = true;
 				}
@@ -1042,7 +1048,7 @@ public class NavigationAT implements INavigation {
 										// this.getAktullenKurvenpunkt!! ->
 										// ueberpruefen obs noch funktioniert
 		case 0:
-			if (yResult * 100 > 40) {
+			if (yResult * 100 > 35) {
 				robotCloseToCurve = true;
 			} else {
 				return false;
@@ -1056,7 +1062,7 @@ public class NavigationAT implements INavigation {
 			}
 			break;
 		case 2:
-			if (yResult * 100 < 40) {
+			if (yResult * 100 < 45) {
 				robotCloseToCurve = true;
 			} else {
 				return false;
@@ -1077,21 +1083,21 @@ public class NavigationAT implements INavigation {
 			}
 			break;
 		case 5:
-			if (xResult * 100 < 20) {
+			if (xResult * 100 < 15) {
 				robotCloseToCurve = true;
 			} else {
 				return false;
 			}
 			break;
 		case 6:
-			if (yResult * 100 < 20) {
+			if (yResult * 100 < 13) {
 				robotCloseToCurve = true;
 			} else {
 				return false;
 			}
 			break;
 		case 7:
-			if (xResult * 100 > 170) {
+			if (xResult * 100 > 160) {
 				robotCloseToCurve = true;
 			} else {
 				return false;

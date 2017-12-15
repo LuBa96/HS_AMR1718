@@ -498,7 +498,7 @@ public class GuidanceAT {
 //		LCD.drawString("Mode: " + currentStatus, 0, 5);
 //		LCD.drawString("UMode: " + currLineStatus, 0, 6);
 //		LCD.drawString("KP: " + navigation.getAktuellenKurvenpunkt(), 0, 3);
-//		LCD.drawString("CTC: " + navigation.getRobotCloseToCurve(), 0, 4);
+		LCD.drawString("CTC: " + navigation.getRobotCloseToCurve(), 0, 4);
 		
 		LCD.drawString("B:" + Integer.toString((int)perception.getBackSensorDistance()),0,0);
 		LCD.drawString("F:" + Integer.toString((int)perception.getFrontSensorDistance()),0,1);
