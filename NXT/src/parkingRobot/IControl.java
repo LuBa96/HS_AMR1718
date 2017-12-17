@@ -150,6 +150,11 @@ public interface IControl {
 	 */
 	public void resetIntegralRWD();
 	
+	/**
+	 * @return true if demo mode is finished
+	 */
+	public boolean getDemoStatus();
+	
 	
 	public double getYstrich();
 	public double getXstrich();
