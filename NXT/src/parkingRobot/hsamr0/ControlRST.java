@@ -96,7 +96,6 @@ public class ControlRST implements IControl {
 	double ealtL = 0;
 	double ealtR = 0;
 	int upperThreshold = 65;
-	int grey = 0;
 	int lowerThreshold = 20;
 	int maxPower = 0;
 	int counter = 0;
@@ -531,18 +530,84 @@ public class ControlRST implements IControl {
 	 * // MONITOR (example) // monitor.writeControlComment("go straight"); // }
 	 * // }
 	 */
-/**
- * this method detects a right or left turn by checking if a typical pattern:
- * both white (grey)-->black and white-->both bright white
- * is detected
- */
-	private void detectTurn()
-	{
-		this.lineSensorRight = perception.getRightLineSensorValue();
-		this.lineSensorLeft = perception.getLeftLineSensorValue();
+	/**
+	 * this method detects a right or left turn by checking if a typical
+	 * pattern: both white (grey)-->black and white-->both bright white is
+	 * detected
+	 */
+	private void detectTurn(double e) {
+
+		/*
+		 * double v = (vLeft + vRight)/2; // momentary translatory velocity
+		 * double lineWidth = 4; double t = 0.1; // 100ms of sleep double s = v
+		 * * t;
+		 * 
+		 * int measurments = (int) (s/lineWidth);
+		 */
+		/*
+		 * speed close to turn = 20 cm/s -->maximum: 3 measurments of black and
+		 * white (worst case) -->minimum: 2 measurments 0f black and white
+		 * (Vermutung: eher weniger)
+		 */
+		if ((e > upperThreshold) || (e < -upperThreshold)) {
+			counter++;
+		}
+		switch (counter) {
+		case 1:
+			if (!((e > upperThreshold) || (e < -upperThreshold))) {
+				counter = 0;
+				boolTurn = false;
+			} else
+				boolTurn = true;
+			boolTurnR = false;
+			boolTurnL = false;
+		case 2:
+			if (!((e > upperThreshold) || (e < -upperThreshold))) {
+				counter = 0;
+				boolTurn = false;
+			} else
+				boolTurn = true;
+			boolTurnR = false;
+			boolTurnL = false;
+			break;
+		default:
+			if (counter >= 3) {
+				counter = 0;
+				boolTurnR = false;
+				boolTurnL = false;
+				boolTurn = false;
+			}
+
+		}
+		/**
+		 * characteristic data for signifies upcoming turn counter == 2 and
+		 * linesensors showing white should happen after crossing the line of
+		 * the turn --> stop immediately and turn accordingly
+		 */
+		if ((counter == 2)
+				&& ((this.lineSensorLeft <= lowerThreshold) && (this.lineSensorRight <= lowerThreshold))) {
+			if (ealt < 0) {
+				boolTurnR = true;
+				boolTurnL = false;
+			} else if (ealt > 0) {
+				boolTurnL = true;
+				boolTurnR = false;
+			}
+			counter = 0;
+			boolTurn = true;
+		}
+
 	}
-	
+
 	private void exec_LINECTRL_ALGO() {
+		/**
+		 * if robot gets close to a curve--> decelerate TODO smoother!!!
+		 */
+		if (!navigation.getRobotCloseToCurve())
+			maxPower = 130;
+		else
+			maxPower = 90;
+
 		/**
 		 * Idea: the robot is on its correct path, when it is positioned
 		 * centrally on the line with both sensors returning their minimum value
@@ -635,8 +700,10 @@ public class ControlRST implements IControl {
 		if (y < 0) {
 			if (y < -(maxPower / 2))
 				y = -(maxPower / 2);
-			leftMotor.setPower((int) (maxPower / 2) - (int) y);
-			rightMotor.setPower((int) (maxPower / 2) + (int) y);
+			regWheelSpeed(((int) (maxPower / 2) - (int) y) / 2,
+					((int) (maxPower / 2) + (int) y) / 2);
+			// leftMotor.setPower((int) (maxPower / 2) - (int) y);
+			// rightMotor.setPower((int) (maxPower / 2) + (int) y);
 		}
 		/**
 		 * correction to the left side
@@ -644,15 +711,19 @@ public class ControlRST implements IControl {
 		else if (y > 0) {
 			if (y > maxPower / 2)
 				y = maxPower / 2;
-			rightMotor.setPower((int) (maxPower / 2) + (int) y);
-			leftMotor.setPower((int) (maxPower / 2) - (int) y);
+			regWheelSpeed(((int) (maxPower / 2) - (int) y) / 2,
+					((int) (maxPower / 2) + (int) y) / 2);
+			// rightMotor.setPower((int) (maxPower / 2) + (int) y);
+			// leftMotor.setPower((int) (maxPower / 2) - (int) y);
 		}
 		/**
 		 * Drive straight
 		 */
 		else if (y == 0) {
-			leftMotor.setPower((int) maxPower / 2);
-			rightMotor.setPower((int) maxPower / 2);
+			regWheelSpeed(((int) (maxPower / 2)) / 2,
+					((int) (maxPower / 2)) / 2);
+			// leftMotor.setPower((int) maxPower / 2);
+			// .setPower((int) maxPower / 2);
 		}
 
 		/**
@@ -662,8 +733,6 @@ public class ControlRST implements IControl {
 			resetIntegralPID();
 
 	}
-
-	
 
 	/**
 	 * robot turns 90 degrees for curve mode
