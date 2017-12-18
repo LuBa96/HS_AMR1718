@@ -12,6 +12,8 @@ import lejos.nxt.NXTMotor;
 import parkingRobot.INavigation;
 import lejos.nxt.Sound;
 
+import java.util.ArrayList;
+
 /**
  * Main class for control module
  *
@@ -84,7 +86,9 @@ public class ControlRST implements IControl {
 
 	double currentDistance = 0.0;
 	double Distance = 0.0;
-
+	
+	ArrayList<Double> sequence = new ArrayList<Double>();
+	
 	double wheelD = 0; // wheeldiameter
 	double width = 0; // width of track
 
@@ -319,7 +323,8 @@ public class ControlRST implements IControl {
 		case LINE_CTRL:
 			update_SETPOSE_Parameter();
 			update_LINECTRL_Parameter();
-			exec_LINECTRL_ALGO();
+			//exec_LINECTRL_ALGO();
+			exec_SETPOSE_ALGO();
 			break;
 		case LEFT_CRV_CTRL:
 			update_SETPOSE_Parameter();
@@ -447,7 +452,7 @@ public class ControlRST implements IControl {
 	 */
 	private void exec_SETPOSE_ALGO() {
 		double y;
-		double vo = 25;
+		double vo = 10;
 		/**
 		 * x'=x*cos(phi)+y*sin(phi)
 		 */
@@ -462,7 +467,7 @@ public class ControlRST implements IControl {
 
 		errYAlt = yRotKOS - errYAlt;
 
-		y = 0.2 * yRotKOS + 0.00 * errYSum + 0.02 * lastError;
+		y = 0.22 * yRotKOS + 0.00 * errYSum + 0.02 * lastError;
 		drive(vo, -y);
 
 		errYSum = errYSum + yRotKOS;
@@ -537,6 +542,17 @@ public class ControlRST implements IControl {
 	 */
 	private void detectTurn(double e) {
 
+		sequence.add(e);
+		if(sequence.size() >=4)
+		{
+			//remove first element
+			sequence.remove(0);
+		}
+		else{}
+		
+		
+		
+		
 		/*
 		 * double v = (vLeft + vRight)/2; // momentary translatory velocity
 		 * double lineWidth = 4; double t = 0.1; // 100ms of sleep double s = v
