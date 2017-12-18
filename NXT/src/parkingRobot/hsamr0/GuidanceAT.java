@@ -657,6 +657,8 @@ public class GuidanceAT {
 			if (lastParkStatus != currParkStatus) {
 				coSys.setPointOfOrigin(goalPose);
 				coEffs = setPolynomial(coSys.getTransformedPoint(navigation.getPose()));
+				offTrack = true;
+				navigation.setOffTrack(true);
 			}
 
 			// while action
@@ -735,8 +737,9 @@ public class GuidanceAT {
 
 	private static double computePhiDot(Pose currPose, double[] coEffs) {
 
-		double vx = vPark * Math.cos(currPose.getHeading());
+		double vx = vPark * Math.cos(currPose.getHeading() * Math.PI / 180);
 		double xNext = currPose.getX() * 100 + vx * timePeriod * 0.001;
-		return (Math.atan(3 * coEffs[0] * xNext * xNext + 2 * coEffs[1] * xNext) - currPose.getHeading()) / timePeriod;
+		return (Math.atan(3 * coEffs[0] * xNext * xNext + 2 * coEffs[1] * xNext) * Math.PI / 180
+				- currPose.getHeading()) / timePeriod;
 	}
 }
