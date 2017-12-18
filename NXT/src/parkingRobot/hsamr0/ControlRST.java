@@ -86,9 +86,10 @@ public class ControlRST implements IControl {
 
 	double currentDistance = 0.0;
 	double Distance = 0.0;
-	
+
 	ArrayList<Double> sequence = new ArrayList<Double>();
-	
+	ArrayList<Integer> seqInteger = new ArrayList<Integer>();
+
 	double wheelD = 0; // wheeldiameter
 	double width = 0; // width of track
 
@@ -323,7 +324,7 @@ public class ControlRST implements IControl {
 		case LINE_CTRL:
 			update_SETPOSE_Parameter();
 			update_LINECTRL_Parameter();
-			//exec_LINECTRL_ALGO();
+			// exec_LINECTRL_ALGO();
 			exec_SETPOSE_ALGO();
 			break;
 		case LEFT_CRV_CTRL:
@@ -543,16 +544,37 @@ public class ControlRST implements IControl {
 	private void detectTurn(double e) {
 
 		sequence.add(e);
-		if(sequence.size() >=4)
-		{
-			//remove first element
+		if (sequence.size() >= 4) {
+			// remove first element
 			sequence.remove(0);
+		} else {
 		}
-		else{}
-		
-		
-		
-		
+
+		for (int i = 0; i < 4; i++) {
+			if ((sequence.get(i) > upperThreshold)
+					|| ((sequence.get(i) < -upperThreshold))) {
+				seqInteger.add(i, 0);
+			} else if ((sequence.get(i) > lowerThreshold)
+					&& ((sequence.get(i) > -lowerThreshold))) {
+
+				seqInteger.add(i, 1);
+			} else {
+				seqInteger.add(i, 2);
+			}
+
+		}
+		if ((sequence.get(0)==1) && (sequence.get(1) == 0) && (sequence.get(2) == 0) && (sequence.get(3) == 2))
+		{
+			if (sequence.get(1) < 0) {
+				boolTurnR = true;
+				boolTurnL = false;
+			} else if (sequence.get(1) > 0) {
+				boolTurnL = true;
+				boolTurnR = false;
+			}
+		}
+			
+
 		/*
 		 * double v = (vLeft + vRight)/2; // momentary translatory velocity
 		 * double lineWidth = 4; double t = 0.1; // 100ms of sleep double s = v
