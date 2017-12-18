@@ -221,10 +221,22 @@ public class GuidanceAT {
 	 * following a path into a parking slot. Needs to be tested.
 	 */
 	static double mapGoalDist = 15;
+	static double slotGoalDist = 5;
+
+	/**
+	 * Velocity with which the robot travels along the path into the parking slot.
+	 */
+	static double vPark = 10;
 	/**
 	 * This array holds the coefficients of the path polynomial
 	 */
 	static double[] coEffs;
+	/**
+	 * The time in between two cycles of the thread.
+	 */
+	static double timePeriod = 100;
+
+	static CoordinateSystem coSys = null;
 
 	/**
 	 * main method of project 'ParkingRobot'
@@ -251,6 +263,8 @@ public class GuidanceAT {
 		INavigation navigation = new NavigationAT(perception, monitor);
 		IControl control = new ControlRST(perception, navigation, leftMotor, rightMotor, monitor);
 		INxtHmi hmi = new HmiPLT(perception, navigation, control, monitor);
+
+		coSys = new CoordinateSystem();
 
 		monitor.startLogging();
 
@@ -279,7 +293,7 @@ public class GuidanceAT {
 			// While action
 			{
 				// execute underlying state machine
-				followLineSubStateMachine(control);
+				followLineSubStateMachine(control, navigation);
 			}
 
 				// State transition check
@@ -472,8 +486,11 @@ public class GuidanceAT {
 		// LCD.drawString("left: " + (perception.getLeftLineSensorValue()), 0, 3);
 		// LCD.drawString("right: " + (perception.getRightLineSensorValue()), 0, 4);
 		// perception.showSensorData();
-		LCD.drawString("X': " + (control.getYstrich()), 0, 3);
-		LCD.drawString("Y': " + (control.getYstrich()), 0, 4);
+		// LCD.drawString("X': " + (control.getYstrich()),0,3);
+		// LCD.drawString("Y': " + (control.getYstrich()),0,4);
+		LCD.drawString("Mode: " + currentStatus, 0, 5);
+		LCD.drawString("UMode: " + currLineStatus, 0, 6);
+		LCD.drawString("KP: " + navigation.getAktuellenKurvenpunkt(), 0, 3);
 
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
@@ -489,7 +506,7 @@ public class GuidanceAT {
 	 * the moment. Will make the robot follow the line, which can also be used
 	 * during PARK_THIS
 	 */
-	private static void followLineSubStateMachine(IControl control) {
+	private static void followLineSubStateMachine(IControl control, INavigation navigation) {
 		switch (currLineStatus) {
 		case FOLLOW_LINE_STRAIGHT:
 			// into action
@@ -503,9 +520,9 @@ public class GuidanceAT {
 			// state transitions
 			lastLineStatus = currLineStatus;
 
-			if (control.getRightTurn()) {
+			if (control.getRightTurn() && navigation.getRobotCloseToCurve()) {
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_RIGHT;
-			} else if (control.getLeftTurn()) {
+			} else if (control.getLeftTurn() && navigation.getRobotCloseToCurve()) {
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_LEFT;
 			}
 
@@ -538,6 +555,7 @@ public class GuidanceAT {
 			// leave action
 			if (currLineStatus != lastLineStatus) {
 				control.setCtrlMode(ControlMode.INACTIVE);
+				navigation.PositionskorrekturAnEcken();
 			}
 			break;
 		case FOLLOW_LINE_LEFT:
@@ -564,6 +582,7 @@ public class GuidanceAT {
 			// leave action
 			if (currLineStatus != lastLineStatus) {
 				control.setCtrlMode(ControlMode.INACTIVE);
+				navigation.PositionskorrekturAnEcken();
 			}
 			break;
 		// there is no transition into this state yet
@@ -616,7 +635,7 @@ public class GuidanceAT {
 			}
 
 			// while action
-			followLineSubStateMachine(control);
+			followLineSubStateMachine(control, navigation);
 
 			// state transition
 			lastParkStatus = currParkStatus;
@@ -636,13 +655,19 @@ public class GuidanceAT {
 		case PARK_PATH_FOLLOW:
 			// into action
 			if (lastParkStatus != currParkStatus) {
-				coEffs = setPolynomial(navigation.getPose().getLocation(), slotGoal);
+				coSys.setPointOfOrigin(goalPose);
+				coEffs = setPolynomial(coSys.getTransformedPoint(navigation.getPose()));
 			}
 
 			// while action
+			control.setAngularVelocity(computePhiDot(coSys.getTransformedPose(navigation.getPose()), coEffs));
+			control.setVelocity(vPark);
 
 			// state transition
-
+			lastParkStatus = currParkStatus;
+			if (navigation.getPose().getLocation().distance(slotGoal) <= slotGoalDist) {
+				currParkStatus = CurrentParkStatus.PARK_CORRECTING;
+			}
 			// leaving action
 			break;
 		case PARK_CORRECTING:
@@ -699,22 +724,19 @@ public class GuidanceAT {
 		return vectorR2;
 	}
 
-	private static double[] setPolynomial(Point startPoint, Point endPoint) {
-		double a, b, c, d = 0;
-		double x0 = (endPoint.getX() - startPoint.getX()) / 2;
-		return null;
+	private static double[] setPolynomial(Point startPoint) {
+		double[] A = { 0, 0 };
+		double x0 = startPoint.getX();
+		double y0 = startPoint.getY();
+		A[0] = (-2 * y0) / (x0 * x0 * x0);
+		A[1] = (3 * y0) / (x0 * x0);
+		return A;
 	}
 
-	/**
-	 * This function sets the Point 0,0 for the coordinate system the robot uses
-	 * when following a path.
-	 * 
-	 * @param startPoint
-	 *            The Point the path starts.
-	 * @param endPoint
-	 *            The Point the path ends.
-	 */
-	private static void setTransformedCoordinates(Point startPoint, Point endPoint) {
+	private static double computePhiDot(Pose currPose, double[] coEffs) {
 
+		double vx = vPark * Math.cos(currPose.getHeading());
+		double xNext = currPose.getX() * 100 + vx * timePeriod * 0.001;
+		return (Math.atan(3 * coEffs[0] * xNext * xNext + 2 * coEffs[1] * xNext) - currPose.getHeading()) / timePeriod;
 	}
 }

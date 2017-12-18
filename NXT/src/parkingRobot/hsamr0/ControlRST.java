@@ -99,7 +99,7 @@ public class ControlRST implements IControl {
 	int grey = 0;
 	int lowerThreshold = 20;
 	int maxPower = 0;
-	int counter=0;
+	int counter = 0;
 
 	/**
 	 * distinguish between straight driving and curving. PID optimized for
@@ -198,7 +198,7 @@ public class ControlRST implements IControl {
 		ealtL = 0;
 		ealtR = 0;
 		upperThreshold = 70;
-		maxPower = 80;
+		maxPower = 90;
 
 		/**
 		 * distinguish between straight driving and curving. PID optimized for
@@ -279,8 +279,8 @@ public class ControlRST implements IControl {
 	public void updateStartPose() {
 		this.startPosition = navigation.getPose();
 		startAngleDeg = (int) (this.startPosition.getHeading() / Math.PI * 180);
-		startX = this.startPosition.getX();
-		startY = this.startPosition.getY();
+		startX = this.startPosition.getX() * 100;
+		startY = this.startPosition.getY() * 100;
 
 	}
 
@@ -297,7 +297,7 @@ public class ControlRST implements IControl {
 	public void setStartTime(int startTime) {
 		this.lastTime = startTime;
 	}
-	
+
 	public boolean getDemoStatus() {
 		return demoFin;
 	}
@@ -320,17 +320,14 @@ public class ControlRST implements IControl {
 		case LINE_CTRL:
 			update_SETPOSE_Parameter();
 			update_LINECTRL_Parameter();
-			// update_SETPOSE_Parameter();
-			// update_LINECTRL_Parameter();
-			// exec_SETPOSE_ALGO();
-			// LCD.drawString("x': " + xRotKOS, 0, 6);
-			// LCD.drawString("y': " + yRotKOS, 0, 7);
 			exec_LINECTRL_ALGO();
 			break;
 		case LEFT_CRV_CTRL:
+			update_SETPOSE_Parameter();
 			exec_driveCurve90();
 			break;
 		case RIGHT_CRV_CTRL:
+			update_SETPOSE_Parameter();
 			exec_driveCurve90();
 			break;
 		case VW_CTRL:
@@ -598,16 +595,10 @@ public class ControlRST implements IControl {
 		 * lower threshold for exiting the boolTurn mode continue in boolTurn
 		 * mode
 		 */
-		if (counter > 0)
-		{
-			counter=counter-1;
-		}
-
-		if ((!(boolTurn)) && ((e > upperThreshold) || (e < -upperThreshold))) {
+		if ((e > upperThreshold) || (e < -upperThreshold)) {
 			/**
 			 * State Transition: straight --> curve
 			 */
-			if (counter <= 0){
 			if (e < 0) {
 				boolTurnR = true;
 				boolTurnL = false;
@@ -616,9 +607,12 @@ public class ControlRST implements IControl {
 				boolTurnR = false;
 			}
 			boolTurn = true;
-			counter = 14;
-			}
-		
+
+		} else {
+			boolTurnR = false;
+			boolTurnL = false;
+			boolTurn = false;
+
 		}
 		/**
 		 * regular straight driving mode KP = 0.1 KI = 0.002 KD = 0.06
@@ -659,27 +653,7 @@ public class ControlRST implements IControl {
 
 	}
 
-	/*
-	 * private void driveCurve(int e) { double y;
-	 * 
-	 * if ((e > 0) || boolTurnL) {
-	 * 
-	 * if (boolTurnR) { // if the robot has been in a right curve in the last
-	 * cycle it // may not change into left curve right // until the next cycle
-	 * finishes boolTurnR = false; y = PID_control(e, 0.15, 0.02, 0.02, 1);
-	 * rightMotor.setPower((int) (maxPower / 2) + (int) y);
-	 * leftMotor.setPower((int) (maxPower / 2) - (int) y); } else { boolTurnL =
-	 * true; rightMotor.setPower((int) (maxPower * 2 / 3));
-	 * leftMotor.setPower((int) (-maxPower / 5)); } }
-	 * 
-	 * else if ((e < 0) || boolTurnR) { if (boolTurnL) { y = PID_control(e,
-	 * 0.15, 0.02, 0.02, 1); boolTurnL = false; rightMotor.setPower((int)
-	 * (maxPower / 2) - (int) y); leftMotor.setPower((int) (maxPower / 2) +
-	 * (int) y); } else { boolTurnR = true; rightMotor.setPower((int) (-maxPower
-	 * / 5)); leftMotor.setPower((int) (maxPower * 2 / 3)); } }
-	 * 
-	 * }
-	 */
+	
 
 	/**
 	 * robot turns 90 degrees for curve mode
@@ -688,43 +662,45 @@ public class ControlRST implements IControl {
 	 *            > 0 right curve
 	 */
 	private void exec_driveCurve90() {
-		Sound.setVolume(25);
 		double xMomentary = this.currentPosition.getX() * 100;
 		double yMomentary = this.currentPosition.getY() * 100;
 		angleDeg = (int) (this.currentPosition.getHeading() / Math.PI * 180);
 		double disMomentary = Math.sqrt(Math.pow((xMomentary - startX), 2)
 				+ Math.pow((yMomentary - startY), 2));
-		// left curve
-		switch (currentCTRLMODE) {
-		case LEFT_CRV_CTRL:
-			if ((angleDeg - startAngleDeg) <= 80) {
-				drive(Math.PI, 40);
-				//Sound.buzz();
-			} else {
-				boolTurn = false;
-				boolTurnL = false;
+		if (disMomentary <= 4)
+			drive(5, 0);
+		else {
+			// left curve
+			switch (currentCTRLMODE) {
+			case LEFT_CRV_CTRL:
+				if ((angleDeg - startAngleDeg) <= 80) {
+					drive(0, 40);
+					// Sound.buzz();
+				} else {
+					boolTurn = false;
+					boolTurnL = false;
+					rightMotor.stop();
+					leftMotor.stop();
+				}
+				break;
+			// right curve
+			case RIGHT_CRV_CTRL:
+				if ((angleDeg - startAngleDeg) >= -80) {
+					drive(0, -40);
+					// Sound.buzz();
+				} else {
+					boolTurn = false;
+					boolTurnR = false;
+					rightMotor.stop();
+					leftMotor.stop();
+				}
+				break;
+			default:
 				rightMotor.stop();
 				leftMotor.stop();
+				break;
 			}
-			break;
-		// right curve
-		case RIGHT_CRV_CTRL:
-			if ((angleDeg - startAngleDeg) >= -80) {
-				drive(Math.PI, -40);
-				//Sound.buzz();
-			} else {
-				boolTurn = false;
-				boolTurnR = false;
-				rightMotor.stop();
-				leftMotor.stop();
-			}
-			break;
-		default:
-			rightMotor.stop();
-			leftMotor.stop();
-			break;
 		}
-
 	}
 
 	/**
