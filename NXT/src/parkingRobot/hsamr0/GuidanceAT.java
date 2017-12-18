@@ -22,11 +22,11 @@ import parkingRobot.hsamr0.NavigationAT;
 import parkingRobot.hsamr0.PerceptionPMP;
 
 //TODO check how the monitor works
-//TODO check how type Pose works
-//TODO introduce and implement underlying states of PARK_THIS
-//TODO get rid of HmiMode PARK_NEXT
+//TODO implement underlying states of PARK_THIS
 //TODO maybe transition check if DEMO is finished from control
-//TODO implement sub-states for turns in SCOUT
+//TODO test the PATH_FOLLOW sub state, if getSelectedParkingSpot does not work yet, think of a good test case
+//TODO implement following a path back to the line
+//TODO find an algorithm to check whether the robot is on the line again
 
 /**
  * Main class for 'Hauptseminar AMR' project 'autonomous parking' for students
@@ -336,6 +336,7 @@ public class GuidanceAT {
 					selectedParkingSlot = navigation.getParkingSlots()[selectedParkingSlotNo];
 					slotDir = selectedParkingSlot.getFrontBoundaryPosition()
 							.subtract(selectedParkingSlot.getBackBoundaryPosition());
+					// TODO:
 					// calculate goalPose from angle of slotDir here, before manipulating the
 					// slotDir
 					slotDir.multiplyBy((float) 0.5);
@@ -531,6 +532,8 @@ public class GuidanceAT {
 				control.setCtrlMode(ControlMode.INACTIVE);
 			}
 			break;
+		// TODO check how much of the turn the robot actually completed, so that he can
+		// pause while turning
 		case FOLLOW_LINE_RIGHT:
 			// TODO implement turning right
 
@@ -542,9 +545,6 @@ public class GuidanceAT {
 			}
 
 			// while action
-			// TODO ask control whether it has finished driving the turn
-			// TODO change transition booleans accordingly
-
 			// state transitions
 			lastLineStatus = currLineStatus;
 
@@ -569,9 +569,6 @@ public class GuidanceAT {
 			}
 
 			// while action
-			// TODO ask control whether it has finished driving the turn
-			// TODO change transition booleans accordingly
-
 			// state transitions
 			lastLineStatus = currLineStatus;
 
@@ -671,6 +668,10 @@ public class GuidanceAT {
 				currParkStatus = CurrentParkStatus.PARK_CORRECTING;
 			}
 			// leaving action
+			if (currParkStatus != lastParkStatus) {
+				// stop the robot(may not be needed)
+				control.setCtrlMode(ControlMode.INACTIVE);
+			}
 			break;
 		case PARK_CORRECTING:
 			// into action
@@ -680,6 +681,10 @@ public class GuidanceAT {
 			// state transition
 
 			// leaving action
+			if (currParkStatus != lastParkStatus) {
+				// stop the robot(may not be needed)
+				control.setCtrlMode(ControlMode.INACTIVE);
+			}
 			break;
 		case PARK_INACTIVE:
 			// into action
@@ -687,7 +692,14 @@ public class GuidanceAT {
 			// while action
 
 			// state transition
-
+			// TODO maybe update to a distance from current goal, so that pausing while
+			// following a path is possible
+			lastParkStatus = currParkStatus;
+			if (navigation.getPose().getLocation().distance(mapGoal) >= mapGoalDist) {
+				currParkStatus = CurrentParkStatus.PARK_LINE_FOLLOW;
+			} else {
+				currParkStatus = CurrentParkStatus.PARK_PATH_FOLLOW;
+			}
 			// leaving action
 			break;
 		}
@@ -740,6 +752,6 @@ public class GuidanceAT {
 		double vx = vPark * Math.cos(currPose.getHeading() * Math.PI / 180);
 		double xNext = currPose.getX() * 100 + vx * timePeriod * 0.001;
 		return (Math.atan(3 * coEffs[0] * xNext * xNext + 2 * coEffs[1] * xNext) * Math.PI / 180
-				- currPose.getHeading()) / timePeriod;
+				- currPose.getHeading()) / (timePeriod * 0.001);
 	}
 }
