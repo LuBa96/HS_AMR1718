@@ -87,8 +87,6 @@ public class ControlRST implements IControl {
 	double currentDistance = 0.0;
 	double Distance = 0.0;
 
-	ArrayList<Double> sequence = new ArrayList<Double>();
-	ArrayList<Integer> seqInteger = new ArrayList<Integer>();
 
 	double wheelD = 0; // wheeldiameter
 	double width = 0; // width of track
@@ -112,6 +110,11 @@ public class ControlRST implements IControl {
 	boolean boolTurn = false;
 	boolean boolTurnL = false;
 	boolean boolTurnR = false;
+	
+	ArrayList<Double> sequenceL = new ArrayList<Double>();
+	ArrayList<Double> sequenceR = new ArrayList<Double>();
+	double lastL=0;
+	double lastR=0;
 
 	/**
 	 * variables for regWheelSpeed
@@ -541,38 +544,29 @@ public class ControlRST implements IControl {
 	 * pattern: both white (grey)-->black and white-->both bright white is
 	 * detected
 	 */
-	private void detectTurn(double e) {
-
-		sequence.add(e);
-		if (sequence.size() >= 4) {
+	private void detectTurn(double eLeft, double eRight) {
+		//build differential Arrays
+		//ignore first entry
+		lastL=lastL-eLeft;
+		lastR=lastR-eRight;
+		//Fill Arrays with last ten light sensor values
+		sequenceL.add(lastL);
+		sequenceR.add(lastR);
+		if (sequenceL.size() >= 10) {
 			// remove first element
-			sequence.remove(0);
-		} else {
+			sequenceL.remove(0);
 		}
-
-		for (int i = 0; i < 4; i++) {
-			if ((sequence.get(i) > upperThreshold)
-					|| ((sequence.get(i) < -upperThreshold))) {
-				seqInteger.add(i, 0);
-			} else if ((sequence.get(i) > lowerThreshold)
-					&& ((sequence.get(i) > -lowerThreshold))) {
-
-				seqInteger.add(i, 1);
-			} else {
-				seqInteger.add(i, 2);
-			}
-
+		if (sequenceR.size() >= 10) {
+			sequenceR.remove(0);
 		}
-		if ((sequence.get(0)==1) && (sequence.get(1) == 0) && (sequence.get(2) == 0) && (sequence.get(3) == 2))
-		{
-			if (sequence.get(1) < 0) {
-				boolTurnR = true;
-				boolTurnL = false;
-			} else if (sequence.get(1) > 0) {
-				boolTurnL = true;
-				boolTurnR = false;
-			}
-		}
+		
+		
+		
+		
+		
+		
+
+		
 			
 
 		/*
