@@ -87,7 +87,6 @@ public class ControlRST implements IControl {
 	double currentDistance = 0.0;
 	double Distance = 0.0;
 
-
 	double wheelD = 0; // wheeldiameter
 	double width = 0; // width of track
 
@@ -110,11 +109,20 @@ public class ControlRST implements IControl {
 	boolean boolTurn = false;
 	boolean boolTurnL = false;
 	boolean boolTurnR = false;
-	
-	ArrayList<Double> sequenceL = new ArrayList<Double>();
-	ArrayList<Double> sequenceR = new ArrayList<Double>();
-	double lastL=0;
-	double lastR=0;
+
+	/**
+	 * variables for pattern detection in turnDetection()
+	 */
+	// ArrayList<Double> sequenceL = new ArrayList<Double>();
+	double[] arrayL = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	double[] arrayR = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	// ArrayList<Double> sequenceR = new ArrayList<Double>();
+	double lastL = 100;
+	double lastR = 100;
+	boolean fallEdgeL = false;
+	boolean fallEdgeR = false;
+	int fallTimeL = 0;
+	int fallTimeR = 0;
 
 	/**
 	 * variables for regWheelSpeed
@@ -327,8 +335,8 @@ public class ControlRST implements IControl {
 		case LINE_CTRL:
 			update_SETPOSE_Parameter();
 			update_LINECTRL_Parameter();
-			// exec_LINECTRL_ALGO();
-			exec_SETPOSE_ALGO();
+			exec_LINECTRL_ALGO();
+			// exec_SETPOSE_ALGO();
 			break;
 		case LEFT_CRV_CTRL:
 			update_SETPOSE_Parameter();
@@ -545,106 +553,92 @@ public class ControlRST implements IControl {
 	 * detected
 	 */
 	private void detectTurn(double eLeft, double eRight) {
-		//build differential Arrays
-		//ignore first entry
-		lastL=lastL-eLeft;
-		lastR=lastR-eRight;
-		//Fill Arrays with last ten light sensor values
-		sequenceL.add(lastL);
-		sequenceR.add(lastR);
-		if (sequenceL.size() >= 10) {
-			// remove first element
-			sequenceL.remove(0);
-		}
-		if (sequenceR.size() >= 10) {
-			sequenceR.remove(0);
-		}
-		
-		
-		
-		
-		
-		
+		// build Arrays with differential values of momentary and previous
+		// lightsensor values
+		// ignore first entry
+		lastL = lastL - eLeft;
+		lastR = lastR - eRight;
+		// Fill Arrays with last six light sensor values
+		// sequenceL.add(lastL);
+		// sequenceR.add(lastR);
+		// if (sequenceL.size() > 6) {
+		// // remove first element
+		// sequenceL.remove(0);
+		// }
+		// if (sequenceR.size() > 6) {
+		// sequenceR.remove(0);
+		// }
+		// remove oldest value at first position
 
-		
-			
-
-		/*
-		 * double v = (vLeft + vRight)/2; // momentary translatory velocity
-		 * double lineWidth = 4; double t = 0.1; // 100ms of sleep double s = v
-		 * * t;
-		 * 
-		 * int measurments = (int) (s/lineWidth);
-		 */
-		/*
-		 * speed close to turn = 20 cm/s -->maximum: 3 measurments of black and
-		 * white (worst case) -->minimum: 2 measurments 0f black and white
-		 * (Vermutung: eher weniger)
-		 */
-		if ((e > upperThreshold) || (e < -upperThreshold)) {
-			counter++;
+		for (int i = 0; i < 9; i++) {
+			arrayL[i] = arrayL[i + 1];
+			arrayR[i] = arrayR[i + 1];
 		}
-		switch (counter) {
-		case 1:
-			if (!((e > upperThreshold) || (e < -upperThreshold))) {
-				counter = 0;
-				boolTurn = false;
-			} else
-				boolTurn = true;
-			boolTurnR = false;
-			boolTurnL = false;
-		case 2:
-			if (!((e > upperThreshold) || (e < -upperThreshold))) {
-				counter = 0;
-				boolTurn = false;
-			} else
-				boolTurn = true;
-			boolTurnR = false;
-			boolTurnL = false;
-			break;
-		default:
-			if (counter >= 3) {
-				counter = 0;
-				boolTurnR = false;
-				boolTurnL = false;
-				boolTurn = false;
-			}
+		// latest element at last index of array
+		arrayL[9] = lastL;
+		arrayR[9] = lastR;
+		lastL = eLeft;
+		lastR = eRight;
 
-		}
 		/**
-		 * characteristic data for signifies upcoming turn counter == 2 and
-		 * linesensors showing white should happen after crossing the line of
-		 * the turn --> stop immediately and turn accordingly
+		 * iterate over both arrays to detect characteristic pattern of a turn
+		 * (rect) white-white-white-black-black-black-black-black-white-white
+		 * small diff->large diff->small diff->large diff->small diff
 		 */
-		if ((counter == 2)
-				&& ((this.lineSensorLeft <= lowerThreshold) && (this.lineSensorRight <= lowerThreshold))) {
-			if (ealt < 0) {
-				boolTurnR = true;
-				boolTurnL = false;
-			} else if (ealt > 0) {
-				boolTurnL = true;
-				boolTurnR = false;
+		for (int i = 0; i <= 9; i++) {
+			// assumption tbt: both sensors dont show the same diff behavior..
+			/**
+			 * falling edge triggers beginning of a turn and rising edge end of
+			 * a turn wait for rising edge after falling edge and immediately
+			 * switch into curve mode (time in between depends on speed) Robot
+			 * may not turn if the rising edge is not detected
+			 */
+			if (arrayL[i] < -upperThreshold) {
+				fallEdgeL = true;
+				fallTimeL = i;
+			} else if (arrayL[i] > upperThreshold) {
+				if (((i - fallTimeL) <= 4) && fallEdgeL) {
+					boolTurn = true;
+					boolTurnL = true;
+				}
+				fallEdgeL = false;
+				fallTimeL = 0;
 			}
-			counter = 0;
-			boolTurn = true;
+		}
+		for (int i = 0; i <= 9; i++) {
+			if (arrayR[i] < -upperThreshold) {
+				fallEdgeR = true;
+				fallTimeR = i;
+			} else if (arrayR[i] > upperThreshold) {
+				if (((i - fallTimeR) <= 4) && fallEdgeR) {
+					boolTurn = true;
+					boolTurnR = true;
+				}
+				fallEdgeL = false;
+				fallTimeR = 0;
+			}
+
+		}
+		if (boolTurn) {
+			for (int x = 0; x <= 9; x++) {
+				arrayL[x] = 0;
+				arrayR[x] = 0;
+			}
 		}
 
+	}
+
+	public double getArray(int i) {
+		return arrayL[i];
 	}
 
 	private void exec_LINECTRL_ALGO() {
 		/**
 		 * if robot gets close to a curve--> decelerate TODO smoother!!!
 		 */
-		if (!navigation.getRobotCloseToCurve())
-			maxPower = 130;
-		else
-			maxPower = 90;
 
-		/**
-		 * Idea: the robot is on its correct path, when it is positioned
-		 * centrally on the line with both sensors returning their minimum value
-		 * (calibrated value for white)
-		 */
+		maxPower = 60;
+
 		leftMotor.forward();
 		rightMotor.forward();
 
@@ -652,8 +646,8 @@ public class ControlRST implements IControl {
 		this.lineSensorLeft = perception.getLeftLineSensorValue();
 
 		/**
-		 * if a sensor measures the calibrated value for e.g. white it returns
-		 * 0; black(calibrated)-->100 the values are therefore largely
+		 * if a sensor measures the calibrated value for e.g. black it returns
+		 * 0; white(calibrated)-->100 the values are therefore largely
 		 * uncorrelated to the actual brightness of the room but vary bright
 		 * days still have a different fragmentation; e.g. the difference
 		 * between 10 and 20 is greater when the brightness is high
@@ -696,31 +690,33 @@ public class ControlRST implements IControl {
 		 * positive e --> too far right; e==0 --> no error
 		 */
 		e = errorRight - errorLeft;
-
+		detectTurn(errorLeft, errorRight);
 		/**
 		 * as long as the robot is in boolTurn mode and e is greater than the
 		 * lower threshold for exiting the boolTurn mode continue in boolTurn
 		 * mode
 		 */
-		if ((e > upperThreshold) || (e < -upperThreshold)) {
-			/**
-			 * State Transition: straight --> curve
-			 */
-			if (e < 0) {
-				boolTurnR = true;
-				boolTurnL = false;
-			} else if (e > 0) {
-				boolTurnL = true;
-				boolTurnR = false;
-			}
-			boolTurn = true;
 
-		} else {
-			boolTurnR = false;
-			boolTurnL = false;
-			boolTurn = false;
+		// if ((e > upperThreshold) || (e < -upperThreshold)) {
+		// /**
+		// * State Transition: straight --> curve
+		// */
+		// if (e < 0) {
+		// boolTurnR = true;
+		// boolTurnL = false;
+		// } else if (e > 0) {
+		// boolTurnL = true;
+		// boolTurnR = false;
+		// }
+		// boolTurn = true;
+		//
+		// } else {
+		// boolTurnR = false;
+		// boolTurnL = false;
+		// boolTurn = false;
+		//
+		// }
 
-		}
 		/**
 		 * regular straight driving mode KP = 0.1 KI = 0.002 KD = 0.06
 		 */
@@ -776,41 +772,40 @@ public class ControlRST implements IControl {
 		double xMomentary = this.currentPosition.getX() * 100;
 		double yMomentary = this.currentPosition.getY() * 100;
 		angleDeg = (int) (this.currentPosition.getHeading() / Math.PI * 180);
-		double disMomentary = Math.sqrt(Math.pow((xMomentary - startX), 2)
-				+ Math.pow((yMomentary - startY), 2));
-		if (disMomentary <= 4)
-			drive(5, 0);
-		else {
-			// left curve
-			switch (currentCTRLMODE) {
-			case LEFT_CRV_CTRL:
-				if ((angleDeg - startAngleDeg) <= 80) {
-					drive(0, 40);
-					// Sound.buzz();
-				} else {
-					boolTurn = false;
-					boolTurnL = false;
-					rightMotor.stop();
-					leftMotor.stop();
-				}
-				break;
-			// right curve
-			case RIGHT_CRV_CTRL:
-				if ((angleDeg - startAngleDeg) >= -80) {
-					drive(0, -40);
-					// Sound.buzz();
-				} else {
-					boolTurn = false;
-					boolTurnR = false;
-					rightMotor.stop();
-					leftMotor.stop();
-				}
-				break;
-			default:
+		/*
+		 * double disMomentary = Math.sqrt(Math.pow((xMomentary - startX), 2) +
+		 * Math.pow((yMomentary - startY), 2)); if (disMomentary <= 4) drive(5,
+		 * 0); else {
+		 */// left curve
+		switch (currentCTRLMODE) {
+		case LEFT_CRV_CTRL:
+			if ((angleDeg - startAngleDeg) <= 80) {
+				drive(0, 40);
+				// Sound.buzz();
+			} else {
+				boolTurn = false;
+				boolTurnL = false;
 				rightMotor.stop();
 				leftMotor.stop();
-				break;
 			}
+			break;
+		// right curve
+		case RIGHT_CRV_CTRL:
+			if ((angleDeg - startAngleDeg) >= -80) {
+				drive(0, -40);
+				// Sound.buzz();
+			} else {
+				boolTurn = false;
+				boolTurnR = false;
+				rightMotor.stop();
+				leftMotor.stop();
+			}
+			break;
+		default:
+			rightMotor.stop();
+			leftMotor.stop();
+			break;
+		// }
 		}
 	}
 
