@@ -498,14 +498,6 @@ public class GuidanceAT {
 //		LCD.drawString("UMode: " + currLineStatus, 0, 6);
 //		LCD.drawString("KP: " + navigation.getAktuellenKurvenpunkt(), 0, 3);
 //		LCD.drawString("CTC: " + navigation.getRobotCloseToCurve(), 0, 4);
-		LCD.drawString(" " + control.getArray(2), 0, 0);
-		LCD.drawString(" " + control.getArray(3), 0, 1);
-		LCD.drawString(" " + control.getArray(4), 0, 2);
-		LCD.drawString(" " + control.getArray(5), 0, 3);
-		LCD.drawString(" " + control.getArray(6), 0, 4);
-		LCD.drawString(" " + control.getArray(7), 0, 5);
-		LCD.drawString(" " + control.getArray(8), 0, 6);
-		LCD.drawString(" " + control.getArray(9), 0, 7);
 
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
