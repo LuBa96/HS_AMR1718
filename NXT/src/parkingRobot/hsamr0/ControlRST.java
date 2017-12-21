@@ -97,8 +97,7 @@ public class ControlRST implements IControl {
 	int ealt = 0;
 	double ealtL = 0;
 	double ealtR = 0;
-	int upperThreshold = 65;
-	int lowerThreshold = 20;
+	int upperThreshold = 80;
 	int maxPower = 0;
 	int counter = 0;
 
@@ -553,77 +552,27 @@ public class ControlRST implements IControl {
 	 * detected
 	 */
 	private void detectTurn(double eLeft, double eRight) {
-		// build Arrays with differential values of momentary and previous
-		// lightsensor values
-		// ignore first entry
-		lastL = lastL - eLeft;
-		lastR = lastR - eRight;
-		// Fill Arrays with last six light sensor values
-		// sequenceL.add(lastL);
-		// sequenceR.add(lastR);
-		// if (sequenceL.size() > 6) {
-		// // remove first element
-		// sequenceL.remove(0);
-		// }
-		// if (sequenceR.size() > 6) {
-		// sequenceR.remove(0);
-		// }
-		// remove oldest value at first position
 
-		for (int i = 0; i < 9; i++) {
-			arrayL[i] = arrayL[i + 1];
-			arrayR[i] = arrayR[i + 1];
-		}
-		// latest element at last index of array
-		arrayL[9] = lastL;
-		arrayR[9] = lastR;
-		lastL = eLeft;
-		lastR = eRight;
-
-		/**
-		 * iterate over both arrays to detect characteristic pattern of a turn
-		 * (rect) white-white-white-black-black-black-black-black-white-white
-		 * small diff->large diff->small diff->large diff->small diff
-		 */
-		for (int i = 0; i <= 9; i++) {
-			// assumption tbt: both sensors dont show the same diff behavior..
-			/**
-			 * falling edge triggers beginning of a turn and rising edge end of
-			 * a turn wait for rising edge after falling edge and immediately
-			 * switch into curve mode (time in between depends on speed) Robot
-			 * may not turn if the rising edge is not detected
-			 */
-			if (arrayL[i] < -upperThreshold) {
-				fallEdgeL = true;
-				fallTimeL = i;
-			} else if (arrayL[i] > upperThreshold) {
-				if (((i - fallTimeL) <= 4) && fallEdgeL) {
-					boolTurn = true;
-					boolTurnL = true;
-				}
-				fallEdgeL = false;
-				fallTimeL = 0;
+		if ((eLeft <= 30) || (eRight <= 30)) {
+			if ((eLeft <= 30) && (counter > 0)) {
+				counter--;
+			} else if((eLeft <= 30) && (counter == 0)) {
+				boolTurnL = true;
+				boolTurn = true;
+				counter = 10;
 			}
-		}
-		for (int i = 0; i <= 9; i++) {
-			if (arrayR[i] < -upperThreshold) {
-				fallEdgeR = true;
-				fallTimeR = i;
-			} else if (arrayR[i] > upperThreshold) {
-				if (((i - fallTimeR) <= 4) && fallEdgeR) {
-					boolTurn = true;
-					boolTurnR = true;
-				}
-				fallEdgeL = false;
-				fallTimeR = 0;
+			if ((eRight <= 30) && (counter > 0)) {
+				counter--;
+			} else if((eRight <= 30) && (counter == 0)){
+				boolTurnR = true;
+				boolTurn = true;
+				counter = 10;
 			}
-
-		}
-		if (boolTurn) {
-			for (int x = 0; x <= 9; x++) {
-				arrayL[x] = 0;
-				arrayR[x] = 0;
-			}
+		} else {
+			boolTurnR = false;
+			boolTurnL = false;
+			boolTurn = false;
+			counter = 0;
 		}
 
 	}
@@ -648,7 +597,7 @@ public class ControlRST implements IControl {
 		/**
 		 * if a sensor measures the calibrated value for e.g. black it returns
 		 * 0; white(calibrated)-->100 the values are therefore largely
-		 * uncorrelated to the actual brightness of the room but vary bright
+		 * uncorrelated to the actual brightness of the room but very bright
 		 * days still have a different fragmentation; e.g. the difference
 		 * between 10 and 20 is greater when the brightness is high
 		 */
@@ -691,31 +640,6 @@ public class ControlRST implements IControl {
 		 */
 		e = errorRight - errorLeft;
 		detectTurn(errorLeft, errorRight);
-		/**
-		 * as long as the robot is in boolTurn mode and e is greater than the
-		 * lower threshold for exiting the boolTurn mode continue in boolTurn
-		 * mode
-		 */
-
-		// if ((e > upperThreshold) || (e < -upperThreshold)) {
-		// /**
-		// * State Transition: straight --> curve
-		// */
-		// if (e < 0) {
-		// boolTurnR = true;
-		// boolTurnL = false;
-		// } else if (e > 0) {
-		// boolTurnL = true;
-		// boolTurnR = false;
-		// }
-		// boolTurn = true;
-		//
-		// } else {
-		// boolTurnR = false;
-		// boolTurnL = false;
-		// boolTurn = false;
-		//
-		// }
 
 		/**
 		 * regular straight driving mode KP = 0.1 KI = 0.002 KD = 0.06
@@ -772,40 +696,40 @@ public class ControlRST implements IControl {
 		double xMomentary = this.currentPosition.getX() * 100;
 		double yMomentary = this.currentPosition.getY() * 100;
 		angleDeg = (int) (this.currentPosition.getHeading() / Math.PI * 180);
-		/*
-		 * double disMomentary = Math.sqrt(Math.pow((xMomentary - startX), 2) +
-		 * Math.pow((yMomentary - startY), 2)); if (disMomentary <= 4) drive(5,
-		 * 0); else {
-		 */// left curve
-		switch (currentCTRLMODE) {
-		case LEFT_CRV_CTRL:
-			if ((angleDeg - startAngleDeg) <= 80) {
-				drive(0, 40);
-				// Sound.buzz();
-			} else {
-				boolTurn = false;
-				boolTurnL = false;
+		double disMomentary = Math.sqrt(Math.pow((xMomentary - startX), 2)
+				+ Math.pow((yMomentary - startY), 2));
+		if (disMomentary <= 4)
+			drive(5, 0);
+		else {
+			switch (currentCTRLMODE) {
+			case LEFT_CRV_CTRL:
+				if ((angleDeg - startAngleDeg) <= 80) {
+					drive(0, 40);
+					// Sound.buzz();
+				} else {
+					boolTurn = false;
+					boolTurnL = false;
+					rightMotor.stop();
+					leftMotor.stop();
+				}
+				break;
+			// right curve
+			case RIGHT_CRV_CTRL:
+				if ((angleDeg - startAngleDeg) >= -80) {
+					drive(0, -40);
+					// Sound.buzz();
+				} else {
+					boolTurn = false;
+					boolTurnR = false;
+					rightMotor.stop();
+					leftMotor.stop();
+				}
+				break;
+			default:
 				rightMotor.stop();
 				leftMotor.stop();
+				break;
 			}
-			break;
-		// right curve
-		case RIGHT_CRV_CTRL:
-			if ((angleDeg - startAngleDeg) >= -80) {
-				drive(0, -40);
-				// Sound.buzz();
-			} else {
-				boolTurn = false;
-				boolTurnR = false;
-				rightMotor.stop();
-				leftMotor.stop();
-			}
-			break;
-		default:
-			rightMotor.stop();
-			leftMotor.stop();
-			break;
-		// }
 		}
 	}
 
@@ -1104,9 +1028,6 @@ public class ControlRST implements IControl {
 		 * linecontrol
 		 */
 		else if (demo5) {
-			// LCD.drawString("demo5", 0, 6);
-			setCtrlMode(ControlMode.LINE_CTRL);
-			exec_LINECTRL_ALGO();
 			demo1 = true;
 			demo5 = false;
 			demoFin = true;
@@ -1118,6 +1039,7 @@ public class ControlRST implements IControl {
 	 * Line Control Mode at last; sound a beep sequence after each finished step
 	 */
 	private void Control_Demo_2() {
+		Control_Demo_1();
 
 	}
 }
