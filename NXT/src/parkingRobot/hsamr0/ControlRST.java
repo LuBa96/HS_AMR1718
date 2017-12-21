@@ -502,50 +502,7 @@ public class ControlRST implements IControl {
 		this.stop();
 	}
 
-	/**
-	 * DRIVING along black line Minimalbeispiel Linienverfolgung fuer gegebene
-	 * Werte 0,1,2 white = 0, black = 2, grey = 1
-	 */
-	/*
-	 * // //Verbesserung des Minimalbeispieles mit den drei diskreten Werten //
-	 * private void exec_LINECTRL_ALGO() { this.lineSensorRight =
-	 * perception.getRightLineSensor(); this.lineSensorLeft =
-	 * perception.getLeftLineSensor(); // leftMotor.forward(); //
-	 * rightMotor.forward(); // int lowPower = 0; // int highPower = 35; // int
-	 * medPower = 10; // // // MONITOR (example) //
-	 * monitor.writeControlVar("LeftSensor", "" + this.lineSensorLeft); //
-	 * monitor.writeControlVar("RightSensor", "" + this.lineSensorRight); // //
-	 * if (this.lineSensorLeft == 2 && (this.lineSensorRight == 1)) { // // //
-	 * when left sensor is on the line, turn left //
-	 * leftMotor.setPower(lowPower); // rightMotor.setPower(highPower); // // //
-	 * MONITOR (example) // monitor.writeControlComment("turn left"); // // }
-	 * else if (this.lineSensorRight == 2 && (this.lineSensorLeft == 1)) { // //
-	 * // when right sensor is on the line, turn right //
-	 * leftMotor.setPower(highPower); // rightMotor.setPower(lowPower); // // //
-	 * MONITOR (example) // monitor.writeControlComment("turn right"); // } else
-	 * if (this.lineSensorLeft == 2 && (this.lineSensorRight == 0)) { // // //
-	 * when left sensor is on the line, turn left //
-	 * leftMotor.setPower(lowPower); // rightMotor.setPower(highPower); // // //
-	 * MONITOR (example) // monitor.writeControlComment("turn left"); // // }
-	 * else if (this.lineSensorRight == 2 && (this.lineSensorLeft == 0)) { // //
-	 * // when right sensor is on the line, turn right //
-	 * leftMotor.setPower(highPower); // rightMotor.setPower(lowPower); // // //
-	 * MONITOR (example) // monitor.writeControlComment("turn right"); // } else
-	 * if (this.lineSensorLeft == 1 && this.lineSensorRight == 0) { // // //
-	 * when left sensor is on the line, turn left //
-	 * leftMotor.setPower(medPower); // nicht zu stark korrigieren.. //
-	 * rightMotor.setPower(highPower); // // // MONITOR (example) //
-	 * monitor.writeControlComment("turn left"); // // } else if
-	 * (this.lineSensorRight == 1 && this.lineSensorLeft == 0) { // // // when
-	 * right sensor is on the line, turn right // leftMotor.setPower(highPower);
-	 * // rightMotor.setPower(medPower); // // // MONITOR (example) //
-	 * monitor.writeControlComment("turn right"); // } else if
-	 * (this.lineSensorLeft == 0 && this.lineSensorRight == 0) { // // // when
-	 * both sensors are next to the line, go straight //
-	 * leftMotor.setPower(highPower); // rightMotor.setPower(highPower); // //
-	 * // MONITOR (example) // monitor.writeControlComment("go straight"); // }
-	 * // }
-	 */
+	
 	/**
 	 * this method detects a right or left turn by checking if a typical
 	 * pattern: both white (grey)-->black and white-->both bright white is
@@ -559,14 +516,14 @@ public class ControlRST implements IControl {
 			} else if((eLeft <= 30) && (counter == 0)) {
 				boolTurnL = true;
 				boolTurn = true;
-				counter = 10;
+				counter = 13;
 			}
 			if ((eRight <= 30) && (counter > 0)) {
 				counter--;
 			} else if((eRight <= 30) && (counter == 0)){
 				boolTurnR = true;
 				boolTurn = true;
-				counter = 10;
+				counter = 13;
 			}
 		} else {
 			boolTurnR = false;
@@ -577,9 +534,6 @@ public class ControlRST implements IControl {
 
 	}
 
-	public double getArray(int i) {
-		return arrayL[i];
-	}
 
 	private void exec_LINECTRL_ALGO() {
 		/**
@@ -640,6 +594,7 @@ public class ControlRST implements IControl {
 		 */
 		e = errorRight - errorLeft;
 		detectTurn(errorLeft, errorRight);
+
 
 		/**
 		 * regular straight driving mode KP = 0.1 KI = 0.002 KD = 0.06
@@ -956,7 +911,7 @@ public class ControlRST implements IControl {
 			// LCD.drawString("demo2", 0, 6);
 			drive(0, 15);
 			if ((int) (this.currentPosition.getHeading() / Math.PI * 180)
-					- startAngleDeg >= 90) {
+					- startAngleDeg >= 80) {
 				// beep twice when finished
 				Sound.systemSound(true, 1);
 				demo3 = true;
@@ -1010,7 +965,7 @@ public class ControlRST implements IControl {
 					6);
 			LCD.drawString("s: " + startAngleDeg, 0, 7);
 			if ((int) (this.currentPosition.getHeading() / Math.PI * 180)
-					- startAngleDeg <= -90) {
+					- startAngleDeg <= -80) {
 				// beep four times when finished
 				Sound.systemSound(true, 1);
 				Sound.systemSound(true, 1);
