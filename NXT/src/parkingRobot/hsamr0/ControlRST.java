@@ -312,7 +312,7 @@ public class ControlRST implements IControl {
 		switch (currentCTRLMODE) {
 		case DEMO1_CTRL:
 			update_SETPOSE_Parameter();
-			//Control_Demo_1();
+			// Control_Demo_1();
 			Control_Demo_2();
 			break;
 		case DEMO2_CTRL:
@@ -679,15 +679,15 @@ public class ControlRST implements IControl {
 	}
 
 	/**
-	 * turn 90 degrees for Demo Programm 
+	 * turn 90 degrees for Demo Programm
 	 * 
 	 * @param omega
 	 */
-	private boolean turn90deg(double omega) {
-		boolRotate=true;
+	private boolean rotateXDeg(double omega, double angle) {
+		boolRotate = true;
 		drive(0, omega);
 		if ((int) (this.currentPosition.getHeading() / Math.PI * 180)
-				- startAngleDeg >= 80) {
+				- startAngleDeg >= angle) {
 			updateStartPose();
 			leftMotor.stop();
 			rightMotor.stop();
@@ -700,27 +700,6 @@ public class ControlRST implements IControl {
 		return boolRotate;
 	}
 
-	/**
-	 * turn 180 degrees for Demo Programm
-	 *
-	 * @param omega
-	 */
-	private boolean turn180deg(double omega) {
-		boolRotate=true;
-		drive(0, omega);
-		if ((int) (this.currentPosition.getHeading() / Math.PI * 180)
-				- startAngleDeg >= 180) {
-			updateStartPose();
-			leftMotor.stop();
-			rightMotor.stop();
-			// reset esumL and esumR, otherwise the accumulated error for
-			// straight driving would be used for turning
-			esumL = 0;
-			esumR = 0;
-			boolRotate = false;
-		}
-		return boolRotate;
-	}
 
 	/**
 	 * calculates the left and right angle speed of the both motors with given
@@ -930,18 +909,14 @@ public class ControlRST implements IControl {
 		if ((demo5 && (Math.abs((float) (navigation.getPose().getX())) <= 5) && (Math
 				.abs((float) (navigation.getPose().getY())) <= 5))) {
 			updateStartPose();
-			if(!turn180deg(30))
-				demoFin=true;
+			if (!rotateXDeg(30, 180))
+				demoFin = true;
 
 		} else if (demo5) {
-			update_SETPOSE_Parameter();
-			update_LINECTRL_Parameter();
-			exec_LINECTRL_ALGO();
-		}
-		else
+			//TODO Guidance has to put control into line control mode
+		} else
 			Control_Demo();
 
-	
 	}
 
 	private void Control_Demo_3() {
@@ -1027,7 +1002,7 @@ public class ControlRST implements IControl {
 				Sound.systemSound(true, 1);
 				Sound.systemSound(true, 1);
 				demo5 = true;
-				counter=50;
+				counter = 50;
 				demo4 = false;
 				leftMotor.stop();
 				rightMotor.stop();

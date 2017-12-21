@@ -480,12 +480,12 @@ public class GuidanceAT {
 			IPerception perception, IControl control) {
 		LCD.clear();
 
-//		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0,
-//				0);
-//		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0,
-//				1);
-//		LCD.drawString("Phi (grd): "
-//				+ (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
+		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0,
+				0);
+		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0,
+				1);
+		LCD.drawString("Phi (grd): "
+				+ (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
 
 		// LCD.drawString("left: " + (perception.getLeftLineSensorValue()), 0,
 		// 3);
