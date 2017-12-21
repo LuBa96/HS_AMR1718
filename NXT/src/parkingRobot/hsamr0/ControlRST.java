@@ -12,6 +12,8 @@ import lejos.nxt.NXTMotor;
 import parkingRobot.INavigation;
 import lejos.nxt.Sound;
 
+import java.util.ArrayList;
+
 /**
  * Main class for control module
  *
@@ -95,9 +97,7 @@ public class ControlRST implements IControl {
 	int ealt = 0;
 	double ealtL = 0;
 	double ealtR = 0;
-	int upperThreshold = 65;
-	int grey = 0;
-	int lowerThreshold = 20;
+	int upperThreshold = 80;
 	int maxPower = 0;
 	int counter = 0;
 
@@ -108,6 +108,20 @@ public class ControlRST implements IControl {
 	boolean boolTurn = false;
 	boolean boolTurnL = false;
 	boolean boolTurnR = false;
+
+	/**
+	 * variables for pattern detection in turnDetection()
+	 */
+	// ArrayList<Double> sequenceL = new ArrayList<Double>();
+	double[] arrayL = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	double[] arrayR = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	// ArrayList<Double> sequenceR = new ArrayList<Double>();
+	double lastL = 100;
+	double lastR = 100;
+	boolean fallEdgeL = false;
+	boolean fallEdgeR = false;
+	int fallTimeL = 0;
+	int fallTimeR = 0;
 
 	/**
 	 * variables for regWheelSpeed
@@ -321,6 +335,7 @@ public class ControlRST implements IControl {
 			update_SETPOSE_Parameter();
 			update_LINECTRL_Parameter();
 			exec_LINECTRL_ALGO();
+			// exec_SETPOSE_ALGO();
 			break;
 		case LEFT_CRV_CTRL:
 			update_SETPOSE_Parameter();
@@ -448,7 +463,7 @@ public class ControlRST implements IControl {
 	 */
 	private void exec_SETPOSE_ALGO() {
 		double y;
-		double vo = 25;
+		double vo = 10;
 		/**
 		 * x'=x*cos(phi)+y*sin(phi)
 		 */
@@ -463,7 +478,7 @@ public class ControlRST implements IControl {
 
 		errYAlt = yRotKOS - errYAlt;
 
-		y = 0.2 * yRotKOS + 0.00 * errYSum + 0.02 * lastError;
+		y = 0.22 * yRotKOS + 0.00 * errYSum + 0.02 * lastError;
 		drive(vo, -y);
 
 		errYSum = errYSum + yRotKOS;
@@ -531,13 +546,48 @@ public class ControlRST implements IControl {
 	 * // MONITOR (example) // monitor.writeControlComment("go straight"); // }
 	 * // }
 	 */
+	/**
+	 * this method detects a right or left turn by checking if a typical
+	 * pattern: both white (grey)-->black and white-->both bright white is
+	 * detected
+	 */
+	private void detectTurn(double eLeft, double eRight) {
+
+		if ((eLeft <= 30) || (eRight <= 30)) {
+			if ((eLeft <= 30) && (counter > 0)) {
+				counter--;
+			} else if((eLeft <= 30) && (counter == 0)) {
+				boolTurnL = true;
+				boolTurn = true;
+				counter = 10;
+			}
+			if ((eRight <= 30) && (counter > 0)) {
+				counter--;
+			} else if((eRight <= 30) && (counter == 0)){
+				boolTurnR = true;
+				boolTurn = true;
+				counter = 10;
+			}
+		} else {
+			boolTurnR = false;
+			boolTurnL = false;
+			boolTurn = false;
+			counter = 0;
+		}
+
+	}
+
+	public double getArray(int i) {
+		return arrayL[i];
+	}
 
 	private void exec_LINECTRL_ALGO() {
 		/**
-		 * Idea: the robot is on its correct path, when it is positioned
-		 * centrally on the line with both sensors returning their minimum value
-		 * (calibrated value for white)
+		 * if robot gets close to a curve--> decelerate TODO smoother!!!
 		 */
+
+		maxPower = 60;
+
 		leftMotor.forward();
 		rightMotor.forward();
 
@@ -545,9 +595,9 @@ public class ControlRST implements IControl {
 		this.lineSensorLeft = perception.getLeftLineSensorValue();
 
 		/**
-		 * if a sensor measures the calibrated value for e.g. white it returns
-		 * 0; black(calibrated)-->100 the values are therefore largely
-		 * uncorrelated to the actual brightness of the room but vary bright
+		 * if a sensor measures the calibrated value for e.g. black it returns
+		 * 0; white(calibrated)-->100 the values are therefore largely
+		 * uncorrelated to the actual brightness of the room but very bright
 		 * days still have a different fragmentation; e.g. the difference
 		 * between 10 and 20 is greater when the brightness is high
 		 */
@@ -589,31 +639,8 @@ public class ControlRST implements IControl {
 		 * positive e --> too far right; e==0 --> no error
 		 */
 		e = errorRight - errorLeft;
+		detectTurn(errorLeft, errorRight);
 
-		/**
-		 * as long as the robot is in boolTurn mode and e is greater than the
-		 * lower threshold for exiting the boolTurn mode continue in boolTurn
-		 * mode
-		 */
-		if ((e > upperThreshold) || (e < -upperThreshold)) {
-			/**
-			 * State Transition: straight --> curve
-			 */
-			if (e < 0) {
-				boolTurnR = true;
-				boolTurnL = false;
-			} else if (e > 0) {
-				boolTurnL = true;
-				boolTurnR = false;
-			}
-			boolTurn = true;
-
-		} else {
-			boolTurnR = false;
-			boolTurnL = false;
-			boolTurn = false;
-
-		}
 		/**
 		 * regular straight driving mode KP = 0.1 KI = 0.002 KD = 0.06
 		 */
@@ -625,8 +652,10 @@ public class ControlRST implements IControl {
 		if (y < 0) {
 			if (y < -(maxPower / 2))
 				y = -(maxPower / 2);
-			leftMotor.setPower((int) (maxPower / 2) - (int) y);
-			rightMotor.setPower((int) (maxPower / 2) + (int) y);
+			regWheelSpeed(((int) (maxPower / 2) - (int) y) / 2,
+					((int) (maxPower / 2) + (int) y) / 2);
+			// leftMotor.setPower((int) (maxPower / 2) - (int) y);
+			// rightMotor.setPower((int) (maxPower / 2) + (int) y);
 		}
 		/**
 		 * correction to the left side
@@ -634,15 +663,19 @@ public class ControlRST implements IControl {
 		else if (y > 0) {
 			if (y > maxPower / 2)
 				y = maxPower / 2;
-			rightMotor.setPower((int) (maxPower / 2) + (int) y);
-			leftMotor.setPower((int) (maxPower / 2) - (int) y);
+			regWheelSpeed(((int) (maxPower / 2) - (int) y) / 2,
+					((int) (maxPower / 2) + (int) y) / 2);
+			// rightMotor.setPower((int) (maxPower / 2) + (int) y);
+			// leftMotor.setPower((int) (maxPower / 2) - (int) y);
 		}
 		/**
 		 * Drive straight
 		 */
 		else if (y == 0) {
-			leftMotor.setPower((int) maxPower / 2);
-			rightMotor.setPower((int) maxPower / 2);
+			regWheelSpeed(((int) (maxPower / 2)) / 2,
+					((int) (maxPower / 2)) / 2);
+			// leftMotor.setPower((int) maxPower / 2);
+			// .setPower((int) maxPower / 2);
 		}
 
 		/**
@@ -652,8 +685,6 @@ public class ControlRST implements IControl {
 			resetIntegralPID();
 
 	}
-
-	
 
 	/**
 	 * robot turns 90 degrees for curve mode
@@ -670,7 +701,6 @@ public class ControlRST implements IControl {
 		if (disMomentary <= 4)
 			drive(5, 0);
 		else {
-			// left curve
 			switch (currentCTRLMODE) {
 			case LEFT_CRV_CTRL:
 				if ((angleDeg - startAngleDeg) <= 80) {
@@ -998,9 +1028,6 @@ public class ControlRST implements IControl {
 		 * linecontrol
 		 */
 		else if (demo5) {
-			// LCD.drawString("demo5", 0, 6);
-			setCtrlMode(ControlMode.LINE_CTRL);
-			exec_LINECTRL_ALGO();
 			demo1 = true;
 			demo5 = false;
 			demoFin = true;
@@ -1012,6 +1039,7 @@ public class ControlRST implements IControl {
 	 * Line Control Mode at last; sound a beep sequence after each finished step
 	 */
 	private void Control_Demo_2() {
+		Control_Demo_1();
 
 	}
 }

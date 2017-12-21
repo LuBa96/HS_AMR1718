@@ -159,6 +159,8 @@ public interface IControl {
 	public double getYstrich();
 	public double getXstrich();
 	public double getesum();
+	public double getArray(int i);
+	
 	
 
 }

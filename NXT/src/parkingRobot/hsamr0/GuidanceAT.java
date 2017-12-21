@@ -480,12 +480,12 @@ public class GuidanceAT {
 			IPerception perception, IControl control) {
 		LCD.clear();
 
-		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0,
-				0);
-		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0,
-				1);
-		LCD.drawString("Phi (grd): "
-				+ (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
+//		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0,
+//				0);
+//		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0,
+//				1);
+//		LCD.drawString("Phi (grd): "
+//				+ (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
 
 		// LCD.drawString("left: " + (perception.getLeftLineSensorValue()), 0,
 		// 3);
@@ -494,10 +494,18 @@ public class GuidanceAT {
 		// perception.showSensorData();
 		// LCD.drawString("X': " + (control.getYstrich()),0,3);
 		// LCD.drawString("Y': " + (control.getYstrich()),0,4);
-		LCD.drawString("Mode: " + currentStatus, 0, 5);
-		LCD.drawString("UMode: " + currLineStatus, 0, 6);
-		LCD.drawString("KP: " + navigation.getAktuellenKurvenpunkt(), 0, 3);
-		LCD.drawString("CTC: " + navigation.getRobotCloseToCurve(), 0, 4);
+//		LCD.drawString("Mode: " + currentStatus, 0, 5);
+//		LCD.drawString("UMode: " + currLineStatus, 0, 6);
+//		LCD.drawString("KP: " + navigation.getAktuellenKurvenpunkt(), 0, 3);
+//		LCD.drawString("CTC: " + navigation.getRobotCloseToCurve(), 0, 4);
+		LCD.drawString(" " + control.getArray(2), 0, 0);
+		LCD.drawString(" " + control.getArray(3), 0, 1);
+		LCD.drawString(" " + control.getArray(4), 0, 2);
+		LCD.drawString(" " + control.getArray(5), 0, 3);
+		LCD.drawString(" " + control.getArray(6), 0, 4);
+		LCD.drawString(" " + control.getArray(7), 0, 5);
+		LCD.drawString(" " + control.getArray(8), 0, 6);
+		LCD.drawString(" " + control.getArray(9), 0, 7);
 
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
@@ -528,10 +536,9 @@ public class GuidanceAT {
 			// state transitions
 			lastLineStatus = currLineStatus;
 
-			if (control.getRightTurn() && navigation.getRobotCloseToCurve()) {
+			if (control.getRightTurn()) {/* && navigation.getRobotCloseToCurve()*/
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_RIGHT;
-			} else if (control.getLeftTurn()
-					&& navigation.getRobotCloseToCurve()) {
+			} else if (control.getLeftTurn()) {/*&& navigation.getRobotCloseToCurve()*/
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_LEFT;
 			}
 
