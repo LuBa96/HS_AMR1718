@@ -78,8 +78,10 @@ public interface INavigation {
 	public double frontBoundarxFrontSensorAktuell();
 	public double frontBoundaryFrontSensorAktuell();
 	public double parklueckenLaenge();
-	public int anzahlParkluecken();
+	public int anzahlParklueckenAktuelleRunde();
 	public ParkingSlot getAktuellstenParkplatz();
+	public int getLineNumber();
+	public void setInTurn(boolean x);
 	// Outputs
 	
 	/**
@@ -243,7 +245,6 @@ public interface INavigation {
 		public int getMeasurementQuality() {
 			return measurementQuality;
 		}
-		
 		
 	}	
 }

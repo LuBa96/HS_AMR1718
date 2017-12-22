@@ -480,12 +480,12 @@ public class GuidanceAT {
 			IPerception perception, IControl control) {
 		LCD.clear();
 
-//		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0,
-//				0);
-//		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0,
-//				1);
-//		LCD.drawString("Phi (grd): "
-//				+ (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
+		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0,
+				0);
+		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 1,
+				1);
+		LCD.drawString("Phi (grd): "
+				+ (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
 //
 //		// LCD.drawString("left: " + (perception.getLeftLineSensorValue()), 0,
 //		// 3);
@@ -499,10 +499,21 @@ public class GuidanceAT {
 //		LCD.drawString("UMode: " + currLineStatus, 0, 6);
 //		LCD.drawString("KP: " + navigation.getAktuellenKurvenpunkt(), 0, 3);
 		LCD.drawString("CTC: " + navigation.getRobotCloseToCurve(), 0, 4);
-		
-		LCD.drawString("B:" + Integer.toString((int)perception.getBackSensorDistance()),0,0);
-		LCD.drawString("F:" + Integer.toString((int)perception.getFrontSensorDistance()),0,1);
-		LCD.drawString("FS:" + Integer.toString((int)perception.getFrontSideSensorDistance()),0,2);
+//		
+//		LCD.drawString("B:" + Integer.toString((int)perception.getBackSensorDistance()),0,0);
+//		LCD.drawString("F:" + Integer.toString((int)perception.getFrontSensorDistance()),0,1);
+//		LCD.drawString("FS:" + Integer.toString((int)perception.getFrontSideSensorDistance()),0,2);
+//		
+//		LCD.drawString("BBx: " + navigation.getAktuellstenParkplatz().getBackBoundaryPosition().getX(),0,0);
+//		LCD.drawString("BBy: " + navigation.getAktuellstenParkplatz().getBackBoundaryPosition().getY(),0,1);
+//		LCD.drawString("FBx: " + navigation.getAktuellstenParkplatz().getFrontBoundaryPosition().getX(),0,2);
+//		LCD.drawString("FBy: " + navigation.getAktuellstenParkplatz().getFrontBoundaryPosition().getY(),0,3);
+//		LCD.drawString("FBy: " + navigation.getAktuellstenParkplatz().getMeasurementQuality(),0,4);
+//		LCD.drawString("Status: " + navigation.getAktuellstenParkplatz().getStatus(),0,5);
+//		LCD.drawString("PLaenge: " + navigation.parklueckenLaenge(),0,6);
+//		LCD.drawString("AnzParkluecken" + navigation.anzahlParklueckenAktuelleRunde(), 0, 7);
+
+
 
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
@@ -550,6 +561,7 @@ public class GuidanceAT {
 
 			// into action
 			if (lastLineStatus != currLineStatus) {
+				navigation.setInTurn(true);
 				control.resetIntegralRWD();
 				control.updateStartPose();
 				control.setCtrlMode(ControlMode.RIGHT_CRV_CTRL);
@@ -570,6 +582,7 @@ public class GuidanceAT {
 			if (currLineStatus != lastLineStatus) {
 				control.setCtrlMode(ControlMode.INACTIVE);
 				navigation.PositionskorrekturAnEcken();
+				navigation.setInTurn(false);
 			}
 			break;
 		case FOLLOW_LINE_LEFT:
@@ -577,6 +590,7 @@ public class GuidanceAT {
 
 			// into action
 			if (lastLineStatus != currLineStatus) {
+				navigation.setInTurn(true);
 				control.updateStartPose();
 				control.resetIntegralRWD();
 				control.setCtrlMode(ControlMode.LEFT_CRV_CTRL);
@@ -597,6 +611,7 @@ public class GuidanceAT {
 			if (currLineStatus != lastLineStatus) {
 				control.setCtrlMode(ControlMode.INACTIVE);
 				navigation.PositionskorrekturAnEcken();
+				navigation.setInTurn(false);
 			}
 			break;
 		// there is no transition into this state yet
