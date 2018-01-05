@@ -142,7 +142,7 @@ public class ControlRST implements IControl {
 	double xRotKOS = 0;
 	double yRotKOS = 0;
 	double phiRotKOS = 0;
-	boolean pathEnd = true;
+	boolean pathEnd = false;
 	CoordinateSystem CoSys = null;
 
 	Line guideLine = null;
@@ -292,7 +292,9 @@ public class ControlRST implements IControl {
 	 */
 	public void setPose(Pose currentPosition) {
 		// TODO Auto-generated method stub
-		this.currentPosition = currentPosition;
+		this.currentPosition.setHeading((float) (currentPosition.getHeading() / Math.PI * 180));
+		this.currentPosition.setLocation(currentPosition.getX()*100, currentPosition.getY()*100);
+
 	}
 
 	public void updateStartPose() {
@@ -487,10 +489,10 @@ public class ControlRST implements IControl {
 		/**
 		 * set start pose as origin for coordinate system and follow the path
 		 */
-		if ((CoSys.getPointOfOrigin() == null) || pathEnd)
+		if (CoSys.getPointOfOrigin()==null)
 		{
-			Sound.beep();
-			CoSys.setPointOfOrigin(this.currentPosition);
+			Sound.systemSound(true,0);
+			CoSys.setPointOfOrigin(currentPosition);
 			pathEnd = false;
 		} else {
 			// do nothing
@@ -664,9 +666,9 @@ public class ControlRST implements IControl {
 	 *            > 0 right curve
 	 */
 	private void exec_driveCurve90() {
-		double xMomentary = this.currentPosition.getX() * 100;
-		double yMomentary = this.currentPosition.getY() * 100;
-		angleDeg = (int) (this.currentPosition.getHeading() / Math.PI * 180);
+		double xMomentary = this.currentPosition.getX();
+		double yMomentary = this.currentPosition.getY();
+		angleDeg = (int) (this.currentPosition.getHeading());
 		double disMomentary = Math.sqrt(Math.pow((xMomentary - startX), 2)
 				+ Math.pow((yMomentary - startY), 2));
 		if (disMomentary <= 4)
@@ -893,7 +895,7 @@ public class ControlRST implements IControl {
 	private boolean rotateXDeg(double omega, double angle) {
 		boolRotate = false;
 		drive(0, omega);
-		if ((int) (this.currentPosition.getHeading() / Math.PI * 180)
+		if ((int) (this.currentPosition.getHeading())
 				- startAngleDeg >= angle) {
 			updateStartPose();
 			leftMotor.stop();
@@ -919,14 +921,20 @@ public class ControlRST implements IControl {
 	 * @return
 	 */
 	private boolean driveXCm(double vo, double dis) {
-		double x = this.currentPosition.getX() * 100;
-		double y = this.currentPosition.getY() * 100;
+		/*
+		 * navigation (currentPosition) returns value in cm
+		 */
+		double x = this.currentPosition.getX();
+		double y = this.currentPosition.getY();
 		double disMomentary = 0;
 		boolDrive = false;
 		followPath(vo);
 		if (CoSys.getPointOfOrigin() == null)
 			disMomentary = 0;
 		else {
+			/*
+			 * CoSys.getPointofOrigin.getX() returns value in cm
+			 */
 			disMomentary = Math.sqrt(Math.pow((x - CoSys.getPointOfOrigin()
 					.getX()), 2)
 					+ Math.pow((y - CoSys.getPointOfOrigin().getY()), 2));
@@ -978,8 +986,8 @@ public class ControlRST implements IControl {
 	}
 
 	private void Control_Demo() {
-		double x = this.currentPosition.getX() * 100;
-		double y = this.currentPosition.getY() * 100;
+		double x = this.currentPosition.getX();
+		double y = this.currentPosition.getY();
 		double dis = Math.sqrt(x * x + y * y);
 		/**
 		 * 120 cm with 10 cm/s straight driving
@@ -1029,7 +1037,7 @@ public class ControlRST implements IControl {
 				esumR = 0;
 				pathEnd = true;
 				updateStartPose();
-				// if ((int) (this.currentPosition.getHeading() / Math.PI * 180)
+				// if ((int) (this.currentPosition.getHeading())
 				// - startAngleDeg >= 80) {
 				// Sound.systemSound(true, 1);
 				// demo3 = true;
@@ -1085,10 +1093,10 @@ public class ControlRST implements IControl {
 		else if (demo4) {
 			drive(0, -30);
 			LCD.drawString("c: "
-					+ ((this.currentPosition.getHeading() / Math.PI * 180)), 0,
+					+ (this.currentPosition.getHeading()), 0,
 					6);
 			LCD.drawString("s: " + startAngleDeg, 0, 7);
-			if ((int) (this.currentPosition.getHeading() / Math.PI * 180)
+			if ((int) (this.currentPosition.getHeading())
 					- startAngleDeg <= -80) {
 				Sound.systemSound(true, 1);
 				Sound.systemSound(true, 1);
