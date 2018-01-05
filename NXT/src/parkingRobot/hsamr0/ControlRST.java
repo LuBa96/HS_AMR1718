@@ -144,6 +144,7 @@ public class ControlRST implements IControl {
 	double phiRotKOS = 0;
 	boolean pathEnd = false;
 	CoordinateSystem CoSys = null;
+	Pose jetzt = null;
 
 	Line guideLine = null;
 
@@ -238,6 +239,7 @@ public class ControlRST implements IControl {
 		startY = 0;
 
 		CoSys = new CoordinateSystem();
+		jetzt = new Pose();
 
 		// MONITOR (example)
 		monitor.addControlVar("RightSensor");
@@ -486,14 +488,18 @@ public class ControlRST implements IControl {
 	 */
 	private void followPath(double vo) {
 		double y;
+		
 		/**
 		 * set start pose as origin for coordinate system and follow the path
 		 */
-		if (CoSys.getPointOfOrigin()==null)
+		if (CoSys.getPointOfOrigin()==null || pathEnd)
 		{
+			jetzt.setLocation(this.currentPosition.getX(), this.currentPosition.getY());
 			Sound.systemSound(true,0);
-			CoSys.setPointOfOrigin(currentPosition);
+			CoSys.setPointOfOrigin(jetzt);
 			pathEnd = false;
+			errYAlt=0;
+			errYSum=0;
 		} else {
 			// do nothing
 		}
@@ -502,11 +508,11 @@ public class ControlRST implements IControl {
 		phiRotKOS = CoSys.getTransformedHeading(this.currentPosition);
 
 		/*
-		 * assumption: follow x2-axis --> x1=0
+		 * assumption: follow x1-axis --> x2=0
 		 */
 		errYAlt = yRotKOS - errYAlt;
 
-		y = 5 * yRotKOS + 0.00 * errYSum + 5 * lastError;
+		y = 1 * yRotKOS + 0.00 * errYSum + 0 * lastError;
 		drive(vo, -y);
 
 		errYSum = errYSum + yRotKOS;
@@ -912,7 +918,14 @@ public class ControlRST implements IControl {
 	{
 		return CoSys.getPointOfOrigin();
 	}
-
+	public double Xstrich()
+	{
+		return xRotKOS;
+	}
+	public double Ystrich()
+	{
+		return yRotKOS;
+	}
 	/**
 	 * drive X cm with given translatory velocity
 	 * 

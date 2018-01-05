@@ -487,13 +487,21 @@ public class GuidanceAT {
 		LCD.drawString("Phi (grd): "
 				+ (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
 
-		if(control.origin()!=null){
+		/*if(control.origin()!=null){
 		 LCD.drawString("Ox: " + (control.origin().getX()), 0,
 		 3);
 		 LCD.drawString("Oy: " + (control.origin().getY()), 0,
 				 4);
-		}
-
+		 LCD.drawString("xS: " + (control.getXstrich()), 0,
+				 5);
+		 LCD.drawString("yS: " + (control.getYstrich()), 0,
+				 6);
+		}*/
+		LCD.drawString("B:" + Integer.toString((int)perception.getBackSensorDistance()),0,3);
+		LCD.drawString("F:" + Integer.toString((int)perception.getFrontSensorDistance()),0,4);
+		LCD.drawString("FS:" + Integer.toString((int)perception.getFrontSideSensorDistance()),0,5);
+		LCD.drawString("FS:" + Integer.toString((int)perception.getBackSideSensorDistance()),0,6);
+		
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
 		// }else if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE ){
