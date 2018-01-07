@@ -263,7 +263,7 @@ public class NavigationAT implements INavigation {
 	 * Roboter neben Parkluecke, befindet sich der hintere Punkt der Parkluecke in
 	 * Fahrtrichtung gesehen hinter dem Roboter
 	 **/
-	INavigation.ParkingSlot[] parkingSlots = new INavigation.ParkingSlot[10]; //Aufbau: [0]-[3] fuer Spots nach KP 7; [4]-[7] fuer Spots nach KP 0; [8]-[11] fuer Spots nach KP 3
+	INavigation.ParkingSlot[] parkingSlots = new INavigation.ParkingSlot[12]; //Aufbau: [0]-[3] fuer Spots nach KP 7; [4]-[7] fuer Spots nach KP 0; [8]-[11] fuer Spots nach KP 3
 
 	/**
 	 * Initialisierung der Laufvariable ParkingSlot. Hier werden die Werte jedes neu
@@ -281,6 +281,9 @@ public class NavigationAT implements INavigation {
 
 	/** Anzahl der bereits gefundenen Parkluecken **/
 	int anzahlParklueckenAktuelleRunde = 0;
+	int anzahlParkluecken0 = 0; //anzahl der Parkluecken nach Kurvenpunkt 0
+	int anzahlParkluecken3 = 0; //anzal der Parkluecken nach Kurvenpunkt 3
+	int anzahlParkluecken7 = 0; //anzahl der Parkluecken nach Kurvenpunkt 7
 
 	// /**Fuer Ueberpruefung notwendig, ob Parkluecke aktualisiert oder neu
 	// erstellt werden soll**/
@@ -328,18 +331,18 @@ public class NavigationAT implements INavigation {
 	/** folgende Variablen werden fuer detectParkingSlot benoetigt **/
 	private double backBoundarxFrontSensor = 0;
 	private double backBoundaryFrontSensor = 0;
-	private double backBoundarxBackSensor = 0;
-	private double backBoundaryBackSensor = 0;
+//	private double backBoundarxBackSensor = 0;
+//	private double backBoundaryBackSensor = 0;
 	private double frontBoundarxFrontSensor = 0;
 	private double frontBoundaryFrontSensor = 0;
-	private double frontBoundarxBackSensor = 0;
-	private double frontBoundaryBackSensor = 0;
+//	private double frontBoundaryBackSensor = 0;
 	private double frontBoundarxFrontSensorAktuell = 0;
 	private double frontBoundaryFrontSensorAktuell = 0;
 	private boolean backBoundaryDetektiert = false; // wird benoetigt um in
 													// frontBoundary
 													// Erkennungsteil
 													// reinzuspringen
+	
 	// private boolean frontBoundaryDetektiert = false; //wird benoetigt um
 	// backBoundary nicht auf gleichem Streckenabschnitt erneut neu zu setzen
 	private double parklueckenLaenge = 0;
@@ -358,16 +361,9 @@ public class NavigationAT implements INavigation {
 	public NavigationAT(IPerception perception, IMonitor monitor) {
 		Point Point1 = new Point(0, 0);
 		Point Point2 = new Point(0, 0);
-		parkingSlots[0] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[1] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[2] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[3] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[4] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[5] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[6] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[7] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[8] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[9] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
+		for (int i=0; i<12; i++) {
+			parkingSlots[i] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
+		}
 		this.perception = perception;
 		this.monitor = monitor;
 		this.encoderLeft = perception.getNavigationLeftEncoder();
@@ -1155,16 +1151,13 @@ public class NavigationAT implements INavigation {
 				&& aktuellerKurvenpunkt != 5 && aktuellerKurvenpunkt != 6; // hier existieren keine Parkluecken
 		double aktuellx = this.pose.getX() * 100;
 		boolean bedingung2 = !(aktuellerKurvenpunkt == 3 && (aktuellx > 120 || aktuellx < 50)); // an Anfang und Ende von Strecke nach Kurvenpunkt 3 gibt es keine Parkluecken
-		boolean bedingung3 = !inTurn;
+		boolean bedingung3 = !inTurn; //nicht noetig
 		if (aktuellFrontSideSensorDistance > 500 && !backBoundaryDetektiert && bedingung1 && bedingung2 && bedingung3) { // so hohen Wert damit Ecken nicht als Parkluecken erkannt werden
 			backBoundaryDetektiert = true;
 			backBoundarx_ySetzen();
 		}
 		if (aktuellFrontSideSensorDistance > 500 && backBoundaryDetektiert) {
-			frontBoundarx_yAktuellAktualisieren(); // aktualisiert
-													// frontBoundarx&yAktuell
-													// immer waehrend Roboter
-													// entlang Parkluecke faehrt
+			frontBoundarx_yAktuellAktualisieren(); // aktualisiert frontBoundarx&yAktuell immer waehrend Roboter entlang Parkluecke faehrt
 		}
 		if (aktuellFrontSideSensorDistance < 300 && backBoundaryDetektiert) {
 			frontBoundarx_ySetzen();
@@ -1254,96 +1247,110 @@ public class NavigationAT implements INavigation {
 		 **/
 		switch (aktuellerKurvenpunkt) {
 		case 0:
+			anzahlParkluecken7 = 0;
 			parklueckenLaenge = frontBoundaryFrontSensor - backBoundaryFrontSensor;
+			if(anzahlParkluecken0 == 0) { //immer am Anfang jeder Strecke sollen alle Parkingslots auf dieser Strecke geloescht/ mit unten stehenden Daten initialisiert werden
+				Point Point1 = new Point(0, 0);
+				Point Point2 = new Point(0, 0);
+				for (int i = 4; i<8; i++) {
+					parkingSlots[i] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
+				}
+			}
 			if (parklueckenLaenge > MIN_SLOT_DISTANCE) { // Parkluecke soll vorerst mindestens 45cm gross sein																										
 				statusSuitableSetzen();
-			/**	if (parklueckeExistiertBereits()) {
-					ParklueckeAktualisieren(); // Im Falle, dass Parkluecke bereits existiert sollen die neu erfassten Boundarypositionen mit den alten fusioniert werden (Mittelwert)							 
-				} else {**/
-					parkingSlots[anzahlParklueckenAktuelleRunde] = new ParkingSlot(anzahlParklueckenAktuelleRunde, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(),
-							currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality()); // an Position +1 einfuegen, da currentParkingSlot bereits an Position 0 in Array -> falsch, currentParkingSlot sollte eigentlich nur ID von 0 haben, dem Feld aber nicht hinzugefuegt worden sein
-					anzahlParklueckenAktuelleRunde++;
-			/**	} **/
+				parkingSlots[anzahlParkluecken0 + 4] = new ParkingSlot(anzahlParkluecken0 + 4 + 1, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(), currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality()); // an Position +1 einfuegen, da currentParkingSlot bereits an Position 0 in Array -> falsch, currentParkingSlot sollte eigentlich nur ID von 0 haben, dem Feld aber nicht hinzugefuegt worden sein
+				anzahlParklueckenAktuelleRunde++;
+				anzahlParkluecken0++;
 			}
 			else {
 				statusNotSuitableSetzen();
-				if (parklueckeExistiertBereits()) {
-					ParklueckeAktualisieren();
-				} else {
-					parkingSlots[anzahlParklueckenAktuelleRunde] = new ParkingSlot(anzahlParklueckenAktuelleRunde, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(),
-							currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality()); // an Position +1 einfuegen, da currentParkingSlot bereits an Position 0 in Array -> falsch, currentParkingSlot sollte eigentlich nur ID von 0 haben, dem Feld aber nicht hinzugefuegt worden sein
-					anzahlParklueckenAktuelleRunde++;
-				}
+				parkingSlots[anzahlParkluecken0 + 4] = new ParkingSlot(anzahlParkluecken0 + 4 + 1, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(),currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality());
+				anzahlParklueckenAktuelleRunde++;
+				anzahlParkluecken0++;
 			}
 			break;
 		case 1:	case 2:	case 4:	case 5:	case 6:
 			break;
 		case 3:
+			anzahlParkluecken0 = 0;
 			parklueckenLaenge = backBoundarxFrontSensor - frontBoundarxFrontSensor;
+			if(anzahlParkluecken3 == 0) { //immer am Anfang jeder Strecke sollen alle Parkingslots auf dieser Strecke geloescht/ mit unten stehenden Daten initialisiert werden
+				Point Point1 = new Point(0, 0);
+				Point Point2 = new Point(0, 0);
+				for (int i = 8; i<12; i++) {
+					parkingSlots[i] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
+				}
+			}
 			if (parklueckenLaenge > MIN_SLOT_DISTANCE) { // Parkluecke soll vorerst mindestens 45cm gross sein																										
 				statusSuitableSetzen();
-				if (parklueckeExistiertBereits()) {
-					ParklueckeAktualisieren(); // Im Falle, dass Parkluecke bereits existiert sollen die neu erfassten Boundarypositionen mit den alten fusioniert werden (Mittelwert)							 
-				} else {
-					parkingSlots[anzahlParklueckenAktuelleRunde] = new ParkingSlot(anzahlParklueckenAktuelleRunde, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(),
-							currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality()); // an Position +1 einfuegen, da currentParkingSlot bereits an Position 0 in Array -> falsch, currentParkingSlot sollte eigentlich nur ID von 0 haben, dem Feld aber nicht hinzugefuegt worden sein
-					anzahlParklueckenAktuelleRunde++;
-				}
+				parkingSlots[anzahlParkluecken3 + 8] = new ParkingSlot(anzahlParkluecken3 + 8 + 1, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(), currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality());
+				anzahlParklueckenAktuelleRunde++;
+				anzahlParkluecken3++;
 			}
 			else {
 				statusNotSuitableSetzen();
-				if (parklueckeExistiertBereits()) {
-					ParklueckeAktualisieren();
-				} else {
-					parkingSlots[anzahlParklueckenAktuelleRunde] = new ParkingSlot(anzahlParklueckenAktuelleRunde, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(),
-							currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality()); // an Position +1 einfuegen, da currentParkingSlot bereits an Position 0 in Array -> falsch, currentParkingSlot sollte eigentlich nur ID von 0 haben, dem Feld aber nicht hinzugefuegt worden sein
-					anzahlParklueckenAktuelleRunde++;
-				}
+				parkingSlots[anzahlParkluecken3 + 8] = new ParkingSlot(anzahlParkluecken3 + 8 + 1, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(),currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality());
+				anzahlParklueckenAktuelleRunde++;
+				anzahlParkluecken3++;
 			}
 			break;
 		case 7:
+			anzahlParkluecken3 = 0;
 			parklueckenLaenge = frontBoundarxFrontSensor - backBoundarxFrontSensor;
+			if(anzahlParkluecken7 == 0) { //immer am Anfang jeder Strecke sollen alle Parkingslots auf dieser Strecke geloescht/ mit unten stehenden Daten initialisiert werden
+				Point Point1 = new Point(0, 0);
+				Point Point2 = new Point(0, 0);
+				for (int i = 0; i<4; i++) {
+					parkingSlots[i] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
+				}
+			}
 			if (parklueckenLaenge > MIN_SLOT_DISTANCE) { // Parkluecke soll vorerst mindestens 45cm gross sein																										
 				statusSuitableSetzen();
-				if (parklueckeExistiertBereits()) {
-					ParklueckeAktualisieren(); // Im Falle, dass Parkluecke bereits existiert sollen die neu erfassten Boundarypositionen mit den alten fusioniert werden (Mittelwert)							 
-				} else {
-					parkingSlots[anzahlParklueckenAktuelleRunde] = new ParkingSlot(anzahlParklueckenAktuelleRunde, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(),
-							currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality()); // an Position +1 einfuegen, da currentParkingSlot bereits an Position 0 in Array -> falsch, currentParkingSlot sollte eigentlich nur ID von 0 haben, dem Feld aber nicht hinzugefuegt worden sein
-					anzahlParklueckenAktuelleRunde++;
-				}
+				parkingSlots[anzahlParkluecken7] = new ParkingSlot(anzahlParkluecken7 + 1, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(), currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality());
+				anzahlParklueckenAktuelleRunde++;
+				anzahlParkluecken7++;
 			}
 			else {
 				statusNotSuitableSetzen();
-				if (parklueckeExistiertBereits()) {
-					ParklueckeAktualisieren();
-				} else {
-					parkingSlots[anzahlParklueckenAktuelleRunde] = new ParkingSlot(anzahlParklueckenAktuelleRunde, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(),
-							currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality()); // an Position +1 einfuegen, da currentParkingSlot bereits an Position 0 in Array -> falsch, currentParkingSlot sollte eigentlich nur ID von 0 haben, dem Feld aber nicht hinzugefuegt worden sein
-					anzahlParklueckenAktuelleRunde++;
-				}
+				parkingSlots[anzahlParkluecken7] = new ParkingSlot(anzahlParkluecken7 + 1, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(),currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality());
+				anzahlParklueckenAktuelleRunde++;
+				anzahlParkluecken7++;
 			}
 			break;
 		}
 	}
+		
+/** Mehode die schaut ob auf aktueller Geraden die aktuell hinzuzufuegende Parkluecke mit bereits eingetragenen uebereinstimmt**/
+//		private boolean firstParkingslotIsDifferent(int anzahlParklueckenAufAktuellerStrecke, int arrayOffset) {
+//			boolean b = false;
+//			for (int i = 0; i < anzahlParklueckenAufAktuellerStrecke; i++) {
+//				boolean bedingung1 = Math.abs(Point.distance(currentParkingSlot.getBackBoundaryPosition().getX(), currentParkingSlot.getBackBoundaryPosition().getY(), parkingSlots[anzahlParklueckenAufAktuellerStrecke + arrayOffset].getBackBoundaryPosition().getX(), parkingSlots[anzahlParklueckenAufAktuellerStrecke + arrayOffset].getBackBoundaryPosition().getY())) < 10;
+//				boolean bedingung2 = Math.abs(Point.distance(currentParkingSlot.getFrontBoundaryPosition().getX(), currentParkingSlot.getFrontBoundaryPosition().getY(), parkingSlots[anzahlParklueckenAufAktuellerStrecke + arrayOffset].getFrontBoundaryPosition().getX(), parkingSlots[anzahlParklueckenAufAktuellerStrecke + arrayOffset].getFrontBoundaryPosition().getY())) < 10;
+//				if (bedingung1 && bedingung2) {
+//					monitor.writeNavigationComment("Parkluecke bereits in Datenbank vorhanden");
+//					b = true;		
+//				}
+//			}
+//			return b;
+//		}
 /** Methode die nur an Hand des backBoundary Punktes feststellt ob Parkluecke bereits in Datenbank eingetragen wurde**/
-	private boolean parklueckeExistiertBereits() {
-		boolean b = false;
-		for (int i = 0; i < anzahlParklueckenAktuelleRunde; i++) {
-			if (Math.abs(Point.distance(currentParkingSlot.getBackBoundaryPosition().getX(), currentParkingSlot.getBackBoundaryPosition().getY(), parkingSlots[i].getBackBoundaryPosition().getX(), parkingSlots[i].getBackBoundaryPosition().getY())) < 10 ) {
-				monitor.writeNavigationComment("Parkluecke bereits in Datenbank vorhanden");
-				b = true;		
-				zuAktualisierendeParkluecke = i;
-			}
-		}
-		return b;
-	}
-	private void ParklueckeAktualisieren() {
-		Point BackBoundaryPositionAverage = new Point(((float)parkingSlots[zuAktualisierendeParkluecke].getBackBoundaryPosition().getX() + (float)currentParkingSlot.getBackBoundaryPosition().getX())/2, ((float)parkingSlots[zuAktualisierendeParkluecke].getBackBoundaryPosition().getY() + (float)currentParkingSlot.getBackBoundaryPosition().getY())/2);
-		Point FrontBoundaryPositionAverage = new Point(((float)parkingSlots[zuAktualisierendeParkluecke].getFrontBoundaryPosition().getX() + (float)currentParkingSlot.getFrontBoundaryPosition().getX())/2, ((float)parkingSlots[zuAktualisierendeParkluecke].getFrontBoundaryPosition().getY() + (float)currentParkingSlot.getFrontBoundaryPosition().getY())/2);
-		parkingSlots[zuAktualisierendeParkluecke].setBackBoundaryPosition(BackBoundaryPositionAverage);
-		parkingSlots[zuAktualisierendeParkluecke].setFrontBoundaryPosition(FrontBoundaryPositionAverage);
-	}
+//	private boolean parklueckeExistiertBereits() {
+//		boolean b = false;
+//		for (int i = 0; i < anzahlParklueckenAktuelleRunde; i++) {
+//			if (Math.abs(Point.distance(currentParkingSlot.getBackBoundaryPosition().getX(), currentParkingSlot.getBackBoundaryPosition().getY(), parkingSlots[i].getBackBoundaryPosition().getX(), parkingSlots[i].getBackBoundaryPosition().getY())) < 10 ) {
+//				monitor.writeNavigationComment("Parkluecke bereits in Datenbank vorhanden");
+//				b = true;		
+//				zuAktualisierendeParkluecke = i;
+//			}
+//		}
+//		return b;
+//	}
+//	private void ParklueckeAktualisieren() {
+//		Point BackBoundaryPositionAverage = new Point(((float)parkingSlots[zuAktualisierendeParkluecke].getBackBoundaryPosition().getX() + (float)currentParkingSlot.getBackBoundaryPosition().getX())/2, ((float)parkingSlots[zuAktualisierendeParkluecke].getBackBoundaryPosition().getY() + (float)currentParkingSlot.getBackBoundaryPosition().getY())/2);
+//		Point FrontBoundaryPositionAverage = new Point(((float)parkingSlots[zuAktualisierendeParkluecke].getFrontBoundaryPosition().getX() + (float)currentParkingSlot.getFrontBoundaryPosition().getX())/2, ((float)parkingSlots[zuAktualisierendeParkluecke].getFrontBoundaryPosition().getY() + (float)currentParkingSlot.getFrontBoundaryPosition().getY())/2);
+//		parkingSlots[zuAktualisierendeParkluecke].setBackBoundaryPosition(BackBoundaryPositionAverage);
+//		parkingSlots[zuAktualisierendeParkluecke].setFrontBoundaryPosition(FrontBoundaryPositionAverage);
+//	}
 
 	/** Methoden nur fuer Ausgabe **/
 	public boolean backBoundaryDetektiert() {
