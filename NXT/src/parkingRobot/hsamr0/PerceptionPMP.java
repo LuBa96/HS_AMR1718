@@ -65,6 +65,10 @@ public class PerceptionPMP implements IPerception {
 	byte[] sendBuffer = {23};
 	int readBytes = 0;
 	
+	static double timePeriod = 100;
+	static double currSysTime;
+	static double lastSysTime;
+	
 	PerceptionThread perThread = new PerceptionThread(this);
 
 	/**
@@ -225,6 +229,12 @@ public class PerceptionPMP implements IPerception {
 	
 	
 	public synchronized void updateSensors(){
+		
+		currSysTime = System.currentTimeMillis();
+		timePeriod = currSysTime - lastSysTime;
+		lastSysTime = currSysTime;
+		RConsole.println("Zykluszeit Perception: " + Double.toString(timePeriod));
+		
 		 updateLeftEncoderAngle();
 		 updateRightEncoderAngle();
 		 updateLeftLightSensor();

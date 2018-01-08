@@ -11,6 +11,7 @@ import lejos.nxt.LCD;
 import lejos.nxt.NXTMotor;
 import parkingRobot.INavigation;
 import lejos.nxt.Sound;
+import lejos.nxt.comm.RConsole;
 
 /**
  * Main class for control module
@@ -155,6 +156,10 @@ public class ControlRST implements IControl {
 	boolean demoFin = false;
 	int angleDeg = 0;
 	int startAngleDeg = 0;
+	
+	static double timePeriod = 100;
+	static double currSysTime;
+	static double lastSysTime;
 
 	/**
 	 * provides the reference transfer so that the class knows its corresponding
@@ -308,6 +313,12 @@ public class ControlRST implements IControl {
 	 * @see parkingRobot.IControl#exec_CTRL_ALGO()
 	 */
 	public void exec_CTRL_ALGO() {
+		
+		currSysTime = System.currentTimeMillis();
+		timePeriod = currSysTime - lastSysTime;
+		lastSysTime = currSysTime;
+		RConsole.println("Zykluszeit Control: " + Double.toString(timePeriod));
+		
 		switch (currentCTRLMODE) {
 		case DEMO1_CTRL:
 			update_SETPOSE_Parameter();

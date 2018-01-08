@@ -4,6 +4,7 @@ package parkingRobot.hsamr0;//test
 import lejos.geom.Line;
 import lejos.geom.Point;
 import lejos.nxt.LCD;
+import lejos.nxt.comm.RConsole;
 import lejos.robotics.navigation.Pose;
 
 import parkingRobot.INavigation;
@@ -347,6 +348,10 @@ public class NavigationAT implements INavigation {
 	// private boolean frontBoundaryDetektiert = false; //wird benoetigt um
 	// backBoundary nicht auf gleichem Streckenabschnitt erneut neu zu setzen
 	private double parklueckenLaenge = 0;
+	
+	static double timePeriod = 100;
+	static double currSysTime;
+	static double lastSysTime;
 
 	/**
 	 * provides the reference transfer so that the class knows its corresponding
@@ -501,6 +506,12 @@ public class NavigationAT implements INavigation {
 	 * @see parkingRobot.INavigation#updateNavigation()
 	 */
 	public synchronized void updateNavigation() {
+		
+		currSysTime = System.currentTimeMillis();
+		timePeriod = currSysTime - lastSysTime;
+		lastSysTime = currSysTime;
+		RConsole.println("Zykluszeit Navigation: " + Double.toString(timePeriod));
+		
 		this.updateSensors();
 		this.calculateLocation();
 		// perception.getBackSensorDistance();

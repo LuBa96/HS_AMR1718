@@ -184,6 +184,10 @@ public class GuidanceAT {
 	static Line[] map = { line0, line1, line2, line3, line4, line5, line6, line7 };
 
 	/**
+	 * The Pose the robot is in at the start of each of his guidance loops
+	 */
+	static Pose currPose;
+	/**
 	 * Point on the line-map the robot has to go in order to park, polynomial starts
 	 * from around here.
 	 */
@@ -221,21 +225,26 @@ public class GuidanceAT {
 	 * This tells us how far away from the mapGoal the robot will stop and start
 	 * following a path into a parking slot. Needs to be tested.
 	 */
-	static double mapGoalDist = 15;
+	static double mapGoalDist = 45;
 	static double slotGoalDist = 5;
 
 	/**
 	 * Velocity with which the robot travels along the path into the parking slot.
 	 */
-	static double vPark = 10;
+	static double vPark = 2;
 	/**
 	 * This array holds the coefficients of the path polynomial
 	 */
 	static double[] coEffs;
+
+	static double phiDot;
 	/**
 	 * The time in between two cycles of the thread.
 	 */
 	static double timePeriod = 100;
+
+	static double currSysTime;
+	static double lastSysTime;
 
 	static CoordinateSystem coSys = null;
 
@@ -270,15 +279,24 @@ public class GuidanceAT {
 		slotGoal = new Point(0, 0);
 		slotDir = new Point(0, 0);
 		goalPose = new Pose(0, 0, 0);
+		currPose = new Pose(0, 0, 0);
 
 		// öffnen per cmd-Befehl: nxjconsole
 		RConsole.openUSB(15000);
-		RConsole.println("HAAAAALLOOOOO");
+		RConsole.println("Konsole initialisiert");
 
 		monitor.startLogging();
 
 		while (true) {
+			currSysTime = System.currentTimeMillis();
+			timePeriod = currSysTime - lastSysTime;
+			lastSysTime = currSysTime;
+			RConsole.println("Zykluszeit Guidance: " + Double.toString(timePeriod));
+
 			showData(navigation, perception, control);
+
+			currPose.setLocation(navigation.getPose().getLocation().multiply(100));
+			currPose.setHeading(navigation.getPose().getHeading());
 
 			switch (currentStatus) {
 			case SCOUT:
@@ -339,7 +357,7 @@ public class GuidanceAT {
 				// TODO implement parking
 				// into action
 				if (currentStatus != lastStatus) {
-					RConsole.println("HAAAAALLOOOOO2");
+					RConsole.println("PARK_THIS startet");
 					// calculate our goal on the line-map and in the ParkingSlot
 					// selectedParkingSlotNo = hmi.getSelectedParkingSlot();
 					// selectedParkingSlot = navigation.getParkingSlots()[selectedParkingSlotNo];
@@ -348,19 +366,23 @@ public class GuidanceAT {
 					// // TODO:
 					// calculate goalPose from angle of slotDir here, before manipulating the
 					// slotDir
-					RConsole.println("HAAAAALLOOOOO3");
+					RConsole.println("PARK_THIS startet immernoch");
 					slotDir.setLocation(30, 0);
-					RConsole.println("HAAAAALLOOOOO4");
+					RConsole.println("slotDir X: " + Double.toString(slotDir.getX()));
+					RConsole.println("slotDir Y: " + Double.toString(slotDir.getY()));
 					goalPose.setHeading(slotDir.angle());
-					RConsole.println("HAAAAALLOOOOO5");
+					RConsole.println("goalPose heading: " + Double.toString(goalPose.getHeading()));
 					// slotDir.multiplyBy((float) 0.5);
 					// slotGoal = selectedParkingSlot.getBackBoundaryPosition().add(slotDir);
-					slotGoal.setLocation(75, -30);
-					RConsole.println("HAAAAALLOOOOO6");
+					slotGoal.setLocation(100, -30);
+					RConsole.println("slotGoal X: " + Double.toString(slotGoal.getX()));
+					RConsole.println("slotGoal Y: " + Double.toString(slotGoal.getY()));
 					mapGoal = getClosestPointToGoal(slotGoal);
-					RConsole.println("HAAAAALLOOOOO7");
+					RConsole.println("mapGoal X: " + Double.toString(mapGoal.getX()));
+					RConsole.println("mapGoal Y: " + Double.toString(mapGoal.getY()));
 					goalPose.setLocation(slotGoal);
-					RConsole.println("HAAAAALLOOOOO8");
+					RConsole.println("goalPose X: " + Double.toString(goalPose.getX()));
+					RConsole.println("goalPose Y: " + Double.toString(goalPose.getY()));
 					// currParkStatus = CurrentParkStatus.PARK_LINE_FOLLOW;
 				}
 
@@ -657,10 +679,10 @@ public class GuidanceAT {
 
 			// while action
 			followLineSubStateMachine(control, navigation);
-			RConsole.println(Double.toString(navigation.getPose().getLocation().multiply(100).distance(mapGoal)));
+			RConsole.println(Double.toString(currPose.getLocation().distance(mapGoal)));
 			// state transition
 			lastParkStatus = currParkStatus;
-			if (navigation.getPose().getLocation().multiply(100).distance(mapGoal) <= mapGoalDist) {
+			if (currPose.getLocation().distance(mapGoal) <= mapGoalDist) {
 				currParkStatus = CurrentParkStatus.PARK_PATH_FOLLOW;
 			}
 
@@ -675,39 +697,42 @@ public class GuidanceAT {
 			break;
 		case PARK_PATH_FOLLOW:
 			// into action
-			RConsole.println("path1");
 			if (lastParkStatus != currParkStatus) {
-				RConsole.println("path2");
+				RConsole.println("PARK_PATH_FOLLOW gestartet!");
 				coSys.setPointOfOrigin(goalPose);
-				RConsole.println("x goal:" + Double.toString(goalPose.getX()));
-				RConsole.println("y goal:" + Double.toString(goalPose.getY()));
-				RConsole.println("phi goal:" + Double.toString(goalPose.getHeading()));
-				RConsole.println("path3");
-				coEffs = setPolynomial(coSys.getTransformedPoint(navigation.getPose().getLocation().multiply(100)));
-				RConsole.println("x curr trans:" + Double
-						.toString(coSys.getTransformedPoint(navigation.getPose().getLocation().multiply(100)).getX()));
-				RConsole.println("y curr trans:" + Double
-						.toString(coSys.getTransformedPoint(navigation.getPose().getLocation().multiply(100)).getY()));
+				RConsole.println("X goal:" + Double.toString(goalPose.getX()));
+				RConsole.println("Y goal:" + Double.toString(goalPose.getY()));
+				RConsole.println("Phi goal:" + Double.toString(goalPose.getHeading()));
+				coEffs = setPolynomial(coSys.getTransformedPoint(currPose.getLocation()));
 				RConsole.println(
-						"phi curr trans:" + Double.toString(coSys.getTransformedHeading(navigation.getPose())));
-				RConsole.println("a:" + Double.toString(coEffs[0]));
-				RConsole.println("b:" + Double.toString(coEffs[1]));
+						"X curr trans: " + Double.toString(coSys.getTransformedPoint(currPose.getLocation()).getX()));
+				RConsole.println(
+						"Y curr trans: " + Double.toString(coSys.getTransformedPoint(currPose.getLocation()).getY()));
+				RConsole.println("Phi curr trans:" + Double.toString(coSys.getTransformedHeading(currPose)));
+				RConsole.println("a: " + Double.toString(coEffs[0]));
+				RConsole.println("b: " + Double.toString(coEffs[1]));
 				offTrack = true;
-				RConsole.println("path5");
 				navigation.setOffTrack(true);
+				control.setAngularVelocity(0);
+				control.setVelocity(0);
+				control.setCtrlMode(ControlMode.VW_CTRL);
+				RConsole.println("PARK_PATH_FOLLOW into action abgeschlossen!");
 			}
 
 			// while action
-			RConsole.println("path6");
-			RConsole.println(Double.toString(coSys.getTransformedPose(navigation.getPose()).getX()));
-			RConsole.println(Double.toString(coSys.getTransformedPose(navigation.getPose()).getY()));
-			control.setAngularVelocity(computePhiDot(coSys.getTransformedPose(navigation.getPose()), coEffs));
-			RConsole.println(Double.toString(computePhiDot(coSys.getTransformedPose(navigation.getPose()), coEffs)));
+			RConsole.println("Folge Pfad");
+			RConsole.println("X trans curr: " + Double.toString(coSys.getTransformedPose(currPose).getX()));
+			RConsole.println("Y trans curr: " + Double.toString(coSys.getTransformedPose(currPose).getY()));
+			RConsole.println("Phi trans Curr: "
+					+ Double.toString(coSys.getTransformedPose(currPose).getHeading() * (180 / Math.PI)));
+			phiDot = computePhiDot(coSys.getTransformedPose(currPose), coEffs);
+			control.setAngularVelocity(phiDot);
+			RConsole.println("Phi dot: " + Double.toString(phiDot));
 			control.setVelocity(vPark);
 
 			// state transition
 			lastParkStatus = currParkStatus;
-			if (navigation.getPose().getLocation().multiply(100).distance(slotGoal) <= slotGoalDist) {
+			if (currPose.getLocation().distance(slotGoal) <= slotGoalDist) {
 				currParkStatus = CurrentParkStatus.PARK_CORRECTING;
 			}
 			// leaving action
@@ -738,7 +763,7 @@ public class GuidanceAT {
 			// TODO maybe update to a distance from current goal, so that pausing while
 			// following a path is possible
 			lastParkStatus = currParkStatus;
-			if (navigation.getPose().getLocation().multiply(100).distance(mapGoal) >= mapGoalDist) {
+			if (currPose.getLocation().distance(mapGoal) >= mapGoalDist) {
 				currParkStatus = CurrentParkStatus.PARK_LINE_FOLLOW;
 			} else {
 				currParkStatus = CurrentParkStatus.PARK_PATH_FOLLOW;
@@ -793,8 +818,21 @@ public class GuidanceAT {
 	private static double computePhiDot(Pose currPose, double[] coEffs) {
 
 		double vx = vPark * Math.cos(currPose.getHeading());
-		double xNext = currPose.getX() * 100 + vx * timePeriod * 0.001;
-		return (Math.atan(3 * coEffs[0] * xNext * xNext + 2 * coEffs[1] * xNext) - currPose.getHeading())
-				/ (timePeriod * 0.001);
+		RConsole.println("V in x-Richtung: " + Double.toString(vx));
+		double xNext = currPose.getX() + vx * timePeriod * 0.001;
+		RConsole.println("Nächstes x: " + Double.toString(xNext));
+		double nextPhiRad = Math.atan(3 * coEffs[0] * xNext * xNext + 2 * coEffs[1] * xNext);
+		double nextPhiDeg = nextPhiRad * (180/Math.PI);
+		RConsole.println("Curr Phi: "+ Double.toString(currPose.getHeading()*(180/Math.PI)));
+		RConsole.println("Next Phi: "+ Double.toString(nextPhiDeg));
+		double deltaPhiRad = nextPhiRad - currPose.getHeading();
+		double deltaPhiDeg = deltaPhiRad * (180 / Math.PI);
+		RConsole.println("Delta Phi: "+ Double.toString(deltaPhiDeg));
+		while (deltaPhiDeg > 180)
+			phiDot -= 360;
+		while (deltaPhiDeg < -180)
+			phiDot += 360;
+		phiDot = deltaPhiDeg / (timePeriod * 0.001);
+		return phiDot;
 	}
 }

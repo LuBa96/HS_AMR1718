@@ -12,14 +12,22 @@ public class CoordinateSystem {
 
 	/**
 	 * Compute the Pose of an input in respect to the point of origin of the
-	 * coordinate system
+	 * coordinate system.
+	 * See google "rotating points around an arbitrary center"
 	 * 
 	 * @param inputPose
 	 * @return
 	 */
 	public Pose getTransformedPose(Pose inputPose) {
-		return new Pose((float) (inputPose.getLocation().getX() - pointOfOrigin.getLocation().getX()),
-				(float) (inputPose.getLocation().getY() - pointOfOrigin.getLocation().getY()),
+		return new Pose(
+				(float) ((inputPose.getLocation().getX() - pointOfOrigin.getLocation().getX())
+						* Math.cos(pointOfOrigin.getHeading())
+						- (inputPose.getLocation().getY() - pointOfOrigin.getLocation().getY())
+								* Math.sin(pointOfOrigin.getHeading())),
+				(float) ((inputPose.getLocation().getX() - pointOfOrigin.getLocation().getX())
+						* Math.sin(pointOfOrigin.getHeading())
+						+ (inputPose.getLocation().getY() - pointOfOrigin.getLocation().getY())
+								* Math.cos(pointOfOrigin.getHeading())),
 				inputPose.getHeading() - pointOfOrigin.getHeading());
 	}
 
