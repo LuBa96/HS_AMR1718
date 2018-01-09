@@ -52,6 +52,8 @@ public class PerceptionPMP implements IPerception {
 	double BackSensorDistance		=	0;
 	double BackSideSensorDistance	=	0;
 	
+	double compassData = 0;
+	
 	EncoderSensor controlRightEncoder    = new EncoderSensor();
 	EncoderSensor controlLeftEncoder     = new EncoderSensor();
 	EncoderSensor navigationRightEncoder = new EncoderSensor();
@@ -61,13 +63,9 @@ public class PerceptionPMP implements IPerception {
 	OdoSensor navigationOdo = new OdoSensor();
 	
 	
-	byte[] readBuffer = new byte[14];
+	byte[] readBuffer = new byte[14];		//evt. auch zu 16 aendern
 	byte[] sendBuffer = {23};
 	int readBytes = 0;
-	
-	static double timePeriod = 100;
-	static double currSysTime;
-	static double lastSysTime;
 	
 	PerceptionThread perThread = new PerceptionThread(this);
 
@@ -225,16 +223,12 @@ public class PerceptionPMP implements IPerception {
 	public synchronized double getBackSideSensorDistance(){
 		return this.BackSideSensorDistance;
 	}
-	
+	public synchronized double getCompassData() {
+		return this.compassData;
+	}
 	
 	
 	public synchronized void updateSensors(){
-		
-		currSysTime = System.currentTimeMillis();
-		timePeriod = currSysTime - lastSysTime;
-		lastSysTime = currSysTime;
-		RConsole.println("Zykluszeit Perception: " + Double.toString(timePeriod));
-		
 		 updateLeftEncoderAngle();
 		 updateRightEncoderAngle();
 		 updateLeftLightSensor();
@@ -251,9 +245,9 @@ public class PerceptionPMP implements IPerception {
 		RS485.hsWrite(sendBuffer,0,sendBuffer.length);
 		int readBytesSumm = 0;
 		int timeoutc =0;
-		byte[] sensorBytes = new byte[14];
+		byte[] sensorBytes = new byte[14];						//change to 16!
 		//wait for an answer
-		while (readBytesSumm < 14 && timeoutc<20) {
+		while (readBytesSumm < 14 && timeoutc<20) {				//change to 16!
 
 			readBytes = RS485.hsRead(readBuffer, 0, readBuffer.length);
 			if(readBytes>0)	//arduino sends Data
@@ -276,7 +270,8 @@ public class PerceptionPMP implements IPerception {
 		this.FrontSensorDistance		=	(double)(((sensorBytes[7] & 0xff)<<8) | (sensorBytes[6] & 0xff));
 		this.FrontSideSensorDistance	=	(double)(((sensorBytes[9] & 0xff)<<8) | (sensorBytes[8] & 0xff));
 		this.BackSensorDistance		=		(double)(((sensorBytes[11] & 0xff)<<8) | (sensorBytes[10] & 0xff));
-		this.BackSideSensorDistance	=		(double)(((sensorBytes[13] & 0xff)<<8) | (sensorBytes[12] & 0xff));		
+		this.BackSideSensorDistance	=		(double)(((sensorBytes[13] & 0xff)<<8) | (sensorBytes[12] & 0xff));
+//		this.compassData	=		(double)(((sensorBytes[14] & 0xff)<<8) | (sensorBytes[15] & 0xff));
 
 		this.controlOdo.addShift(this.UOdmometry,this.VOdometry,this.OdometryT);
 		this.navigationOdo.addShift(this.UOdmometry,this.VOdometry,this.OdometryT);

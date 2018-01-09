@@ -203,6 +203,10 @@ public class GuidanceAT {
 	 */
 	static Point slotDir;
 	/**
+	 * The pose the robot has to end up by parking.
+	 */
+	static Pose goalPose;
+	/**
 	 * Number of the current selected ParkingSlot
 	 */
 	static int selectedParkingSlotNo = 0;
@@ -210,10 +214,6 @@ public class GuidanceAT {
 	 * The currently selected ParkingSlot
 	 */
 	static ParkingSlot selectedParkingSlot;
-	/**
-	 * The pose the robot has to end up by parking.
-	 */
-	static Pose goalPose;
 	/**
 	 * This tells us whether the robot should be off the line-map. This is important
 	 * for determining which SCOUT sub-state has to be entered. It only gets set to
@@ -225,18 +225,28 @@ public class GuidanceAT {
 	 * This tells us how far away from the mapGoal the robot will stop and start
 	 * following a path into a parking slot. Needs to be tested.
 	 */
-	static double mapGoalDist = 45;
-	static double slotGoalDist = 5;
+	static final double mapGoalDist = 45;
+	static final double slotGoalDist = 1;
+	static final double slotDegTol = 5;
 
 	/**
-	 * Velocity with which the robot travels along the path into the parking slot.
+	 * Greatest velocity with which the robot travels along the path into the
+	 * parking slot.
 	 */
-	static double vPark = 2;
+	static final double vParkMax = 8;
+	static double vPark;
+
+	static final double vLineMax = 10;
+	static double vLine;
+	static double distToMidMax;
+	static double distToMid;
+	static Point vectorA;
 	/**
 	 * This array holds the coefficients of the path polynomial
 	 */
 	static double[] coEffs;
 
+	static double deltaPhiDeg;
 	static double phiDot;
 	/**
 	 * The time in between two cycles of the thread.
@@ -278,6 +288,7 @@ public class GuidanceAT {
 		mapGoal = new Point(0, 0);
 		slotGoal = new Point(0, 0);
 		slotDir = new Point(0, 0);
+		vectorA = new Point(0,0);
 		goalPose = new Pose(0, 0, 0);
 		currPose = new Pose(0, 0, 0);
 
@@ -563,6 +574,15 @@ public class GuidanceAT {
 				control.setCtrlMode(ControlMode.LINE_CTRL);
 			}
 			// while action
+			// TODO: control velocity
+			//navigation.getLineNumber()
+			distToMid = 0;
+			vectorA = map[navigation.getLineNumber()].getP2().subtract(map[navigation.getLineNumber()].getP1());
+			vectorA.multiply((float) 0.5);
+			distToMidMax = vectorA.length();
+			distToMid = (map[navigation.getLineNumber()].getP1().addWith(vectorA)).distance(currPose.getLocation());
+			vLine = vLineMax*(1-0.5*(distToMid/distToMidMax));
+			control.setVelocity(vLine);
 
 			// state transitions
 			lastLineStatus = currLineStatus;
@@ -700,17 +720,7 @@ public class GuidanceAT {
 			if (lastParkStatus != currParkStatus) {
 				RConsole.println("PARK_PATH_FOLLOW gestartet!");
 				coSys.setPointOfOrigin(goalPose);
-				RConsole.println("X goal:" + Double.toString(goalPose.getX()));
-				RConsole.println("Y goal:" + Double.toString(goalPose.getY()));
-				RConsole.println("Phi goal:" + Double.toString(goalPose.getHeading()));
 				coEffs = setPolynomial(coSys.getTransformedPoint(currPose.getLocation()));
-				RConsole.println(
-						"X curr trans: " + Double.toString(coSys.getTransformedPoint(currPose.getLocation()).getX()));
-				RConsole.println(
-						"Y curr trans: " + Double.toString(coSys.getTransformedPoint(currPose.getLocation()).getY()));
-				RConsole.println("Phi curr trans:" + Double.toString(coSys.getTransformedHeading(currPose)));
-				RConsole.println("a: " + Double.toString(coEffs[0]));
-				RConsole.println("b: " + Double.toString(coEffs[1]));
 				offTrack = true;
 				navigation.setOffTrack(true);
 				control.setAngularVelocity(0);
@@ -721,13 +731,11 @@ public class GuidanceAT {
 
 			// while action
 			RConsole.println("Folge Pfad");
-			RConsole.println("X trans curr: " + Double.toString(coSys.getTransformedPose(currPose).getX()));
-			RConsole.println("Y trans curr: " + Double.toString(coSys.getTransformedPose(currPose).getY()));
-			RConsole.println("Phi trans Curr: "
-					+ Double.toString(coSys.getTransformedPose(currPose).getHeading() * (180 / Math.PI)));
-			phiDot = computePhiDot(coSys.getTransformedPose(currPose), coEffs);
+			computePhiDot(coSys.getTransformedPose(currPose), coEffs);
+			// velocity control, the straighter the path the faster the robot
+			vPark = vParkMax * (1 - deltaPhiDeg / 180);
+			phiDot = phiDot * (vPark / vParkMax);
 			control.setAngularVelocity(phiDot);
-			RConsole.println("Phi dot: " + Double.toString(phiDot));
 			control.setVelocity(vPark);
 
 			// state transition
@@ -743,11 +751,19 @@ public class GuidanceAT {
 			break;
 		case PARK_CORRECTING:
 			// into action
+			control.setAngularVelocity(0);
+			control.setVelocity(0);
+			control.setCtrlMode(ControlMode.VW_CTRL);
 
 			// while action
+			control.setAngularVelocity(
+					(currPose.getHeading() - goalPose.getHeading()) * (180 / Math.PI) / (2 * timePeriod * 0.001));
 
 			// state transition
-
+			lastParkStatus = currParkStatus;
+			if ((currPose.getHeading() - goalPose.getHeading()) * (180 / Math.PI) <= slotDegTol) {
+				currParkStatus = CurrentParkStatus.PARK_INACTIVE;
+			}
 			// leaving action
 			if (currParkStatus != lastParkStatus) {
 				// stop the robot(may not be needed)
@@ -815,24 +831,16 @@ public class GuidanceAT {
 		return A;
 	}
 
-	private static double computePhiDot(Pose currPose, double[] coEffs) {
+	private static void computePhiDot(Pose currPose, double[] coEffs) {
 
-		double vx = vPark * Math.cos(currPose.getHeading());
-		RConsole.println("V in x-Richtung: " + Double.toString(vx));
+		double vx = vParkMax * Math.cos(currPose.getHeading());
 		double xNext = currPose.getX() + vx * timePeriod * 0.001;
-		RConsole.println("Nächstes x: " + Double.toString(xNext));
 		double nextPhiRad = Math.atan(3 * coEffs[0] * xNext * xNext + 2 * coEffs[1] * xNext);
-		double nextPhiDeg = nextPhiRad * (180/Math.PI);
-		RConsole.println("Curr Phi: "+ Double.toString(currPose.getHeading()*(180/Math.PI)));
-		RConsole.println("Next Phi: "+ Double.toString(nextPhiDeg));
-		double deltaPhiRad = nextPhiRad - currPose.getHeading();
-		double deltaPhiDeg = deltaPhiRad * (180 / Math.PI);
-		RConsole.println("Delta Phi: "+ Double.toString(deltaPhiDeg));
+		deltaPhiDeg = (nextPhiRad - currPose.getHeading()) * (180 / Math.PI);
 		while (deltaPhiDeg > 180)
 			phiDot -= 360;
 		while (deltaPhiDeg < -180)
 			phiDot += 360;
 		phiDot = deltaPhiDeg / (timePeriod * 0.001);
-		return phiDot;
 	}
 }
