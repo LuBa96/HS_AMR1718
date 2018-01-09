@@ -10,6 +10,10 @@ public class CoordinateSystem {
 		pointOfOrigin = poo;
 	}
 
+	public Pose getPointOfOrigin() {
+		return pointOfOrigin;
+	}
+	
 	/**
 	 * Compute the Pose of an input in respect to the point of origin of the
 	 * coordinate system.
