@@ -1,3 +1,2 @@
-INDEX VERSION 1.130+/Users/lukas/Desktop/LEGO/.metadata/.plugins/org.eclipse.jdt.core
-1280358629.index
-3178594831.index
+INDEX VERSION 1.130+C:\Users\Lukas\git\HS_AMR1718\.metadata\.plugins\org.eclipse.jdt.core
+3305082237.index

@@ -20,6 +20,7 @@ public class HmiSenderThread extends Thread{
 
 	HmiPLT hmi;
 	IMonitor monitor;
+	ParkingSlot[] oldparkingslots = new ParkingSlot[12];
 
 	/**
 	 * The HmiThread constructor gets the hmi object
@@ -66,21 +67,21 @@ public class HmiSenderThread extends Thread{
 			RConsole.println("Status data geflusht.");
 			
 			// getParkingSlots() returns null until it is implemented
-			if (hmi.navigation.anzahlParklueckenAktuelleRunde() == 0)
-			{
-				// do nothing
-			}
-			else
-			{
+			if (hmi.navigation.getParkingSlots() == null) {
+				
+			}else {
 				// write new parking slot - these are aperiodic information, thus should be sent as early as possible, 
 				// but less important than status updates.
-				int newSlots = hmi.navigation.anzahlParklueckenAktuelleRunde() - hmi.noOfParkingSlots;
+				
 
-				hmi.noOfParkingSlots += newSlots; // Record new slots
-
-				while (newSlots > 0) {
-
-					ParkingSlot newSlot = hmi.navigation.getParkingSlots()[hmi.noOfParkingSlots - newSlots];
+			for (int i = 0; i<12; i++) {
+				
+				ParkingSlot newSlot = hmi.navigation.getParkingSlots()[i];
+				if(newSlot.equals(oldparkingslots[i])) {
+					
+				}
+				else {
+					oldparkingslots[i] = newSlot;
 					hmi.dataOut.writeInt(Command.OUT_PARKSLOT.ordinal());
 					hmi.dataOut.writeInt(newSlot.getStatus().ordinal());
 					hmi.dataOut.writeInt(newSlot.getID());
@@ -89,10 +90,9 @@ public class HmiSenderThread extends Thread{
 					hmi.dataOut.writeFloat(newSlot.getBackBoundaryPosition().x);
 					hmi.dataOut.writeFloat(newSlot.getBackBoundaryPosition().y);
 					hmi.dataOut.flush();
-					newSlots--;
 				}
-
 			}
+		}
 
 			// write position - this has least priority, no damage is caused when position is not delivered during one cycle.
 			Pose pose = hmi.navigation.getPose();
