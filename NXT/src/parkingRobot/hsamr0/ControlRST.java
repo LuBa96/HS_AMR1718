@@ -505,7 +505,6 @@ public class ControlRST implements IControl {
 		phiRotKOS = CoSys.getTransformedHeading(this.currentPosition);
 		xRotKOS = CoSys.getTransformedPose(this.currentPosition).getX();
 		yRotKOS = CoSys.getTransformedPose(this.currentPosition).getY();
-			
 
 		/*
 		 * assumption: follow x1-axis --> x2=0
@@ -560,13 +559,15 @@ public class ControlRST implements IControl {
 
 	}
 
+	/**
+ * guidance sets velocity for line control including acceleration
+ */
 	private void exec_LINECTRL_ALGO() {
+		if (this.velocity==0)
+			setVelocity(20);
 		/**
 		 * if robot gets close to a curve--> decelerate TODO smoother!!!
 		 */
-
-		maxPower = 60;
-
 		leftMotor.forward();
 		rightMotor.forward();
 
@@ -629,32 +630,23 @@ public class ControlRST implements IControl {
 		 * correction to the right side
 		 */
 		if (y < 0) {
-			if (y < -(maxPower / 2))
-				y = -(maxPower / 2);
-			regWheelSpeed(((int) (maxPower / 2) - (int) y) / 2,
-					((int) (maxPower / 2) + (int) y) / 2);
-			// leftMotor.setPower((int) (maxPower / 2) - (int) y);
-			// rightMotor.setPower((int) (maxPower / 2) + (int) y);
+			if (y < -this.velocity)
+				y = -this.velocity;
+			regWheelSpeed((this.velocity - y), (this.velocity + y));
 		}
 		/**
 		 * correction to the left side
 		 */
 		else if (y > 0) {
-			if (y > maxPower / 2)
-				y = maxPower / 2;
-			regWheelSpeed(((int) (maxPower / 2) - (int) y) / 2,
-					((int) (maxPower / 2) + (int) y) / 2);
-			// rightMotor.setPower((int) (maxPower / 2) + (int) y);
-			// leftMotor.setPower((int) (maxPower / 2) - (int) y);
+			if (y > this.velocity)
+				y = this.velocity;
+			regWheelSpeed((this.velocity - y), (this.velocity + y));
 		}
 		/**
 		 * Drive straight
 		 */
 		else if (y == 0) {
-			regWheelSpeed(((int) (maxPower / 2)) / 2,
-					((int) (maxPower / 2)) / 2);
-			// leftMotor.setPower((int) maxPower / 2);
-			// .setPower((int) maxPower / 2);
+			regWheelSpeed((this.velocity), (this.velocity));
 		}
 
 		/**
@@ -1003,7 +995,7 @@ public class ControlRST implements IControl {
 		 * 120 cm with 10 cm/s straight driving
 		 */
 		if (demo1) {
-			if (!driveXCm(10,120)) {
+			if (!driveXCm(10, 120)) {
 				// drive
 			} else {
 				Sound.systemSound(true, 0);
