@@ -970,7 +970,7 @@ public class ControlRST implements IControl {
 	 */
 	private void Control_Demo_1() {
 		if (demo5) {
-			counter = 50;
+			//counter = 50;
 			demo1 = true;
 			demo5 = false;
 			demoFin = true;
@@ -1107,7 +1107,7 @@ public class ControlRST implements IControl {
 				demo5 = true;
 				pathEnd = true;
 				demo4 = false;
-				counter = 8;
+				//counter = 8;
 				esumL = 0;
 				esumR = 0;
 				updateStartPose();
