@@ -171,6 +171,9 @@ public interface IPerception {
 	 * method for updating all the Sensorvalues by default automatically called
 	 * by <code>perceptionThread</code>
 	 */
+	
+	public double getCompassData();
+	
 	public void updateSensors();
 
 	// Subclasses

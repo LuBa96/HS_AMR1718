@@ -66,7 +66,7 @@ public class NavigationAT implements INavigation {
 	IPerception.AngleDifferenceMeasurement angleMeasurementLeft = null; // Unterschied
 																		// zu
 																		// encoderSensor??
-																		// zusï¿½tzlich
+																		// zustzlich
 																		// noch
 																		// Zeitdifferenz?
 	/**
@@ -109,18 +109,20 @@ public class NavigationAT implements INavigation {
 	 * in mm (sensor mounted at the back)
 	 */
 	double backSideSensorDistance = 0;
+	
+	double compassData = 0;
 
 	/**
 	 * robot specific constant: radius of left wheel
 	 */
-	static final double LEFT_WHEEL_RADIUS = 0.031; // 0.031 only rough guess, to
+	static final double LEFT_WHEEL_RADIUS = 0.027; // 0.031 only rough guess, to
 													// be measured exactly and
 													// maybe refined by
 													// experiments
 	/**
 	 * robot specific constant: radius of right wheel
 	 */
-	static final double RIGHT_WHEEL_RADIUS = 0.031; // only rough guess, to be
+	static final double RIGHT_WHEEL_RADIUS = 0.027; // only rough guess, to be
 													// measured exactly and
 													// maybe refined by
 													// experiments
@@ -175,6 +177,8 @@ public class NavigationAT implements INavigation {
 																// (TODO)
 
 	static final double MIN_SLOT_DISTANCE = 45;
+	
+	static final float MIDPOINT_OFFSET = 10;
 
 	/**
 	 * map array of line references, whose corresponding lines form a closed chain
@@ -194,6 +198,8 @@ public class NavigationAT implements INavigation {
 	 * (false)
 	 */
 	boolean parkingSlotDetectionIsOn = true;
+	
+	int lineNumber; //fuer Gregor
 
 	/**
 	 * thread started by the 'Navigation' class for background calculating
@@ -221,7 +227,7 @@ public class NavigationAT implements INavigation {
 	/**
 	 * Falls sich der Roboter in einer Kurve befindet, entspricht der aktuelle
 	 * Kurvenpunkt dieser Kurve. Befindet er sich hinter einer Kurve entspricht der
-	 * aktuelel Kurvenpunkt weiterhin der vorher durchfahrenen Kurve. Fï¿½r
+	 * aktuelel Kurvenpunkt weiterhin der vorher durchfahrenen Kurve. Fr
 	 * Numerierung der Kurvenpunkte, siehe Dropbox Ordner Navigation ->
 	 * Kurvenpunktfestlegung
 	 **/
@@ -230,7 +236,7 @@ public class NavigationAT implements INavigation {
 
 	/**
 	 * fusionMatrix wird fuer fusionsFunktion der Pose benoetigt. Die Zeilen der
-	 * Matrix stehen fï¿½r die verschiedenen Sensoren wobei:Encorder (0), Maussensor
+	 * Matrix stehen fŸr die verschiedenen Sensoren wobei:Encorder (0), Maussensor
 	 * (1), Kompass (2) Spaltenformat: Index fuer den Sensor (beginnend bei 0), vom
 	 * Sensor ermittelte x-Koordinate, y-Koordidate, Blickrichtung ACHTUNG: Fuer die
 	 * Ausgabe der Encodersensoren muessen x- und y- Koordinaten *100 und der Winkel
@@ -241,9 +247,10 @@ public class NavigationAT implements INavigation {
 	double sensor; // wird fuer fusionsFunktion fuer Pose benoetigt
 	private boolean off_track = false;
 	private int anzahlRunde = 1; // wird in WinkelKorrekturZwischenEcken erhoeht
+	private int zuAktualisierendeParkluecke = 0; //Stelle im Array der zu aktualisierenden Parkluecke, Initialisierung eig. nicht noetig bzw. soll nicht wichtig sein
 
 	/**
-	 * Kurvenmatrix in der alle Kurvenpunkte sowie deren Toleranzbereich fï¿½r die
+	 * Kurvenmatrix in der alle Kurvenpunkte sowie deren Toleranzbereich fŸr die
 	 * Zuordnung der aktuellen Position zu einem Kurvenpunkt gespeichert sind
 	 * Spaltenformat: Kurvenindex(beginnend bei 0), xminBereich, xmaxBereich,
 	 * yminBereich, ymaxBereich, xKurvenpunkt, yKurvenpunkt, Einfahrtwinkel in die
@@ -256,18 +263,10 @@ public class NavigationAT implements INavigation {
 	 * parkingSlots enthaelt alle erfassten Parkluecken Der Konstruktor jeder
 	 * Parkluecke benoetigt folgende Paramter:(int ID, Point backBoundaryPosition,
 	 * Point frontBoundaryPosition, ParkingSlotStatus slotStatus, int
-	 * slotMeasurementQuality) -> Definition von hinterem und vorderem Punkt: Steht
-	 * Roboter neben Parkluecke, befindet sich der hintere Punkt der Parkluecke in
-	 * Fahrtrichtung gesehen hinter dem Roboter
+	 * slotMeasurementQuality, Point backBoundaryPositionM, Point frontBoundaryPositionM) -> Definition von hinterem und vorderem Punkt: Steht
+	 * Roboter neben Parkluecke, befindet sich der hintere Punkt der Parkluecke in Fahrtrichtung gesehen hinter dem Roboter
 	 **/
-	INavigation.ParkingSlot[] parkingSlots = new INavigation.ParkingSlot[10]; // 10
-																				// Parkluecken
-																				// mit
-																				// Index
-																				// 0
-																				// -
-																				// 9
-																				// ansprechbar
+	INavigation.ParkingSlot[] parkingSlots = new INavigation.ParkingSlot[12]; //Aufbau: [0]-[3] fuer Spots nach KP 7; [4]-[7] fuer Spots nach KP 0; [8]-[11] fuer Spots nach KP 3
 
 	/**
 	 * Initialisierung der Laufvariable ParkingSlot. Hier werden die Werte jedes neu
@@ -277,14 +276,17 @@ public class NavigationAT implements INavigation {
 	 * backBoundaryPosition, Point frontBoundaryPosition, ParkingSlotStatus
 	 * slotStatus, int slotMeasurementQuality)
 	 **/
-	INavigation.ParkingSlot currentParkingSlot = new ParkingSlot(0, null, null, null, 0); // bisher wird aus
+	INavigation.ParkingSlot currentParkingSlot = new ParkingSlot(0, null, null, null, 0, null, null); // bisher wird aus
 																							// currentParkingSlot
 																							// verwendet:
 																							// backBoundaryPosition,
 																							// frontBoundaryPosition
 
 	/** Anzahl der bereits gefundenen Parkluecken **/
-	int anzahlParkluecken = 0;
+	int anzahlParklueckenAktuelleRunde = 0;
+	int anzahlParkluecken0 = 0; //anzahl der Parkluecken nach Kurvenpunkt 0
+	int anzahlParkluecken3 = 0; //anzal der Parkluecken nach Kurvenpunkt 3
+	int anzahlParkluecken7 = 0; //anzahl der Parkluecken nach Kurvenpunkt 7
 
 	// /**Fuer Ueberpruefung notwendig, ob Parkluecke aktualisiert oder neu
 	// erstellt werden soll**/
@@ -311,14 +313,14 @@ public class NavigationAT implements INavigation {
 	/**
 	 * Fuer Karte: fusioniertePose mit Ecken- und Geradenkorrektur (sollte beides
 	 * beim parken deaktiviert sein) xResultMap, yResultMap bereits in mm;
-	 * angleReslutMap in ï¿½
+	 * angleReslutMap in Ÿ
 	 **/
 
 	double xResultMap = 0;
 	double yResultMap = 0;
 	double angleResultMap = 0;
 
-	/** folgende Variablen werden fï¿½r WinkelkorrekturZwischenEcken benoetigt **/
+	/** folgende Variablen werden fŸr WinkelkorrekturZwischenEcken benoetigt **/
 	private int anzahlDurchlaufeMittelwert = 1; // gibt Anzahl der aktuellen
 												// Messwerte inklusive des neuen
 												// Messwertes fuer Berechnung
@@ -332,21 +334,25 @@ public class NavigationAT implements INavigation {
 	/** folgende Variablen werden fuer detectParkingSlot benoetigt **/
 	private double backBoundarxFrontSensor = 0;
 	private double backBoundaryFrontSensor = 0;
-	private double backBoundarxBackSensor = 0;
-	private double backBoundaryBackSensor = 0;
+//	private double backBoundarxBackSensor = 0;
+//	private double backBoundaryBackSensor = 0;
 	private double frontBoundarxFrontSensor = 0;
 	private double frontBoundaryFrontSensor = 0;
-	private double frontBoundarxBackSensor = 0;
-	private double frontBoundaryBackSensor = 0;
+//	private double frontBoundaryBackSensor = 0;
 	private double frontBoundarxFrontSensorAktuell = 0;
 	private double frontBoundaryFrontSensorAktuell = 0;
 	private boolean backBoundaryDetektiert = false; // wird benoetigt um in
 													// frontBoundary
 													// Erkennungsteil
 													// reinzuspringen
+	
 	// private boolean frontBoundaryDetektiert = false; //wird benoetigt um
 	// backBoundary nicht auf gleichem Streckenabschnitt erneut neu zu setzen
 	private double parklueckenLaenge = 0;
+	/**lokale Punkte, benoetigt um Mittelpunkte der Parkluecken zu setzen**/
+	private boolean inTurn;
+	
+	
 
 	/**
 	 * provides the reference transfer so that the class knows its corresponding
@@ -361,16 +367,10 @@ public class NavigationAT implements INavigation {
 	public NavigationAT(IPerception perception, IMonitor monitor) {
 		Point Point1 = new Point(0, 0);
 		Point Point2 = new Point(0, 0);
-		parkingSlots[0] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[1] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[2] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[3] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[4] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[5] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[6] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[7] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[8] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
-		parkingSlots[9] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
+		
+		for (int i=0; i<12; i++) {
+			parkingSlots[i] = new ParkingSlot(i, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0, Point1, Point2);
+		}
 		this.perception = perception;
 		this.monitor = monitor;
 		this.encoderLeft = perception.getNavigationLeftEncoder();
@@ -378,7 +378,7 @@ public class NavigationAT implements INavigation {
 		this.mouseodo = perception.getNavigationOdo();
 		off_track = false;
 
-		navThread.setPriority(Thread.MAX_PRIORITY - 3);
+		navThread.setPriority(Thread.MAX_PRIORITY - 2);
 		navThread.setDaemon(true); // background thread that is not need to
 									// terminate in order for the user program
 									// to terminate
@@ -505,9 +505,8 @@ public class NavigationAT implements INavigation {
 		this.calculateLocation();
 		// perception.getBackSensorDistance();
 		// perception.getUOdmometryDiffernce();
-		this.calculateLocationUsingMouseSensor(perception.getUOdmometryDiffernce(),
-				perception.getVOdometryDifference());
-		// this.calculateLocationUsingCompass();
+		this.calculateLocationUsingMouseSensor(perception.getUOdmometryDiffernce(),perception.getVOdometryDifference());
+		this.calculateLocationUsingCompass(perception.getCompassData());
 		if (this.parkingSlotDetectionIsOn)
 			this.detectParkingSlot();
 
@@ -554,6 +553,8 @@ public class NavigationAT implements INavigation {
 		this.frontSideSensorDistance = perception.getFrontSideSensorDistance();
 		this.backSensorDistance = perception.getBackSensorDistance();
 		this.backSideSensorDistance = perception.getBackSideSensorDistance();
+		
+		this.compassData = perception.getCompassData();
 	}
 
 	public double getfusionMatrixContent(int line, int row) {
@@ -587,9 +588,22 @@ public class NavigationAT implements INavigation {
 	public double getRMS() {
 		return angleResultAktuellerMittelwert;
 	}
-
+	
+	public int getLineNumber() {
+		switch(aktuellerKurvenpunkt) {
+		case 0: case 1: case 2: case 3: case 4: case 5: case 6: 
+			return aktuellerKurvenpunkt+1;
+		case 7: return 0;
+		default: return 0;
+		}
+	}
+	
+	public void setInTurn(boolean x) {
+		inTurn = x;
+	}
+	
 	/**
-	 * calculates the robot pose from the measurements
+	 * calculates the robot pose with data of encorders
 	 */
 	private void calculateLocation() {
 		double leftAngleSpeed = this.angleMeasurementLeft.getAngleSum()
@@ -689,7 +703,7 @@ public class NavigationAT implements INavigation {
 		heading += dheading; // zum Testen heading einfach mit dx und dy
 								// vorgeben, update: jetzt mit dx und last_dx
 								// bestimmen
-		// Ueberlaufe verhindern //fuer cos, sin Funktionen fï¿½r 'Position
+		// Ueberlaufe verhindern //fuer cos, sin Funktionen fŸr 'Position
 		// bestimmen' Ueberlauf nicht schlimm. Nur fuer Schoenheit
 		while (heading > 2 * Math.PI) {
 			heading -= 2 * Math.PI;
@@ -697,8 +711,6 @@ public class NavigationAT implements INavigation {
 		while (heading < 0) {
 			heading += 2 * Math.PI;
 		}
-		// System.out.println("Heading: " + heading/(2*Math.PI)*360 + "ï¿½");
-
 		// Position bestimmen (bei Naeherung von Geradeausfahrt mit bestimmtem
 		// Winkel)
 		dPos_x = dy * ((double) Math.cos(heading)); // cos liefert nur double
@@ -707,9 +719,6 @@ public class NavigationAT implements INavigation {
 		dPos_y = dy * ((double) Math.sin(heading));
 		Pos_x += dPos_x;
 		Pos_y += dPos_y;
-		// System.out.println("Koordinaten x | y:");
-		// System.out.println(" " + Pos_x + " | " + Pos_y);
-		// System.out.println();
 
 		xResult = Pos_x;
 		yResult = Pos_y;
@@ -720,14 +729,11 @@ public class NavigationAT implements INavigation {
 		this.fusionOfPoseData(sensor, (double) xResult, (double) yResult, (double) angleResult / (2 * Math.PI) * 360);
 	}
 
-	private void calculateLocationUsingCompass() {
+	private void calculateLocationUsingCompass(double compassData) {
 
-		// hier kommt Programm rein
 		xResult = 0;
 		yResult = 0;
-		angleResult = 0;
-		// LCD.drawString("Compass: " + xResult + "/" + yResult + "/" +
-		// angleResult, 0, 2);
+		angleResult = compassData;
 		sensor = 2;
 		this.fusionOfPoseData(sensor, (double) xResult, (double) yResult, (double) angleResult);
 
@@ -769,7 +775,7 @@ public class NavigationAT implements INavigation {
 		 * verbessern. Mit PositionskorrekturAnEcken() werden x und y an Eckpunkten auf
 		 * den Eckpunkt gesetzt. Mit WinkelkorrekturZwischenEcken() wird zuerst der
 		 * Mittelwert der Abweichung der Blickrichtung (heading) gebildet und diese
-		 * anschlieï¿½end auf ungefaehr halber Strecke zwischen zwei Ecken zum aktuellen
+		 * anschlieŸend auf ungefaehr halber Strecke zwischen zwei Ecken zum aktuellen
 		 * Blickwinkel aufaddiert/abgezogen. Mit
 		 * PositionFuerTabletMitPositionskorrekturAufGeraden() werden x bzw. y fuer eine
 		 * schoene Darstellung auf dem Tablet genullt.
@@ -778,7 +784,7 @@ public class NavigationAT implements INavigation {
 		if (!off_track) {
 			// this.ueberpruefenObAktuellInKurve(); //setzt aktuellInKurve auf true oder
 			// false
-			// this.PositionskorrekturAnEcken();
+			// this.PositionskorrekturAnEcken(); //wird jetzt in Guidance nach Kurve ausgefuehrt
 			this.WinkelkorrekturZwischenEcken();
 			this.PositionFuerTabletMitPositionskorrekturAufGeraden(); // berechnet xResultMap und yResultMap
 		}
@@ -803,7 +809,7 @@ public class NavigationAT implements INavigation {
 	/**
 	 * Um festzustellen ob sich der Roboter in einer Kurve befindet, gilt das
 	 * Kriterium, dass der aktuelle Winkel um mehr als 40 Grad vom Winkel der
-	 * Strecke vor der Kurvenabfahrt abweichen muss. Ob groeï¿½er oder kleiner wurde
+	 * Strecke vor der Kurvenabfahrt abweichen muss. Ob groeŸer oder kleiner wurde
 	 * nicht unterschieden, da nicht notwendig.
 	 */
 	// public void ueberpruefenObAktuellInKurve() {
@@ -895,12 +901,7 @@ public class NavigationAT implements INavigation {
 					anzahlDurchlaufeMittelwert++;
 				}
 				if (yResult * 100 > 15 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (90 * Math.PI / 180 - angleResultAktuellerMittelwert); // 90 Grad muss
-																										// in Einheit
-																										// von
-																										// angleResult
-																										// geaendert
-																										// werden
+					angleResult = angleResult + (90 * Math.PI / 180 - angleResultAktuellerMittelwert); // 90 Grad muss in Einheit von angleResult geaendert werden
 					winkelSchonKorrigiert = true; // wird in PositionskorrekturAnEcken Methode auf false gesetzt
 				}
 				break;
@@ -927,12 +928,15 @@ public class NavigationAT implements INavigation {
 				}
 				break;
 			case 3:
-				if (xResult * 100 < 140 && xResult * 100 > 90) {
+				if (xResult*100 > 145) {
+					angleResult = 180* Math.PI/180;
+				}
+				if (xResult * 100 < 145 && xResult * 100 > 120) {
 					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
 							/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
 					anzahlDurchlaufeMittelwert++;
 				}
-				if (xResult * 100 < 90 && winkelSchonKorrigiert == false) {
+				if (xResult * 100 < 120 && winkelSchonKorrigiert == false) {
 					angleResult = angleResult + (180 * Math.PI / 180 - angleResultAktuellerMittelwert);
 					winkelSchonKorrigiert = true;
 				}
@@ -960,27 +964,30 @@ public class NavigationAT implements INavigation {
 				}
 				break;
 			case 6:
-				if (yResult * 100 < 55 && yResult * 100 > 25) {
+				if (yResult * 100 < 55 && yResult * 100 > 45) {
 					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
 							/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
 					anzahlDurchlaufeMittelwert++;
 				}
-				if (yResult * 100 < 25 && winkelSchonKorrigiert == false) {
+				if (yResult * 100 < 45 && winkelSchonKorrigiert == false) {
 					angleResult = angleResult + (270 * Math.PI / 180 - angleResultAktuellerMittelwert);
 					winkelSchonKorrigiert = true;
 					anzahlRunde++;// nochmal ueberdenken ob hier richtiger Ort
 				}
 				break;
 			case 7:
-				if (xResult * 100 > 30 && xResult * 100 < 70) {
-					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
-							/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
-					anzahlDurchlaufeMittelwert++;
-				}
-				if (xResult * 100 > 70 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult - angleResultAktuellerMittelwert;
-					winkelSchonKorrigiert = true;
-				}
+//				if (xResult*100 < 5) {
+//					angleResult = 0;
+//				}
+//				if (xResult * 100 > 5 && xResult * 100 < 50) {
+//					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+//							/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+//					anzahlDurchlaufeMittelwert++;
+//				}
+//				if (xResult * 100 > 50 && winkelSchonKorrigiert == false) {
+//					angleResult = angleResult - angleResultAktuellerMittelwert;
+//					winkelSchonKorrigiert = true;
+//				}
 				break;
 			}
 		}
@@ -1051,7 +1058,7 @@ public class NavigationAT implements INavigation {
 										// this.getAktullenKurvenpunkt!! ->
 										// ueberpruefen obs noch funktioniert
 		case 0:
-			if (yResult * 100 > 40) {
+			if (yResult * 100 > 35) {
 				robotCloseToCurve = true;
 			} else {
 				return false;
@@ -1065,7 +1072,7 @@ public class NavigationAT implements INavigation {
 			}
 			break;
 		case 2:
-			if (yResult * 100 < 40) {
+			if (yResult * 100 < 45) {
 				robotCloseToCurve = true;
 			} else {
 				return false;
@@ -1086,21 +1093,21 @@ public class NavigationAT implements INavigation {
 			}
 			break;
 		case 5:
-			if (xResult * 100 < 20) {
+			if (xResult * 100 < 15) {
 				robotCloseToCurve = true;
 			} else {
 				return false;
 			}
 			break;
 		case 6:
-			if (yResult * 100 < 20) {
+			if (yResult * 100 < 13) {
 				robotCloseToCurve = true;
 			} else {
 				return false;
 			}
 			break;
 		case 7:
-			if (xResult * 100 > 170) {
+			if (xResult * 100 > 160) {
 				robotCloseToCurve = true;
 			} else {
 				return false;
@@ -1148,31 +1155,18 @@ public class NavigationAT implements INavigation {
 		boolean bedingung1 = aktuellerKurvenpunkt != 1 && aktuellerKurvenpunkt != 2 && aktuellerKurvenpunkt != 4
 				&& aktuellerKurvenpunkt != 5 && aktuellerKurvenpunkt != 6; // hier existieren keine Parkluecken
 		double aktuellx = this.pose.getX() * 100;
-		boolean bedingung2 = !(aktuellerKurvenpunkt == 3 && (aktuellx > 120 || aktuellx < 40)); // an Anfang und Ende
-																								// von Strecke nach
-																								// Kurvenpunkt 3 gibt es
-																								// keine Parkluecken
-
-		if (aktuellFrontSideSensorDistance > 800 && !backBoundaryDetektiert && bedingung1 && bedingung2) { // so hohen
-																											// Wert
-																											// damit
-																											// Ecken
-																											// nicht als
-																											// Parkluecken
-																											// erkannt
-																											// werden
+		boolean bedingung2 = !(aktuellerKurvenpunkt == 3 && (aktuellx > 120 || aktuellx < 50)); // an Anfang und Ende von Strecke nach Kurvenpunkt 3 gibt es keine Parkluecken
+		boolean bedingung3 = !inTurn; //nicht noetig
+		if (aktuellFrontSideSensorDistance > 500 && !backBoundaryDetektiert && bedingung1 && bedingung2 && bedingung3) { // so hohen Wert damit Ecken nicht als Parkluecken erkannt werden
 			backBoundaryDetektiert = true;
 			backBoundarx_ySetzen();
 		}
-		if (aktuellFrontSideSensorDistance > 800 && backBoundaryDetektiert) {
-			frontBoundarx_yAktuellAktualisieren(); // aktualisiert
-													// frontBoundarx&yAktuell
-													// immer waehrend Roboter
-													// entlang Parkluecke faehrt
+		if (aktuellFrontSideSensorDistance > 500 && backBoundaryDetektiert) {
+			frontBoundarx_yAktuellAktualisieren(); // aktualisiert frontBoundarx&yAktuell immer waehrend Roboter entlang Parkluecke faehrt
 		}
-		if (aktuellFrontSideSensorDistance < 600 && backBoundaryDetektiert) {
+		if (aktuellFrontSideSensorDistance < 300 && backBoundaryDetektiert) {
 			frontBoundarx_ySetzen();
-			statusSetzen();
+			//statusSetzen(); wird jetzt innerhalb anderer Methoden gemacht, da auch nicht suitable Parkluecken in Matrix eingetragen werden sollen
 			measurementQualitySetzen();
 			parklueckeHinzufuegenOderAktualisieren();
 			backBoundaryDetektiert = false;
@@ -1182,30 +1176,10 @@ public class NavigationAT implements INavigation {
 	private void backBoundarx_ySetzen() {
 		switch (aktuellerKurvenpunkt) {
 		case 0:
-			backBoundarxFrontSensor = this.pose.getX() * 100 + DISTANCE_RobotCenterToBarrierK0K7; // y Position gut,
-																									// fuer
-																									// x Position evt.
-																									// ein spaeteren
-																									// Wert nehmen, da
-																									// zu frueh
-																									// ermittelt und evt
-																									// noch an Kante
+			backBoundarxFrontSensor = this.pose.getX() * 100 + DISTANCE_RobotCenterToBarrierK0K7; // y Position gut, fuer x Position evt. ein spaeteren Wert nehmen, da zu frueh ermittelt und evt noch an Kante
 			backBoundaryFrontSensor = this.pose.getY() * 100 + DISTANCE_FrontSideSensorToRobotCenter;
 			Point backBoundarPoint = new Point((float) backBoundarxFrontSensor, (float) backBoundaryFrontSensor);
-			currentParkingSlot.setBackBoundaryPosition(backBoundarPoint); // diesen
-																			// Umweg
-																			// damit
-																			// Punkt
-																			// nicht
-																			// global
-																			// gespeichert
-																			// sondern
-																			// in
-																			// currentParkingSlot
-																			// als
-																			// Attribut
-																			// gespeichert
-																			// wird
+			currentParkingSlot.setBackBoundaryPosition(backBoundarPoint); // diesen Umweg damit Punkt nicht global gespeichert sondern in currentParkingSlot als Attribut gespeichert wird
 			break;
 
 		/**
@@ -1213,11 +1187,7 @@ public class NavigationAT implements INavigation {
 		 * Methode werden auf diesen Strecken keine Parkluecken hinzugefuegt. Falls
 		 * doch, dann mit den Werten 0,0
 		 **/
-		case 1:
-		case 2:
-		case 4:
-		case 5:
-		case 6:
+		case 1: case 2: case 4: case 5:	case 6:
 			backBoundarxFrontSensor = 0;
 			backBoundaryFrontSensor = 0;
 			LCD.drawString("Auf unerwartetem Streckenabschnitt Parkluecke entdeckt", 0, 5);
@@ -1240,22 +1210,10 @@ public class NavigationAT implements INavigation {
 	private void frontBoundarx_yAktuellAktualisieren() {
 		switch (aktuellerKurvenpunkt) {
 		case 0:
-			frontBoundarxFrontSensorAktuell = this.pose.getX() * 100 + DISTANCE_RobotCenterToBarrierK0K7; // hierbei
-																											// handelt
-																											// es
-																											// sich nur
-																											// um
-																											// vorlaeufige
-																											// Positionen
-																											// der
-																											// Parkluecken
+			frontBoundarxFrontSensorAktuell = this.pose.getX() * 100 + DISTANCE_RobotCenterToBarrierK0K7;
 			frontBoundaryFrontSensorAktuell = this.pose.getY() * 100 + DISTANCE_FrontSideSensorToRobotCenter;
 			break;
-		case 1:
-		case 2:
-		case 4:
-		case 5:
-		case 6: // break, da es keine Parkluecken auf diesen Strecken gibt
+		case 1: case 2: case 4: case 5: case 6: // break, da es keine Parkluecken auf diesen Strecken gibt
 			break;
 		case 3:
 			frontBoundarxFrontSensorAktuell = this.pose.getX() * 100 - DISTANCE_FrontSideSensorToRobotCenter;
@@ -1269,131 +1227,144 @@ public class NavigationAT implements INavigation {
 	}
 
 	private void frontBoundarx_ySetzen() {
-		frontBoundarxFrontSensor = frontBoundarxFrontSensorAktuell; // x
-																	// Koordinate
-																	// vom
-																	// vorderen
-																	// Parklueckenpunkt
-																	// wird
-																	// gespeichert;
-																	// ACHTUNG
-																	// hier wird
-																	// frontBoundary
-		frontBoundaryFrontSensor = frontBoundaryFrontSensorAktuell; // y
-																	// Koordinate
-																	// vom
-																	// hinteren
-																	// Parklueckenpunkt
-																	// wird
-																	// gespeichert
+		frontBoundarxFrontSensor = frontBoundarxFrontSensorAktuell;
+		frontBoundaryFrontSensor = frontBoundaryFrontSensorAktuell;
 		Point frontBoundarPoint = new Point((float) frontBoundarxFrontSensor, (float) frontBoundaryFrontSensor);
 		currentParkingSlot.setFrontBoundaryPosition(frontBoundarPoint);
 	}
 
-	private void statusSetzen() {
-		currentParkingSlot.setStatus(ParkingSlotStatus.SUITABLE_FOR_PARKING); // vorerst
-																				// einfach
-																				// so
-																				// festgelegt,
-																				// spaeter
-																				// evt
-																				// nicht
-																				// fix
-																				// machen
+	private void statusSuitableSetzen() {
+		currentParkingSlot.setStatus(ParkingSlotStatus.SUITABLE_FOR_PARKING); // vorerst einfach so festgelegt,spaeter evt nicht fix machen																			
+	}
+	
+	private void statusNotSuitableSetzen() {
+		currentParkingSlot.setStatus(ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING);																	
 	}
 
 	private void measurementQualitySetzen() {
-		currentParkingSlot.setMeasurementQuality(1); // vorerst einfach so
-														// festgelegt, spaeter
-														// evt nicht fix machen
+		currentParkingSlot.setMeasurementQuality(1); // vorerst einfach so festgelegt, spaeter evt nicht fix machen							 
 	}
 
 	private void parklueckeHinzufuegenOderAktualisieren() {
+		/**Mittelpunkte der Parkluecken; werden fuer Einparkpolynom benoetigt**/
+		Point backMidpoint 	= new Point(0,0);
+		Point frontMidpoint	= new Point(0,0);
 		/**
 		 * Je nach Kurvenpunkt wird nun ueberprueft ob Parkluecke ausreichend gross ist
 		 * und diese anschliessend aktualisiert bzw. hinzugefuegt
 		 **/
 		switch (aktuellerKurvenpunkt) {
 		case 0:
+			anzahlParkluecken7 = 0;
 			parklueckenLaenge = frontBoundaryFrontSensor - backBoundaryFrontSensor;
-			if (parklueckenLaenge > MIN_SLOT_DISTANCE) { // Parkluecke soll
-															// vorerst
-															// mindestens 45cm
-															// gross sein
-				if (parklueckeExistiertBereits()) {
-					ParklueckeAktualisieren(); // Im Falle, dass Parkluecke
-												// bereits existiert sollen die
-												// neu erfassten
-												// Boundarypositionen mit den
-												// alten fusioniert werden
-												// (Mittelwert)
-				} else {
-					parkingSlots[anzahlParkluecken] = new ParkingSlot(anzahlParkluecken,
-							currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(),
-							currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality()); // an Position +1 einfuegen, da currentParkingSlot bereits an Position 0 in Array -> falsch, currentParkingSlot sollte eigentlich nur ID von 0 haben, dem Feld aber nicht hinzugefuegt worden sein
-					anzahlParkluecken++;
+			if(anzahlParkluecken0 == 0) { //immer am Anfang jeder Strecke sollen alle Parkingslots auf dieser Strecke geloescht/ mit unten stehenden Daten initialisiert werden
+				Point Point1 = new Point(0, 0);
+				Point Point2 = new Point(0, 0);
+				for (int i = 4; i<8; i++) {
+					parkingSlots[i] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0, Point1, Point2);
 				}
 			}
+			backMidpoint.setLocation(currentParkingSlot.getBackBoundaryPosition().getX() + MIDPOINT_OFFSET, currentParkingSlot.getBackBoundaryPosition().getY()); 
+			frontMidpoint.setLocation(currentParkingSlot.getFrontBoundaryPosition().getX() + MIDPOINT_OFFSET, currentParkingSlot.getFrontBoundaryPosition().getY()); 
+			if (parklueckenLaenge > MIN_SLOT_DISTANCE) { // Parkluecke soll vorerst mindestens 45cm gross sein																										
+				statusSuitableSetzen();
+				parkingSlots[anzahlParkluecken0 + 4] = new ParkingSlot(anzahlParkluecken0 + 4 + 1, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(), currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality(), backMidpoint, frontMidpoint); // an Position +1 einfuegen, da currentParkingSlot bereits an Position 0 in Array -> falsch, currentParkingSlot sollte eigentlich nur ID von 0 haben, dem Feld aber nicht hinzugefuegt worden sein
+				anzahlParklueckenAktuelleRunde++;
+				anzahlParkluecken0++;
+			}
+			else {
+				statusNotSuitableSetzen();
+				parkingSlots[anzahlParkluecken0 + 4] = new ParkingSlot(anzahlParkluecken0 + 4 + 1, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(), currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality(), backMidpoint, frontMidpoint);
+				anzahlParklueckenAktuelleRunde++;
+				anzahlParkluecken0++;
+			}
 			break;
-		case 1:
-		case 2:
-		case 4:
-		case 5:
-		case 6:
+		case 1:	case 2:	case 4:	case 5:	case 6:
 			break;
 		case 3:
+			anzahlParkluecken0 = 0;
 			parklueckenLaenge = backBoundarxFrontSensor - frontBoundarxFrontSensor;
-			if (parklueckenLaenge > MIN_SLOT_DISTANCE) { // Parkluecke soll
-															// vorerst
-															// mindestens 45cm
-															// groï¿½ sein
-				if (parklueckeExistiertBereits()) {
-					ParklueckeAktualisieren(); // Im Falle, dass Parkluecke
-												// bereits existiert sollen die
-												// neu erfassten
-												// Boundarypositionen mit den
-												// alten fusioniert werden
-												// (Mittelwert)
-				} else {
-					parkingSlots[anzahlParkluecken] = new ParkingSlot(anzahlParkluecken,
-							currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(),
-							currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality());
-					anzahlParkluecken++;
+			if(anzahlParkluecken3 == 0) { //immer am Anfang jeder Strecke sollen alle Parkingslots auf dieser Strecke geloescht/ mit unten stehenden Daten initialisiert werden
+				Point Point1 = new Point(0, 0);
+				Point Point2 = new Point(0, 0);
+				for (int i = 8; i<12; i++) {
+					parkingSlots[i] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0, Point1, Point2);
 				}
+			}
+			backMidpoint.setLocation(currentParkingSlot.getBackBoundaryPosition().getX(), currentParkingSlot.getBackBoundaryPosition().getY() + MIDPOINT_OFFSET); 
+			frontMidpoint.setLocation(currentParkingSlot.getFrontBoundaryPosition().getX(), currentParkingSlot.getFrontBoundaryPosition().getY() + MIDPOINT_OFFSET); 
+			if (parklueckenLaenge > MIN_SLOT_DISTANCE) { // Parkluecke soll vorerst mindestens 45cm gross sein																										
+				statusSuitableSetzen();
+				parkingSlots[anzahlParkluecken3 + 8] = new ParkingSlot(anzahlParkluecken3 + 8 + 1, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(), currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality(), backMidpoint, frontMidpoint);
+				anzahlParklueckenAktuelleRunde++;
+				anzahlParkluecken3++;
+			}
+			else {
+				statusNotSuitableSetzen();
+				parkingSlots[anzahlParkluecken3 + 8] = new ParkingSlot(anzahlParkluecken3 + 8 + 1, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(),currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality(), backMidpoint, frontMidpoint);
+				anzahlParklueckenAktuelleRunde++;
+				anzahlParkluecken3++;
 			}
 			break;
 		case 7:
+			anzahlParkluecken3 = 0;
 			parklueckenLaenge = frontBoundarxFrontSensor - backBoundarxFrontSensor;
-			if (parklueckenLaenge > MIN_SLOT_DISTANCE) { // Parkluecke soll
-															// vorerst
-															// mindestens 45cm
-															// groï¿½ sein
-				if (parklueckeExistiertBereits()) {
-					ParklueckeAktualisieren(); // Im Falle, dass Parkluecke
-												// bereits existiert sollen die
-												// neu erfassten
-												// Boundarypositionen mit den
-												// alten fusioniert werden
-												// (Mittelwert)
-				} else {
-					parkingSlots[anzahlParkluecken] = new ParkingSlot(anzahlParkluecken,
-							currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(),
-							currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality());
-					anzahlParkluecken++;
+			if(anzahlParkluecken7 == 0) { //immer am Anfang jeder Strecke sollen alle Parkingslots auf dieser Strecke geloescht/ mit unten stehenden Daten initialisiert werden
+				Point Point1 = new Point(0, 0);
+				Point Point2 = new Point(0, 0);
+				for (int i = 0; i<4; i++) {
+					parkingSlots[i] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0, Point1, Point2);
 				}
+			}
+			backMidpoint.setLocation(currentParkingSlot.getBackBoundaryPosition().getX(), currentParkingSlot.getBackBoundaryPosition().getY() - MIDPOINT_OFFSET); 
+			frontMidpoint.setLocation(currentParkingSlot.getFrontBoundaryPosition().getX(), currentParkingSlot.getFrontBoundaryPosition().getY() - MIDPOINT_OFFSET); 
+			if (parklueckenLaenge > MIN_SLOT_DISTANCE) { // Parkluecke soll vorerst mindestens 45cm gross sein																										
+				statusSuitableSetzen();
+				parkingSlots[anzahlParkluecken7] = new ParkingSlot(anzahlParkluecken7 + 1, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(), currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality(), backMidpoint, frontMidpoint);
+				anzahlParklueckenAktuelleRunde++;
+				anzahlParkluecken7++;
+			}
+			else {
+				statusNotSuitableSetzen();
+				parkingSlots[anzahlParkluecken7] = new ParkingSlot(anzahlParkluecken7 + 1, currentParkingSlot.getBackBoundaryPosition(), currentParkingSlot.getFrontBoundaryPosition(),currentParkingSlot.getStatus(), currentParkingSlot.getMeasurementQuality(), backMidpoint, frontMidpoint);
+				anzahlParklueckenAktuelleRunde++;
+				anzahlParkluecken7++;
 			}
 			break;
 		}
 	}
-
-	private boolean parklueckeExistiertBereits() {
-		return false; // vorerst fuers Testen auf false, Aktualisierung der
-						// Parkluecke somit deaktiviert und auch nicht moeglich
-	}
-
-	private void ParklueckeAktualisieren() {
-		// erst implementieren wenn Rest laeuft
-	}
+		
+/** Mehode die schaut ob auf aktueller Geraden die aktuell hinzuzufuegende Parkluecke mit bereits eingetragenen uebereinstimmt**/
+//		private boolean firstParkingslotIsDifferent(int anzahlParklueckenAufAktuellerStrecke, int arrayOffset) {
+//			boolean b = false;
+//			for (int i = 0; i < anzahlParklueckenAufAktuellerStrecke; i++) {
+//				boolean bedingung1 = Math.abs(Point.distance(currentParkingSlot.getBackBoundaryPosition().getX(), currentParkingSlot.getBackBoundaryPosition().getY(), parkingSlots[anzahlParklueckenAufAktuellerStrecke + arrayOffset].getBackBoundaryPosition().getX(), parkingSlots[anzahlParklueckenAufAktuellerStrecke + arrayOffset].getBackBoundaryPosition().getY())) < 10;
+//				boolean bedingung2 = Math.abs(Point.distance(currentParkingSlot.getFrontBoundaryPosition().getX(), currentParkingSlot.getFrontBoundaryPosition().getY(), parkingSlots[anzahlParklueckenAufAktuellerStrecke + arrayOffset].getFrontBoundaryPosition().getX(), parkingSlots[anzahlParklueckenAufAktuellerStrecke + arrayOffset].getFrontBoundaryPosition().getY())) < 10;
+//				if (bedingung1 && bedingung2) {
+//					monitor.writeNavigationComment("Parkluecke bereits in Datenbank vorhanden");
+//					b = true;		
+//				}
+//			}
+//			return b;
+//		}
+/** Methode die nur an Hand des backBoundary Punktes feststellt ob Parkluecke bereits in Datenbank eingetragen wurde**/
+//	private boolean parklueckeExistiertBereits() {
+//		boolean b = false;
+//		for (int i = 0; i < anzahlParklueckenAktuelleRunde; i++) {
+//			if (Math.abs(Point.distance(currentParkingSlot.getBackBoundaryPosition().getX(), currentParkingSlot.getBackBoundaryPosition().getY(), parkingSlots[i].getBackBoundaryPosition().getX(), parkingSlots[i].getBackBoundaryPosition().getY())) < 10 ) {
+//				monitor.writeNavigationComment("Parkluecke bereits in Datenbank vorhanden");
+//				b = true;		
+//				zuAktualisierendeParkluecke = i;
+//			}
+//		}
+//		return b;
+//	}
+//	private void ParklueckeAktualisieren() {
+//		Point BackBoundaryPositionAverage = new Point(((float)parkingSlots[zuAktualisierendeParkluecke].getBackBoundaryPosition().getX() + (float)currentParkingSlot.getBackBoundaryPosition().getX())/2, ((float)parkingSlots[zuAktualisierendeParkluecke].getBackBoundaryPosition().getY() + (float)currentParkingSlot.getBackBoundaryPosition().getY())/2);
+//		Point FrontBoundaryPositionAverage = new Point(((float)parkingSlots[zuAktualisierendeParkluecke].getFrontBoundaryPosition().getX() + (float)currentParkingSlot.getFrontBoundaryPosition().getX())/2, ((float)parkingSlots[zuAktualisierendeParkluecke].getFrontBoundaryPosition().getY() + (float)currentParkingSlot.getFrontBoundaryPosition().getY())/2);
+//		parkingSlots[zuAktualisierendeParkluecke].setBackBoundaryPosition(BackBoundaryPositionAverage);
+//		parkingSlots[zuAktualisierendeParkluecke].setFrontBoundaryPosition(FrontBoundaryPositionAverage);
+//	}
 
 	/** Methoden nur fuer Ausgabe **/
 	public boolean backBoundaryDetektiert() {
@@ -1430,37 +1401,48 @@ public class NavigationAT implements INavigation {
 	public double parklueckenLaenge() {
 		return parklueckenLaenge;
 	}
-
-	public int anzahlParkluecken() {
-		return anzahlParkluecken;
+	
+	public int anzahlParklueckenAktuelleRunde() {
+		return anzahlParklueckenAktuelleRunde;
 	}
-
+	/**funktioniert nur bei erster Runde!**/
 	public ParkingSlot getAktuellstenParkplatz() {
 		/** um Nullpointer Exception zu verhindern **/
 		if (parkingSlots[0] == null) {
 			Point Point1 = new Point(0, 0);
 			Point Point2 = new Point(0, 0);
-			return new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0);
+			return new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0, Point1, Point2);
 		} else {
-			if (anzahlParkluecken == 0) {
+			if (anzahlParklueckenAktuelleRunde == 0) {
 				return parkingSlots[0];
 			} else {
-				return parkingSlots[anzahlParkluecken - 1];
+				return parkingSlots[anzahlParklueckenAktuelleRunde - 1];
 			}
 		}
 	}
+	
+	public ParkingSlot getParkplatz(int i) {
+		return parkingSlots[i];
+	}
 }
 /**
- * TODO: 1. Bei setLocation xResult*100 und Winkel bereits richtig eintragen,
- * damit Pose bereits in richtiger Einheit gespeichert wird
+ * TODO: 
+ * Aktuell:
+ * Starker Rechtsdrift bei Positionsbestimmung zu beobachten
+ * 1. Aktualisieren implementieren mit Drittlung des Arrays
  * 
- * 2.Luke eine Variable die true gibt wenn 10 cm vor Kurve, sobald in Kurve aber
- * sofort wieder auf true -> done 4. Gregor Mittelpunkt liefern 3. Parkluecke
- * erkennen 5. T Anfangspunkte geben, nicht mitte! 6. Ueberpruefen ob
- * Parkplaetze halbwegs korrekt eingetragen werden 7. Mit Luke und Gregor ueber
- * Loesung reden 8. setParkingDetection auf false machen und ueberpruefen ob T
- * es aendern kann 9. PowerPoint vorbereiten 10. AktualisierenMethode schreiben
+ * Nach den Ferien:
+ * 1. Aktualisieren Testen
+ * 2. Kompass Bus mit Morozov, Kalibrierungsmethode bauen, Fusion 
+ * 
+ * 1. Manchmal wird auf Strecke mit Kurvenpunkt 0 keine Parkluecke angezeigt -> liegt anscheind dran wenn Hindernisse zu spaet/ zu frueh kommen
+ * -> beheben, aber nicht hoechste Prio
+ * 2. Bei Strecke mit KP 5 wird graues Kaestchen gezeichnet, liegt das an mir? Was schreibe ich in die Matrix? Wieso bei KP 5??
+ *  3. Gregor Punkte liefern die 15 cm drinnen liegen 8. setParkingDetection auf false machen und ueberpruefen ob T
+ * es aendern kann 10. Aktualisierenmethode rausnehmen und Array List komplett Ÿberschreiben in neuer Runde
  * 11. Maussensor testen
+ * 12. Kompassdaten reinkriegen, 3:30 Monday!
+ * 
  **/
 
 /**

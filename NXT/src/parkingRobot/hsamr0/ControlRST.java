@@ -144,7 +144,7 @@ public class ControlRST implements IControl {
 	double phiRotKOS = 0;
 	boolean pathEnd = false;
 	CoordinateSystem CoSys = null;
-	Pose jetzt = null;
+
 
 	Line guideLine = null;
 
@@ -239,7 +239,6 @@ public class ControlRST implements IControl {
 		startY = 0;
 
 		CoSys = new CoordinateSystem();
-		jetzt = new Pose();
 
 		// MONITOR (example)
 		monitor.addControlVar("RightSensor");
@@ -294,7 +293,7 @@ public class ControlRST implements IControl {
 	 */
 	public void setPose(Pose currentPosition) {
 		// TODO Auto-generated method stub
-		this.currentPosition.setHeading((float) (currentPosition.getHeading()));
+		this.currentPosition.setHeading((currentPosition.getHeading()));
 		this.currentPosition.setLocation(currentPosition.getX() * 100,
 				currentPosition.getY() * 100);
 
@@ -494,11 +493,8 @@ public class ControlRST implements IControl {
 		 * set start pose as origin for coordinate system and follow the path
 		 */
 		if (CoSys.getPointOfOrigin() == null || pathEnd) {
-			jetzt.setLocation(this.currentPosition.getX(),
-					this.currentPosition.getY());
-			jetzt.setHeading((float) (this.currentPosition.getHeading()));
 			Sound.systemSound(true, 0);
-			CoSys.setPointOfOrigin(jetzt);
+			CoSys.setPointOfOrigin(this.currentPosition);
 			pathEnd = false;
 			errYAlt = 0;
 			errYSum = 0;

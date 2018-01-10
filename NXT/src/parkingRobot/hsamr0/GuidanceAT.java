@@ -3,6 +3,7 @@ package parkingRobot.hsamr0;
 import lejos.nxt.Button;
 import lejos.nxt.MotorPort;
 import lejos.nxt.NXTMotor;
+import lejos.nxt.comm.RConsole;
 import lejos.robotics.navigation.Pose;
 import parkingRobot.IControl;
 import parkingRobot.IControl.*;
@@ -22,11 +23,11 @@ import parkingRobot.hsamr0.NavigationAT;
 import parkingRobot.hsamr0.PerceptionPMP;
 
 //TODO check how the monitor works
-//TODO check how type Pose works
-//TODO introduce and implement underlying states of PARK_THIS
-//TODO get rid of HmiMode PARK_NEXT
+//TODO implement underlying states of PARK_THIS
 //TODO maybe transition check if DEMO is finished from control
-//TODO implement sub-states for turns in SCOUT
+//TODO test the PATH_FOLLOW sub state, if getSelectedParkingSpot does not work yet, think of a good test case
+//TODO implement following a path back to the line
+//TODO find an algorithm to check whether the robot is on the line again
 
 /**
  * Main class for 'Hauptseminar AMR' project 'autonomous parking' for students
@@ -54,14 +55,12 @@ import parkingRobot.hsamr0.PerceptionPMP;
 public class GuidanceAT {
 
 	/**
-	 * states for the main finite state machine. This main states are
-	 * requirements because they invoke different display modes in the human
-	 * machine interface.
+	 * states for the main finite state machine. This main states are requirements
+	 * because they invoke different display modes in the human machine interface.
 	 */
 	public enum CurrentStatus {
 		/**
-		 * Indicates that robot is following the line and detecting parking
-		 * slots
+		 * Indicates that robot is following the line and detecting parking slots
 		 */
 		SCOUT,
 		/**
@@ -69,8 +68,8 @@ public class GuidanceAT {
 		 */
 		PARK_THIS,
 		/**
-		 * Indicates the robot is performing a demo as part of the assignment
-		 * for control
+		 * Indicates the robot is performing a demo as part of the assignment for
+		 * control
 		 */
 		DEMO,
 		/**
@@ -88,10 +87,15 @@ public class GuidanceAT {
 	 */
 	public enum CurrentLineStatus {
 		/**
-		 * Indicates the robot is following the line in a straight manner and
-		 * there is no turn
+		 * Indicates the robot is following the line in a straight manner and there is
+		 * no turn
 		 */
 		FOLLOW_LINE_STRAIGHT,
+		/**
+		 * The first part of a turn, where the robot first needs to approach it a bit
+		 * more.
+		 */
+		FOLLOW_LINE_TURN_STRAIGHT,
 		/**
 		 * Indicates the robot is taking a turn right
 		 */
@@ -105,6 +109,10 @@ public class GuidanceAT {
 		 */
 		FOLLOW_LINE_OFF,
 		/**
+		 * Indicates the robot is on the line and correcting his heading.
+		 */
+		FOLLOW_LINE_CORRECT,
+		/**
 		 * Indicates that the robot was previously not in the FOLLOW_LINE state
 		 */
 		FOLLOW_LINE_INACTIVE
@@ -115,11 +123,10 @@ public class GuidanceAT {
 	 */
 	public enum CurrentParkStatus {
 		/**
-		 * Indicates the robot is driving along the line until destination is
-		 * reached. This uses the four states of FOLLOW_LINE, but additionally
-		 * checks whether a certain point on the map is reached, and if so,
-		 * continues to drive into the parking slot following the path given by
-		 * the path generator
+		 * Indicates the robot is driving along the line until destination is reached.
+		 * This uses the four states of FOLLOW_LINE, but additionally checks whether a
+		 * certain point on the map is reached, and if so, continues to drive into the
+		 * parking slot following the path given by the path generator
 		 */
 		PARK_LINE_FOLLOW,
 		/**
@@ -127,9 +134,8 @@ public class GuidanceAT {
 		 */
 		PARK_PATH_FOLLOW,
 		/**
-		 * Indicates the robot is correcting its position while already in the
-		 * parking slot. Maybe we will need to seperate this into smaller
-		 * steps/states.
+		 * Indicates the robot is correcting its position while already in the parking
+		 * slot. Maybe we will need to seperate this into smaller steps/states.
 		 */
 		PARK_CORRECTING,
 		/**
@@ -151,8 +157,8 @@ public class GuidanceAT {
 	 */
 	protected static CurrentParkStatus currParkStatus = CurrentParkStatus.PARK_INACTIVE;
 	/**
-	 * state in which the main finite state machine was running before entering
-	 * the actual state
+	 * state in which the main finite state machine was running before entering the
+	 * actual state
 	 */
 	protected static CurrentStatus lastStatus = CurrentStatus.INACTIVE;
 	/**
@@ -166,9 +172,9 @@ public class GuidanceAT {
 
 	/**
 	 * one line of the map of the robot course. The course consists of a closed
-	 * chain of straight lines. Thus every next line starts where the last line
-	 * ends and the last line ends where the first line starts. This
-	 * documentation for line0 hold for all lines.
+	 * chain of straight lines. Thus every next line starts where the last line ends
+	 * and the last line ends where the first line starts. This documentation for
+	 * line0 hold for all lines.
 	 */
 	static Line line0 = new Line(0, 0, 180, 0);
 	static Line line1 = new Line(180, 0, 180, 60);
@@ -179,29 +185,39 @@ public class GuidanceAT {
 	static Line line6 = new Line(30, 60, 0, 60);
 	static Line line7 = new Line(0, 60, 0, 0);
 	/**
-	 * map of the robot course. The course consists of a closed chain of
-	 * straight lines. Thus every next line starts where the last line ends and
-	 * the last line ends where the first line starts. All above defined lines
-	 * are bundled in this array and to form the course map.
+	 * map of the robot course. The course consists of a closed chain of straight
+	 * lines. Thus every next line starts where the last line ends and the last line
+	 * ends where the first line starts. All above defined lines are bundled in this
+	 * array and to form the course map.
 	 */
-	static Line[] map = { line0, line1, line2, line3, line4, line5, line6,
-			line7 };
+	static Line[] map = { line0, line1, line2, line3, line4, line5, line6, line7 };
 
 	/**
-	 * Point on the line-map the robot has to go in order to park, polynomial
-	 * starts from around here.
+	 * The Pose the robot is in at the start of each of his guidance loops
+	 */
+	static Pose currPose;
+	/**
+	 * Point on the line-map the robot has to go in order to park, polynomial starts
+	 * from around here.
 	 */
 	static Point mapGoal;
 	/**
-	 * The point in the center of the ParkingSlot, also the point the robot ends
-	 * up by parking
+	 * The point in the center of the ParkingSlot, also the point the robot ends up
+	 * by parking
 	 */
 	static Point slotGoal;
 	/**
-	 * Vector from the back to the front of the ParkingSlot, important in order
-	 * to find the slotGoal and the goalPose.
+	 * Vector from the back to the front of the ParkingSlot, important in order to
+	 * find the slotGoal and the goalPose.
 	 */
 	static Point slotDir;
+	/**
+	 * The pose the robot has to end up by parking.
+	 */
+	static Pose goalPose;
+	static boolean goalReached = false;
+	static boolean rightTurn = false;
+	static boolean leftTurn = false;
 	/**
 	 * Number of the current selected ParkingSlot
 	 */
@@ -211,25 +227,56 @@ public class GuidanceAT {
 	 */
 	static ParkingSlot selectedParkingSlot;
 	/**
-	 * The pose the robot has to end up by parking.
-	 */
-	static Pose goalPose;
-	/**
-	 * This tells us whether the robot should be off the line-map. This is
-	 * important for determining which SCOUT sub-state has to be entered. It
-	 * only gets set to true when the robot purposefully leaves the track, which
-	 * happens when we want to park.
+	 * This tells us whether the robot should be off the line-map. This is important
+	 * for determining which SCOUT sub-state has to be entered. It only gets set to
+	 * true when the robot purposefully leaves the track, which happens when we want
+	 * to park.
 	 */
 	static boolean offTrack = false;
+	static Pose offTrackPose;
+	static Pose startPose;
 	/**
 	 * This tells us how far away from the mapGoal the robot will stop and start
 	 * following a path into a parking slot. Needs to be tested.
 	 */
-	static double mapGoalDist = 15;
+	static final double mapGoalDist = 45;
+	static final double slotGoalDist = 1;
+	static final double slotDegTol = 5;
+	static final double turnTol = 0.5;
+
+	/**
+	 * Greatest velocity with which the robot travels along the path into the
+	 * parking slot.
+	 */
+	static final double vParkMax = 8;
+	static double vPark;
+
+	static final double vLineMax = 40;
+	static final double vLine0 = 10;
+	static double vLine;
+	static double distToMidMax;
+	static double distToMid;
+	static Point vectorA;
+	/**
+	 * Robot moves forward if 1, backwards if -1
+	 */
+	static double direction = 1;
 	/**
 	 * This array holds the coefficients of the path polynomial
 	 */
 	static double[] coEffs;
+
+	static double deltaPhiDeg;
+	static double phiDot;
+	/**
+	 * The time in between two cycles of the thread.
+	 */
+	static double timePeriod = 100;
+
+	static double currSysTime;
+	static double lastSysTime;
+
+	static CoordinateSystem coSys = null;
 
 	/**
 	 * main method of project 'ParkingRobot'
@@ -250,19 +297,39 @@ public class GuidanceAT {
 
 		IMonitor monitor = new Monitor();
 
-		IPerception perception = new PerceptionPMP(leftMotor, rightMotor,
-				monitor);
+		IPerception perception = new PerceptionPMP(leftMotor, rightMotor, monitor);
 		perception.calibrateLineSensors();
 
 		INavigation navigation = new NavigationAT(perception, monitor);
-		IControl control = new ControlRST(perception, navigation, leftMotor,
-				rightMotor, monitor);
+		IControl control = new ControlRST(perception, navigation, leftMotor, rightMotor, monitor);
 		INxtHmi hmi = new HmiPLT(perception, navigation, control, monitor);
+
+		coSys = new CoordinateSystem();
+		mapGoal = new Point(0, 0);
+		slotGoal = new Point(0, 0);
+		slotDir = new Point(0, 0);
+		vectorA = new Point(0, 0);
+		startPose = new Pose(0, 0, 0);
+		offTrackPose = new Pose(0, 0, 0);
+		goalPose = new Pose(0, 0, 0);
+		currPose = new Pose(0, 0, 0);
+
+		// šffnen per cmd-Befehl: nxjconsole
+		// RConsole.openUSB(15000);
+		RConsole.println("Konsole initialisiert");
 
 		monitor.startLogging();
 
 		while (true) {
+			currSysTime = System.currentTimeMillis();
+			timePeriod = currSysTime - lastSysTime;
+			lastSysTime = currSysTime;
+			RConsole.println("Zykluszeit Guidance: " + Double.toString(timePeriod));
+
 			showData(navigation, perception, control);
+
+			currPose.setLocation(navigation.getPose().getLocation().multiply(100));
+			currPose.setHeading(navigation.getPose().getHeading());
 
 			switch (currentStatus) {
 			case SCOUT:
@@ -271,26 +338,23 @@ public class GuidanceAT {
 
 				// Into action
 				if (lastStatus != CurrentStatus.SCOUT) {
-					// this does not need to be here because of the transition
-					// check in the
-					// SubStateMachine, but this way we save the time of one
-					// cycle
-					if (offTrack)
-						currLineStatus = CurrentLineStatus.FOLLOW_LINE_OFF;
-					else
-						currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
+					// this does not need to be here because of the transition check in the
+					// SubStateMachine, but this way we save the time of one cycle
+					// if (offTrack)
+					// currLineStatus = CurrentLineStatus.FOLLOW_LINE_OFF;
+					// else
+					// currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
 
-					// activate parking slot detection, setOffTrack() in
-					// navigation has to be done
+					// activate parking slot detection, setOffTrack() in navigation has to be done
 					// at some point too, probably when we change it
 					navigation.setDetectionState(true);
 				}
 
-				// While action
-				{
-					// execute underlying state machine
-					followLineSubStateMachine(control, navigation);
-				}
+			// While action
+			{
+				// execute underlying state machine
+				followLineSubStateMachine(control, navigation);
+			}
 
 				// State transition check
 				lastStatus = currentStatus;
@@ -321,39 +385,40 @@ public class GuidanceAT {
 					navigation.setDetectionState(false);
 				}
 				break;
-			// There is no transition into this state yet.
 			case PARK_THIS:
 				// TODO implement parking
-
 				// into action
 				if (currentStatus != lastStatus) {
+					RConsole.println("PARK_THIS startet");
+					goalReached = false;
 					// calculate our goal on the line-map and in the ParkingSlot
-					selectedParkingSlotNo = hmi.getSelectedParkingSlot();
-					selectedParkingSlot = navigation.getParkingSlots()[selectedParkingSlotNo];
-					slotDir = selectedParkingSlot.getFrontBoundaryPosition()
-							.subtract(
-									selectedParkingSlot
-											.getBackBoundaryPosition());
-					// calculate goalPose from angle of slotDir here, before
-					// manipulating the
+					// selectedParkingSlotNo = hmi.getSelectedParkingSlot();
+					// selectedParkingSlot = navigation.getParkingSlots()[selectedParkingSlotNo];
+					// slotDir = selectedParkingSlot.getFrontBoundaryPosition()
+					// .subtract(selectedParkingSlot.getBackBoundaryPosition());
+					// // TODO:
+					// calculate goalPose from angle of slotDir here, before manipulating the
 					// slotDir
-					slotDir.multiplyBy((float) 0.5);
-					slotGoal = selectedParkingSlot.getBackBoundaryPosition()
-							.add(slotDir);
+					RConsole.println("PARK_THIS startet immernoch");
+					slotDir.setLocation(30, 0);
+					goalPose.setHeading(slotDir.angle());
+					// slotDir.multiplyBy((float) 0.5);
+					// slotGoal = selectedParkingSlot.getBackBoundaryPosition().add(slotDir);
+					slotGoal.setLocation(100, -30);
 					mapGoal = getClosestPointToGoal(slotGoal);
-
-					currParkStatus = CurrentParkStatus.PARK_LINE_FOLLOW;
+					goalPose.setLocation(slotGoal);
+					// currParkStatus = CurrentParkStatus.PARK_LINE_FOLLOW;
 				}
 
-				// while action
-				{
-					// execute sub-state machine
-					parkThisSubStateMachine(control, navigation);
-				}
+			// while action
+			{
+				// execute sub-state machine
+				parkThisSubStateMachine(control, navigation);
+			}
 
 				// state transition
 				lastStatus = currentStatus;
-				if (hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE) {
+				if (hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE || goalReached) {
 					currentStatus = CurrentStatus.INACTIVE;
 				} else if (Button.ENTER.isDown()) {
 					currentStatus = CurrentStatus.INACTIVE;
@@ -374,8 +439,8 @@ public class GuidanceAT {
 					// deactivate the underlying state machine
 					currParkStatus = CurrentParkStatus.PARK_INACTIVE;
 					lastParkStatus = CurrentParkStatus.PARK_INACTIVE;
-					currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
-					lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+					// currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+					// lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
 					control.setCtrlMode(ControlMode.INACTIVE);
 				}
 				break;
@@ -385,6 +450,7 @@ public class GuidanceAT {
 					control.setCtrlMode(ControlMode.DEMO1_CTRL);
 
 				// While Action
+				RConsole.println("HAAAAALLOOOOO");
 
 				// State transition check
 				lastStatus = currentStatus;
@@ -410,10 +476,10 @@ public class GuidanceAT {
 					control.setCtrlMode(ControlMode.INACTIVE);
 				}
 
-				// While action
-				{
-					// nothing to do here
-				}
+			// While action
+			{
+				// nothing to do here
+			}
 
 				// State transition check
 				lastStatus = currentStatus;
@@ -436,6 +502,11 @@ public class GuidanceAT {
 					while (Button.RIGHT.isDown()) {
 						Thread.sleep(1);
 					} // wait for button release
+				} else if (Button.LEFT.isDown()) {
+					currentStatus = CurrentStatus.PARK_THIS;
+					while (Button.LEFT.isDown()) {
+						Thread.sleep(1);
+					} // wait for button release
 				}
 
 				// Leave action
@@ -446,8 +517,8 @@ public class GuidanceAT {
 			case EXIT:
 				hmi.disconnect();
 				/**
-				 * NOTE: RESERVED FOR FUTURE DEVELOPMENT (PLEASE DO NOT CHANGE)
-				 * // monitor.sendOfflineLog();
+				 * NOTE: RESERVED FOR FUTURE DEVELOPMENT (PLEASE DO NOT CHANGE) //
+				 * monitor.sendOfflineLog();
 				 */
 				monitor.stopLogging();
 				System.exit(0);
@@ -461,8 +532,8 @@ public class GuidanceAT {
 	}
 
 	/**
-	 * returns the actual state of the main finite state machine as defined by
-	 * the requirements
+	 * returns the actual state of the main finite state machine as defined by the
+	 * requirements
 	 * 
 	 * @return actual state of the main finite state machine
 	 */
@@ -476,33 +547,37 @@ public class GuidanceAT {
 	 * @param navigation
 	 *            reference to the navigation class for getting pose information
 	 */
-	protected static void showData(INavigation navigation,
-			IPerception perception, IControl control) {
+	protected static void showData(INavigation navigation, IPerception perception, IControl control) {
 		LCD.clear();
 
-		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0,
-				0);
-		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0,
-				1);
-		LCD.drawString("Phi (grd): "
-				+ (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
-
-		if(control.origin()!=null){
-		 LCD.drawString("Ox: " + (control.origin().getX()), 0,
-		 3);
-		 LCD.drawString("Oy: " + (control.origin().getY()), 0,
-				 4);
-		 LCD.drawString("xS: " + (control.getXstrich()), 0,
-				 5);
-		 LCD.drawString("yS: " + (control.getYstrich()), 0,
-				 6);
-		 LCD.drawString("head:" + control.origin().getHeading(), 0, 7);
+		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0, 0);
+		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0, 1);
+		LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
+		switch(currLineStatus) {
+		case FOLLOW_LINE_CORRECT:
+			break;
+		case FOLLOW_LINE_INACTIVE:
+			LCD.drawString("LINE_INACTIVE", 0, 3);
+			break;
+		case FOLLOW_LINE_LEFT:
+			LCD.drawString("LINE_LEFT", 0, 3);
+			break;
+		case FOLLOW_LINE_OFF:
+			LCD.drawString("LINE_OFF", 0, 3);
+			break;
+		case FOLLOW_LINE_RIGHT:
+			LCD.drawString("LINE_RIGHT", 0, 3);
+			break;
+		case FOLLOW_LINE_STRAIGHT:
+			LCD.drawString("LINE_STRAIGHT", 0, 3);
+			break;
+		case FOLLOW_LINE_TURN_STRAIGHT:
+			break;
+		default:
+			break;
+		
 		}
-		/*LCD.drawString("B:" + Integer.toString((int)perception.getBackSensorDistance()),0,3);
-		LCD.drawString("F:" + Integer.toString((int)perception.getFrontSensorDistance()),0,4);
-		LCD.drawString("FS:" + Integer.toString((int)perception.getFrontSideSensorDistance()),0,5);
-		LCD.drawString("FS:" + Integer.toString((int)perception.getBackSideSensorDistance()),0,6);
-		*/
+
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
 		// }else if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE ){
@@ -513,29 +588,52 @@ public class GuidanceAT {
 	}
 
 	/**
-	 * underlying state machine of FOLLOW_LINE, should do the same as without it
-	 * at the moment. Will make the robot follow the line, which can also be
-	 * used during PARK_THIS
+	 * underlying state machine of FOLLOW_LINE, should do the same as without it at
+	 * the moment. Will make the robot follow the line, which can also be used
+	 * during PARK_THIS
 	 */
-	private static void followLineSubStateMachine(IControl control,
-			INavigation navigation) {
+	private static void followLineSubStateMachine(IControl control, INavigation navigation) {
 		switch (currLineStatus) {
 		case FOLLOW_LINE_STRAIGHT:
 			// into action
 			if (lastLineStatus != currLineStatus) {
 				control.resetIntegralPID();
 				control.resetIntegralRWD();
+				control.setVelocity(0);
 				control.setCtrlMode(ControlMode.LINE_CTRL);
 			}
 			// while action
+			// TODO: control velocity
+			// navigation.getLineNumber()
+			// distToMid = 0;
+			vectorA = map[navigation.getLineNumber()].getP2().subtract(map[navigation.getLineNumber()].getP1());
+			vectorA.multiplyBy((float) 0.5);
+			distToMidMax = vectorA.length();
+			// distToMid =
+			// (map[navigation.getLineNumber()].getP1().add(vectorA)).distance(currPose.getLocation());
+			// vLine = vLineMax * (1 - 0.75 * (distToMid / distToMidMax));
+			if (map[navigation.getLineNumber()].getP2().distance(currPose.getLocation()) > distToMidMax)
+				vLine += 0.2;
+			else
+				vLine -= 0.2;
+			if (vLine < vLine0)
+				vLine = vLine0;
+			control.setVelocity(vLine);
 
 			// state transitions
 			lastLineStatus = currLineStatus;
 
-			if (control.getRightTurn()) {/* && navigation.getRobotCloseToCurve()*/
-				currLineStatus = CurrentLineStatus.FOLLOW_LINE_RIGHT;
-			} else if (control.getLeftTurn()) {/*&& navigation.getRobotCloseToCurve()*/
-				currLineStatus = CurrentLineStatus.FOLLOW_LINE_LEFT;
+			if (control.getRightTurn() && (currPose.getLocation().distance(map[navigation.getLineNumber()].getP2())
+					/ map[navigation.getLineNumber()].length() <= 0.2)) {
+				currLineStatus = CurrentLineStatus.FOLLOW_LINE_TURN_STRAIGHT;
+				rightTurn = true;
+				leftTurn = false;
+			} else if (control.getLeftTurn()
+					&& (currPose.getLocation().distance(map[navigation.getLineNumber()].getP2())
+							/ map[navigation.getLineNumber()].length() <= 0.2)) {
+				currLineStatus = CurrentLineStatus.FOLLOW_LINE_TURN_STRAIGHT;
+				rightTurn = false;
+				leftTurn = true;
 			}
 
 			// leave action
@@ -543,31 +641,65 @@ public class GuidanceAT {
 				control.setCtrlMode(ControlMode.INACTIVE);
 			}
 			break;
+		case FOLLOW_LINE_TURN_STRAIGHT:
+			// into action
+			if (currLineStatus != lastLineStatus) {
+				startPose.setLocation(currPose.getLocation());
+				startPose.setHeading(currPose.getHeading());
+				control.setAngularVelocity(0);
+				control.setVelocity(4);
+				control.setCtrlMode(ControlMode.VW_CTRL);
+			}
+			// while action
+
+			// state transitions
+			lastLineStatus = currLineStatus;
+			if (currPose.getLocation().distance(startPose.getLocation()) >= 4.5) {
+				if (rightTurn) {
+					currLineStatus = CurrentLineStatus.FOLLOW_LINE_RIGHT;
+				} else if (leftTurn) {
+					currLineStatus = CurrentLineStatus.FOLLOW_LINE_LEFT;
+				}
+			}
+			// leave action
+			if (currLineStatus != lastLineStatus) {
+				control.setCtrlMode(ControlMode.INACTIVE);
+			}
+			break;
+		// TODO check how much of the turn the robot actually completed, so that he can
+		// pause while turning
 		case FOLLOW_LINE_RIGHT:
 			// TODO implement turning right
 
 			// into action
 			if (lastLineStatus != currLineStatus) {
 				control.resetIntegralRWD();
-				control.updateStartPose();
-				control.setCtrlMode(ControlMode.RIGHT_CRV_CTRL);
+				// control.updateStartPose();
+				// control.setCtrlMode(ControlMode.RIGHT_CRV_CTRL);
+				control.setAngularVelocity(-30);
+				control.setVelocity(0);
+				control.setCtrlMode(ControlMode.VW_CTRL);
 			}
 
 			// while action
-			// TODO ask control whether it has finished driving the turn
-			// TODO change transition booleans accordingly
+			control.setAngularVelocity((-90 - (currPose.getHeading() - startPose.getHeading()) * (180 / Math.PI))
+					/ (8 * timePeriod * 0.001));
 
 			// state transitions
 			lastLineStatus = currLineStatus;
-
-			if (!control.getRightTurn()) {
+			if ((currPose.getHeading() - startPose.getHeading()) * (180 / Math.PI) <= -70) {
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
 			}
+			// if (!control.getRightTurn()) {
+			// currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
+			// }
 
 			// leave action
 			if (currLineStatus != lastLineStatus) {
 				control.setCtrlMode(ControlMode.INACTIVE);
 				navigation.PositionskorrekturAnEcken();
+				rightTurn = false;
+				leftTurn = false;
 			}
 			break;
 		case FOLLOW_LINE_LEFT:
@@ -577,45 +709,86 @@ public class GuidanceAT {
 			if (lastLineStatus != currLineStatus) {
 				control.updateStartPose();
 				control.resetIntegralRWD();
-				control.setCtrlMode(ControlMode.LEFT_CRV_CTRL);
+				// control.setCtrlMode(ControlMode.LEFT_CRV_CTRL);
+				control.setAngularVelocity(30);
+				control.setVelocity(0);
+				control.setCtrlMode(ControlMode.VW_CTRL);
 			}
 
 			// while action
-			// TODO ask control whether it has finished driving the turn
-			// TODO change transition booleans accordingly
-
+			control.setAngularVelocity((90 - (currPose.getHeading() - startPose.getHeading()) * (180 / Math.PI))
+					/ (8 * timePeriod * 0.001));
 			// state transitions
 			lastLineStatus = currLineStatus;
-
-			if (!control.getLeftTurn()) {
+			if ((currPose.getHeading() - startPose.getHeading()) * (180 / Math.PI) >= 70) {
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
 			}
+			// if (!control.getLeftTurn()) {
+			// currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
+			// }
 
 			// leave action
 			if (currLineStatus != lastLineStatus) {
 				control.setCtrlMode(ControlMode.INACTIVE);
 				navigation.PositionskorrekturAnEcken();
+				rightTurn = false;
+				leftTurn = false;
 			}
 			break;
 		// there is no transition into this state yet
 		case FOLLOW_LINE_OFF:
 			// into action
 			// TODO find path to the line, tell control to drive along that path
+			if (lastLineStatus != currLineStatus) {
+				coSys.setPointOfOrigin(currPose);
+				coEffs = setPolynomial(coSys.getTransformedPoint(offTrackPose));
+				direction = -1;
+				control.setAngularVelocity(0);
+				control.setVelocity(0);
+				control.setCtrlMode(ControlMode.VW_CTRL);
+			}
 
 			// while action
 			// TODO ask control/perception whether the line is reached
 			// TODO change transition accordingly
+			computePhiDot(coSys.getTransformedPose(currPose), coEffs);
+			// velocity control, the straighter the path the faster the robot
+			vPark = vParkMax * (1 - Math.abs(deltaPhiDeg) / 180);
+			phiDot = phiDot * (vPark / vParkMax);
+			control.setAngularVelocity(phiDot);
+			control.setVelocity(-vPark);
 
 			// state transition
 			lastLineStatus = currLineStatus;
 			currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
 			// if(reachedLine)
 			// currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT
+			if (currPose.getLocation().distance(offTrackPose.getLocation()) <= slotGoalDist) {
+				currLineStatus = CurrentLineStatus.FOLLOW_LINE_CORRECT;
+			}
 
 			// leave action
 			if (currLineStatus != lastLineStatus) {
 				control.setCtrlMode(ControlMode.INACTIVE);
 			}
+			break;
+		case FOLLOW_LINE_CORRECT:
+			// into action
+			control.setAngularVelocity(0);
+			control.setVelocity(0);
+			control.setCtrlMode(ControlMode.VW_CTRL);
+
+			// while action
+			control.setAngularVelocity(
+					(currPose.getHeading() - offTrackPose.getHeading()) * (180 / Math.PI) / (2 * timePeriod * 0.001));
+
+			// state transition
+			if ((currPose.getHeading() - offTrackPose.getHeading()) * (180 / Math.PI) <= slotDegTol) {
+				currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
+			}
+
+			// leave action
+			control.setCtrlMode(ControlMode.INACTIVE);
 			break;
 		// this state is only executed once after the LINE_FOLLOW is set active
 		case FOLLOW_LINE_INACTIVE:
@@ -633,14 +806,12 @@ public class GuidanceAT {
 		}
 	}
 
-	private static void parkThisSubStateMachine(IControl control,
-			INavigation navigation) {
+	private static void parkThisSubStateMachine(IControl control, INavigation navigation) {
 		switch (currParkStatus) {
 		case PARK_LINE_FOLLOW:
 			// into action
 			if (lastParkStatus != currParkStatus) {
-				// this does not need to be here because of the transition check
-				// in the
+				// this does not need to be here because of the transition check in the
 				// SubStateMachine, but this way we save the time of one cycle
 				if (offTrack)
 					currLineStatus = CurrentLineStatus.FOLLOW_LINE_OFF;
@@ -650,10 +821,10 @@ public class GuidanceAT {
 
 			// while action
 			followLineSubStateMachine(control, navigation);
-
+			RConsole.println(Double.toString(currPose.getLocation().distance(mapGoal)));
 			// state transition
 			lastParkStatus = currParkStatus;
-			if (navigation.getPose().getLocation().distance(mapGoal) <= mapGoalDist) {
+			if (currPose.getLocation().distance(mapGoal) <= mapGoalDist) {
 				currParkStatus = CurrentParkStatus.PARK_PATH_FOLLOW;
 			}
 
@@ -669,24 +840,62 @@ public class GuidanceAT {
 		case PARK_PATH_FOLLOW:
 			// into action
 			if (lastParkStatus != currParkStatus) {
-				coEffs = setPolynomial(navigation.getPose().getLocation(),
-						slotGoal);
+				RConsole.println("PARK_PATH_FOLLOW gestartet!");
+				coSys.setPointOfOrigin(goalPose);
+				coEffs = setPolynomial(coSys.getTransformedPoint(currPose.getLocation()));
+				direction = 1;
+				offTrackPose.setLocation(mapGoal);
+				offTrackPose.setHeading(map[navigation.getLineNumber()].getP2()
+						.subtract(map[navigation.getLineNumber()].getP1()).angle());
+				offTrack = true;
+				navigation.setOffTrack(true);
+				control.setAngularVelocity(0);
+				control.setVelocity(0);
+				control.setCtrlMode(ControlMode.VW_CTRL);
+				RConsole.println("PARK_PATH_FOLLOW into action abgeschlossen!");
 			}
 
 			// while action
+			RConsole.println("Folge Pfad");
+			computePhiDot(coSys.getTransformedPose(currPose), coEffs);
+			// velocity control, the straighter the path the faster the robot
+			vPark = vParkMax * (1 - Math.abs(deltaPhiDeg) / 180);
+			phiDot = phiDot * (vPark / vParkMax);
+			control.setAngularVelocity(phiDot);
+			control.setVelocity(vPark);
 
 			// state transition
-
+			lastParkStatus = currParkStatus;
+			if (currPose.getLocation().distance(slotGoal) <= slotGoalDist) {
+				currParkStatus = CurrentParkStatus.PARK_CORRECTING;
+			}
 			// leaving action
+			if (currParkStatus != lastParkStatus) {
+				// stop the robot(may not be needed)
+				control.setCtrlMode(ControlMode.INACTIVE);
+			}
 			break;
 		case PARK_CORRECTING:
 			// into action
+			control.setAngularVelocity(0);
+			control.setVelocity(0);
+			control.setCtrlMode(ControlMode.VW_CTRL);
 
 			// while action
+			control.setAngularVelocity(
+					(currPose.getHeading() - goalPose.getHeading()) * (180 / Math.PI) / (2 * timePeriod * 0.001));
 
 			// state transition
-
+			lastParkStatus = currParkStatus;
+			if ((currPose.getHeading() - goalPose.getHeading()) * (180 / Math.PI) <= slotDegTol) {
+				currParkStatus = CurrentParkStatus.PARK_INACTIVE;
+				goalReached = true;
+			}
 			// leaving action
+			if (currParkStatus != lastParkStatus) {
+				// stop the robot(may not be needed)
+				control.setCtrlMode(ControlMode.INACTIVE);
+			}
 			break;
 		case PARK_INACTIVE:
 			// into action
@@ -694,16 +903,23 @@ public class GuidanceAT {
 			// while action
 
 			// state transition
-
+			// TODO maybe update to a distance from current goal, so that pausing while
+			// following a path is possible
+			lastParkStatus = currParkStatus;
+			if (currPose.getLocation().distance(mapGoal) >= mapGoalDist) {
+				currParkStatus = CurrentParkStatus.PARK_LINE_FOLLOW;
+			} else {
+				currParkStatus = CurrentParkStatus.PARK_PATH_FOLLOW;
+			}
 			// leaving action
 			break;
 		}
 	}
 
 	/**
-	 * This function returns the closest point on the map in regards to the
-	 * point given. This is used for determining the point the robot drives to
-	 * before parking in a parking slot.
+	 * This function returns the closest point on the map in regards to the point
+	 * given. This is used for determining the point the robot drives to before
+	 * parking in a parking slot.
 	 * 
 	 * @param l_goal
 	 *            Point to which the closest point on the map has to be found
@@ -715,8 +931,7 @@ public class GuidanceAT {
 		int lineNo = 0;
 		// vector from starting point of desired line to goal
 		Point vectorR0;
-		// vector from starting point of desired line to point of shortest
-		// distance to
+		// vector from starting point of desired line to point of shortest distance to
 		// goal on line
 		Point vectorR1;
 		// vector from (0;0) to point of shortest distance to goal on line
@@ -734,23 +949,25 @@ public class GuidanceAT {
 		return vectorR2;
 	}
 
-	private static double[] setPolynomial(Point startPoint, Point endPoint) {
-		double a, b, c, d = 0;
-		double x0 = (endPoint.getX() - startPoint.getX()) / 2;
-		return null;
+	private static double[] setPolynomial(Point startPoint) {
+		double[] A = { 0, 0 };
+		double x0 = startPoint.getX();
+		double y0 = startPoint.getY();
+		A[0] = (-2 * y0) / (x0 * x0 * x0);
+		A[1] = (3 * y0) / (x0 * x0);
+		return A;
 	}
 
-	/**
-	 * This function sets the Point 0,0 for the coordinate system the robot uses
-	 * when following a path.
-	 * 
-	 * @param startPoint
-	 *            The Point the path starts.
-	 * @param endPoint
-	 *            The Point the path ends.
-	 */
-	private static void setTransformedCoordinates(Point startPoint,
-			Point endPoint) {
+	private static void computePhiDot(Pose currPose, double[] coEffs) {
 
+		double vx = vParkMax * Math.cos(currPose.getHeading());
+		double xNext = currPose.getX() + direction * vx * timePeriod * 0.001;
+		double nextPhiRad = Math.atan(3 * coEffs[0] * xNext * xNext + 2 * coEffs[1] * xNext);
+		deltaPhiDeg = (nextPhiRad - currPose.getHeading()) * (180 / Math.PI);
+		while (deltaPhiDeg > 180)
+			deltaPhiDeg -= 360;
+		while (deltaPhiDeg < -180)
+			deltaPhiDeg += 360;
+		phiDot = deltaPhiDeg / (timePeriod * 0.001);
 	}
 }

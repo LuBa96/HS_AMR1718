@@ -3,6 +3,7 @@ package parkingRobot;
 import lejos.geom.Line;
 import lejos.geom.Point;
 import lejos.robotics.navigation.Pose;
+import parkingRobot.INavigation.ParkingSlot;
 
 
 /**
@@ -78,8 +79,11 @@ public interface INavigation {
 	public double frontBoundarxFrontSensorAktuell();
 	public double frontBoundaryFrontSensorAktuell();
 	public double parklueckenLaenge();
-	public int anzahlParkluecken();
+	public int anzahlParklueckenAktuelleRunde();
 	public ParkingSlot getAktuellstenParkplatz();
+	public ParkingSlot getParkplatz(int i);
+	public int getLineNumber();
+	public void setInTurn(boolean x);
 	// Outputs
 	
 	/**
@@ -105,7 +109,7 @@ public interface INavigation {
 	 * - slot status (whether it is/is not suitable for parking),
 	 * - measured position of the slot begin front boundary, 
 	 * - measured position of the slot back boundary,
-	 * - quality of parking slot measurement (die G√ºte der Parkl√ºckenvermessung).
+	 * - quality of parking slot measurement (die Güte der Parklückenvermessung).
 	 * 
 	 * @author IfA
 	 */
@@ -127,6 +131,10 @@ public interface INavigation {
 		 * position of parking slot front boundary, robot passes it second after the back boundary
 		 */
 		Point frontBoundaryPosition   = null;
+		
+		Point backBoundaryPositionM = null;
+		
+		Point frontBoundaryPositionM = null;
 		/**
 		 * defined states the parking slot can be in
 		 */
@@ -166,13 +174,17 @@ public interface INavigation {
 		 * @param frontBoundaryPosition	 position of parking slot front boundary, robot passes it second after the back boundary
 		 * @param slotStatus			 characterization of the parking slot measurement
 		 * @param slotMeasurementQuality quality of parking slot measurement
+		 * @param backBoundaryPositionM  midpoint of backBoundary for Guidance
+		 * @param frontBoundaryPositionM provides information about midpoint of backBoundary for Guidance
 		 */
-		public ParkingSlot(int ID, Point backBoundaryPosition, Point frontBoundaryPosition, ParkingSlotStatus slotStatus, int slotMeasurementQuality){
+		public ParkingSlot(int ID, Point backBoundaryPosition, Point frontBoundaryPosition, ParkingSlotStatus slotStatus, int slotMeasurementQuality, Point backBoundaryPositionM, Point frontBoundaryPositionM){
 			this.ID     				= ID;
 			this.backBoundaryPosition  	= backBoundaryPosition;
 			this.frontBoundaryPosition	= frontBoundaryPosition;
 			this.setStatus(slotStatus);		
 			this.setMeasurementQuality(slotMeasurementQuality);
+			this.frontBoundaryPositionM 	= frontBoundaryPositionM;
+			this.backBoundaryPositionM 	= backBoundaryPositionM;
 		}
 		
 		// Set methods
@@ -194,6 +206,14 @@ public interface INavigation {
 		 */
 		public void setFrontBoundaryPosition(Point frontBoundaryPosition){
 			this.frontBoundaryPosition = frontBoundaryPosition;
+		}
+		
+		public void setBackBoundaryPositionM(Point backBoundaryPositionM){
+			this.backBoundaryPositionM  = backBoundaryPositionM;
+		}
+		
+		public void setFrontBoundaryPositionM(Point frontBoundaryPositionM){
+			this.frontBoundaryPositionM = frontBoundaryPositionM;
 		}
 		/**
 		 * set parking slot status
@@ -231,6 +251,14 @@ public interface INavigation {
 		public Point getFrontBoundaryPosition(){
 			return frontBoundaryPosition;
 		}
+		
+		public Point getBackBoundaryPositionM(){
+			return backBoundaryPositionM;
+		}
+		
+		public Point getFrontBoundaryPositionM(){
+			return frontBoundaryPositionM;
+		}
 		/**
 		 * @return status characterization of the parking slot status
 		 */
@@ -243,7 +271,6 @@ public interface INavigation {
 		public int getMeasurementQuality() {
 			return measurementQuality;
 		}
-		
 		
 	}	
 }
