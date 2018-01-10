@@ -28,6 +28,11 @@ public interface IControl {
 		DEMO2_CTRL,
 		
 		/**
+		 * Demo 3 Programm
+		 */
+		DEMO3_CTRL,
+		
+		/**
 		 * folgt schwarzer Linie
 		 */
 		LINE_CTRL,
@@ -159,7 +164,6 @@ public interface IControl {
 	public double getYstrich();
 	public double getXstrich();
 	public double getesum();
-	
-
+	public Pose origin();
 }
 

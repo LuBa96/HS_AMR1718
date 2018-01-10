@@ -378,7 +378,7 @@ public class NavigationAT implements INavigation {
 		this.mouseodo = perception.getNavigationOdo();
 		off_track = false;
 
-		navThread.setPriority(Thread.MAX_PRIORITY - 1);
+		navThread.setPriority(Thread.MAX_PRIORITY - 2);
 		navThread.setDaemon(true); // background thread that is not need to
 									// terminate in order for the user program
 									// to terminate
@@ -592,7 +592,7 @@ public class NavigationAT implements INavigation {
 	public int getLineNumber() {
 		switch(aktuellerKurvenpunkt) {
 		case 0: case 1: case 2: case 3: case 4: case 5: case 6: 
-			return aktuellerKurvenpunkt++;
+			return aktuellerKurvenpunkt+1;
 		case 7: return 0;
 		default: return 0;
 		}
