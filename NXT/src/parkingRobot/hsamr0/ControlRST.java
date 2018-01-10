@@ -496,7 +496,7 @@ public class ControlRST implements IControl {
 		if (CoSys.getPointOfOrigin() == null || pathEnd) {
 			jetzt.setLocation(this.currentPosition.getX(),
 					this.currentPosition.getY());
-			jetzt.setHeading((float) (this.currentPosition.getHeading() / Math.PI * 180));
+			jetzt.setHeading((float) (this.currentPosition.getHeading()));
 			Sound.systemSound(true, 0);
 			CoSys.setPointOfOrigin(jetzt);
 			pathEnd = false;
@@ -515,8 +515,8 @@ public class ControlRST implements IControl {
 		 */
 		errYAlt = yRotKOS - errYAlt;
 
-		y = 0.65 * yRotKOS + 0.00 * errYSum + 10 * lastError;
-		drive(vo, -y);
+		y = -0.65 * yRotKOS + 0 * errYSum + 0 * lastError;
+		drive(vo, y);
 
 		errYSum = errYSum + yRotKOS;
 	}
@@ -913,8 +913,8 @@ public class ControlRST implements IControl {
 		/*
 		 * optional, rotate CoSys...
 		 */
-		drive(0, PID_control((int) e, 1, 0, 0, 1));
-		if (e < 5) {
+		drive(0, -e);
+		if (Math.abs(e) < 5) {
 			boolRotate = true;
 			updateStartPose();
 			leftMotor.stop();
@@ -931,7 +931,6 @@ public class ControlRST implements IControl {
 		 */
 		return boolRotate;
 	}
-
 
 	/**
 	 * drive X cm with given translatory velocity
@@ -970,7 +969,7 @@ public class ControlRST implements IControl {
 	 */
 	private void Control_Demo_1() {
 		if (demo5) {
-			//counter = 50;
+			// counter = 50;
 			demo1 = true;
 			demo5 = false;
 			demoFin = true;
@@ -1010,7 +1009,7 @@ public class ControlRST implements IControl {
 		 * 120 cm with 10 cm/s straight driving
 		 */
 		if (demo1) {
-			if (!driveXCm(10, 120)) {
+			if (!driveXCm(10, 300)) {
 				// drive
 			} else {
 				Sound.systemSound(true, 0);
@@ -1061,7 +1060,7 @@ public class ControlRST implements IControl {
 		 * 30 cm with 5 cm/s straight driving
 		 */
 		else if (demo3) {
-			if (!driveXCm(5, 30)) {
+			if (!driveXCm(5, 100)) {
 				// drive
 			} else {
 				Sound.systemSound(true, 0);
@@ -1107,7 +1106,7 @@ public class ControlRST implements IControl {
 				demo5 = true;
 				pathEnd = true;
 				demo4 = false;
-				//counter = 8;
+				// counter = 8;
 				esumL = 0;
 				esumR = 0;
 				updateStartPose();
@@ -1115,19 +1114,13 @@ public class ControlRST implements IControl {
 				rightMotor.stop();
 			}
 
-			/*drive(0, -30);
-			if ((int) (this.currentPosition.getHeading() / Math.PI * 180)
-					- startAngleDeg <= -80) {
-				Sound.systemSound(true, 1);
-				Sound.systemSound(true, 1);
-				demo5 = true;
-				counter = 8;
-				demo4 = false;
-				leftMotor.stop();
-				rightMotor.stop();
-				esumL = 0;
-				esumR = 0;
-			}*/
+			/*
+			 * drive(0, -30); if ((int) (this.currentPosition.getHeading() /
+			 * Math.PI * 180) - startAngleDeg <= -80) { Sound.systemSound(true,
+			 * 1); Sound.systemSound(true, 1); demo5 = true; counter = 8; demo4
+			 * = false; leftMotor.stop(); rightMotor.stop(); esumL = 0; esumR =
+			 * 0; }
+			 */
 		}
 
 	}
