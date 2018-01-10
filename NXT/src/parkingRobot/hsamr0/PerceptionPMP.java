@@ -84,7 +84,7 @@ public class PerceptionPMP implements IPerception {
 		//build up a Connection to the Arduino via RS485
 		RS485.hsEnable(RS485_BAUD,14);
 
-		perThread.setPriority(Thread.MAX_PRIORITY - 1);
+		perThread.setPriority(Thread.MAX_PRIORITY - 2);
     	perThread.setDaemon(true); // background thread that is not need to terminate in order for the user program to terminate
     	perThread.start();
     	
