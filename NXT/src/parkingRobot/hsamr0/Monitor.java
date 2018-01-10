@@ -72,7 +72,7 @@ public class Monitor implements IMonitor {
 		}
 		// create and start monitor thread
 		this.monThread = new MonitorThread(this);
-		monThread.setPriority(Thread.MAX_PRIORITY - 2);
+		monThread.setPriority(Thread.MAX_PRIORITY - 5);
 		monThread.setDaemon(true);
 		monThread.start();
 	}

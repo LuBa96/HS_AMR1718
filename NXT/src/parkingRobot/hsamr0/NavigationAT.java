@@ -378,7 +378,7 @@ public class NavigationAT implements INavigation {
 		this.mouseodo = perception.getNavigationOdo();
 		off_track = false;
 
-		navThread.setPriority(Thread.MAX_PRIORITY - 1);
+		navThread.setPriority(Thread.MAX_PRIORITY - 3);
 		navThread.setDaemon(true); // background thread that is not need to
 									// terminate in order for the user program
 									// to terminate

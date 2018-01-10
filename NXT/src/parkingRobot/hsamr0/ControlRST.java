@@ -247,7 +247,7 @@ public class ControlRST implements IControl {
 
 		this.ctrlThread = new ControlThread(this);
 
-		ctrlThread.setPriority(Thread.MAX_PRIORITY - 1);
+		ctrlThread.setPriority(Thread.MAX_PRIORITY - 3);
 		ctrlThread.setDaemon(true); // background thread that is not need to
 									// terminate in order for the user program
 									// to terminate
@@ -515,7 +515,7 @@ public class ControlRST implements IControl {
 		 */
 		errYAlt = yRotKOS - errYAlt;
 
-		y = -0.65 * yRotKOS + 0 * errYSum + 0 * lastError;
+		y = -0.65 * yRotKOS + 0 * errYSum + 0.3 * lastError;
 		drive(vo, y);
 
 		errYSum = errYSum + yRotKOS;
@@ -1009,7 +1009,7 @@ public class ControlRST implements IControl {
 		 * 120 cm with 10 cm/s straight driving
 		 */
 		if (demo1) {
-			if (!driveXCm(10, 300)) {
+			if (!driveXCm(10, 120)) {
 				// drive
 			} else {
 				Sound.systemSound(true, 0);
@@ -1060,7 +1060,7 @@ public class ControlRST implements IControl {
 		 * 30 cm with 5 cm/s straight driving
 		 */
 		else if (demo3) {
-			if (!driveXCm(5, 100)) {
+			if (!driveXCm(5, 30)) {
 				// drive
 			} else {
 				Sound.systemSound(true, 0);

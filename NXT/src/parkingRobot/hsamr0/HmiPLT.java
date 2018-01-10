@@ -113,12 +113,12 @@ public class HmiPLT implements INxtHmi{
 		
 		// Start the HMI reader and sender threads
 		hmiReaderThread.setName("ReaderThread");
-		hmiReaderThread.setPriority(Thread.MAX_PRIORITY -1);
+		hmiReaderThread.setPriority(Thread.MAX_PRIORITY -4);
 		hmiReaderThread.setDaemon(false);
 		hmiReaderThread.start();
 		
 		hmiSenderThread.setName("SenderThread");
-		hmiSenderThread.setPriority(Thread.MAX_PRIORITY -1);
+		hmiSenderThread.setPriority(Thread.MAX_PRIORITY -4);
 		hmiSenderThread.setDaemon(false);
 		hmiSenderThread.start();
 	

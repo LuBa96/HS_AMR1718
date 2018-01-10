@@ -33,7 +33,7 @@ public class PerceptionThread extends Thread {
         while(true){
         	try{
             	perception.updateSensors();
-	            Thread.sleep(50);
+	            Thread.sleep(25);
         	} catch(InterruptedException ie){	        		
         	}
         }
