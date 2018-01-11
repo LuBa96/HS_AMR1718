@@ -913,7 +913,7 @@ public class ControlRST implements IControl {
 		/*
 		 * error of angle
 		 */
-		double e = (this.currentPosition.getHeading() / Math.PI * 180 - startAngleDeg)
+		double e = (CoSys.getTransformedHeading(this.currentPosition))
 				- angle * 0.85;
 		if (Math.abs(e) < 5) {
 			demoFin = true;
