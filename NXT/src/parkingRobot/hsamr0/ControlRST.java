@@ -339,6 +339,10 @@ public class ControlRST implements IControl {
 	public boolean getDemoStatus() {
 		return demoFin;
 	}
+	
+	public void setDemoStatus(boolean status){
+		this.demoFin = status;
+	}
 
 	/**
 	 * selection of control-mode
@@ -913,7 +917,7 @@ public class ControlRST implements IControl {
 		/*
 		 * error of angle
 		 */
-		double e = (CoSys.getTransformedHeading(this.currentPosition))
+		double e = (CoSys.getTransformedHeading(this.currentPosition)/Math.PI *180)
 				- angle * 0.85;
 		if (Math.abs(e) < 5) {
 			demoFin = true;
