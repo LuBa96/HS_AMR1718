@@ -948,7 +948,7 @@ public class ControlRST implements IControl {
 		 * CoSys.getPointofOrigin.getX() returns value in cm
 		 */
 		disMomentary = CoSys.getTransformedPoint(this.currentPosition)
-				.distance(0, 0);
+				.getX();
 		if (disMomentary >= dis) {
 			demoFin = true;
 			leftMotor.stop();
