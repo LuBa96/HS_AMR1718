@@ -498,11 +498,13 @@ public class GuidanceAT {
 //		LCD.drawString("Mode: " + currentStatus, 0, 5);
 //		LCD.drawString("UMode: " + currLineStatus, 0, 6);
 //		LCD.drawString("KP: " + navigation.getAktuellenKurvenpunkt(), 0, 3);
+		LCD.drawString("Compass:" + navigation.getPose().getHeading(), 0, 1);
 		LCD.drawString("CTC: " + navigation.getRobotCloseToCurve(), 0, 7);
 //		
-//		LCD.drawString("B:" + Integer.toString((int)perception.getBackSensorDistance()),0,0);
-//		LCD.drawString("F:" + Integer.toString((int)perception.getFrontSensorDistance()),0,1);
-//		LCD.drawString("FS:" + Integer.toString((int)perception.getFrontSideSensorDistance()),0,2);
+		LCD.drawString("B:" + Integer.toString((int)perception.getBackSensorDistance()),0,2);
+		LCD.drawString("F:" + Integer.toString((int)perception.getFrontSensorDistance()),0,3);
+		LCD.drawString("FS:" + Integer.toString((int)perception.getFrontSideSensorDistance()),0,4);
+		LCD.drawString("BS:" + Integer.toString((int)perception.getBackSideSensorDistance()),0,5);
 //		
 //		LCD.drawString("BBx: " + navigation.getAktuellstenParkplatz().getBackBoundaryPosition().getX(),0,0);
 //		LCD.drawString("BBy: " + navigation.getAktuellstenParkplatz().getBackBoundaryPosition().getY(),0,1);
@@ -513,12 +515,12 @@ public class GuidanceAT {
 //		LCD.drawString("PLaenge: " + navigation.parklueckenLaenge(),0,6);
 //		LCD.drawString("AnzParkluecken" + navigation.anzahlParklueckenAktuelleRunde(), 0, 7);
 
-		LCD.drawString("1_X:" + navigation.getParkplatz(0).getBackBoundaryPositionM().getX(),0,0);
-		LCD.drawString("1_Y:" + navigation.getParkplatz(0).getBackBoundaryPositionM().getY(),0,1);
-		LCD.drawString("5_X:" + navigation.getParkplatz(4).getBackBoundaryPositionM().getX(),0,2);
-		LCD.drawString("5_Y:" + navigation.getParkplatz(4).getBackBoundaryPositionM().getY(),0,3);
-		LCD.drawString("9_X:" + navigation.getParkplatz(8).getBackBoundaryPositionM().getX(),0,4);
-		LCD.drawString("9_Y:" + navigation.getParkplatz(8).getBackBoundaryPositionM().getY(),0,5);
+//		LCD.drawString("1_X:" + navigation.getParkplatz(0).getBackBoundaryPositionM().getX(),0,0);
+//		LCD.drawString("1_Y:" + navigation.getParkplatz(0).getBackBoundaryPositionM().getY(),0,1);
+//		LCD.drawString("5_X:" + navigation.getParkplatz(4).getBackBoundaryPositionM().getX(),0,2);
+//		LCD.drawString("5_Y:" + navigation.getParkplatz(4).getBackBoundaryPositionM().getY(),0,3);
+//		LCD.drawString("9_X:" + navigation.getParkplatz(8).getBackBoundaryPositionM().getX(),0,4);
+//		LCD.drawString("9_Y:" + navigation.getParkplatz(8).getBackBoundaryPositionM().getY(),0,5);
 //		LCD.drawString("8:" + navigation.getParkplatz(9).getBackBoundaryPositionM().getX(),0,3);
 //		LCD.drawString("9:" + navigation.getParkplatz(10).getBackBoundaryPositionM().getX(),0,4);
 //		LCD.drawString("6:" + navigation.getParkplatz(5).getBackBoundaryPosition().getX(),0,5);

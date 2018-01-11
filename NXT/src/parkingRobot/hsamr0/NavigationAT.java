@@ -320,7 +320,7 @@ public class NavigationAT implements INavigation {
 	double yResultMap = 0;
 	double angleResultMap = 0;
 
-	/** folgende Variablen werden fï¿½r WinkelkorrekturZwischenEcken benoetigt **/
+	/** folgende Variablen werden fuer WinkelkorrekturZwischenEcken benoetigt **/
 	private int anzahlDurchlaufeMittelwert = 1; // gibt Anzahl der aktuellen
 												// Messwerte inklusive des neuen
 												// Messwertes fuer Berechnung
@@ -328,8 +328,11 @@ public class NavigationAT implements INavigation {
 	private double angleResultAktuellerMittelwert = 0;
 	private boolean winkelSchonKorrigiert = false;
 
-	/** folgende Variable wird fuer closeToCurve Methode fuer Luke benoetigt **/
+	/** folgende Variable wird fuer closeToCurve Methode fuer Luke (Control) benoetigt **/
 	public boolean robotCloseToCurve = false;
+	
+	/**folgende Variable wird fuer den Demomodus 1&2 benoetigt (wird von Guidance zum Zeitpunkt nach Drehung auf Linie 4 auf true gesetzt) */
+	public boolean backwards = false;
 
 	/** folgende Variablen werden fuer detectParkingSlot benoetigt **/
 	private double backBoundarxFrontSensor = 0;
@@ -602,6 +605,13 @@ public class NavigationAT implements INavigation {
 		inTurn = x;
 	}
 	
+	public void setBackwards(boolean backwards) {
+		this.backwards = backwards;
+		this.aktuellerKurvenpunkt = 4;
+		this.pose.setLocation(120/100, 30/100);
+		this.pose.setHeading(0);
+	}
+	
 	/**
 	 * calculates the robot pose with data of encorders
 	 */
@@ -663,15 +673,8 @@ public class NavigationAT implements INavigation {
 
 	}
 
-	private void calculateLocationUsingMouseSensor(double x_in, double y_in) { // muss
-																				// oft
-																				// genug
-																				// aufgerufen
-																				// werden
-
-		double x = x_in; // im Koordinatensystem des Roboters in x Richtung
-							// zurueckgelegter Wert; wird von Perception in mm
-							// uebergeben
+	private void calculateLocationUsingMouseSensor(double x_in, double y_in) { //muss oft genug aufgerufen werden
+		double x = x_in; // im Koordinatensystem des Roboters in x Richtung zurueckgelegter Wert; wird von Perception in mm uebergeben
 		double y = y_in; // ""
 
 		// Winkel der Blickrichtung bestimmen
@@ -730,13 +733,13 @@ public class NavigationAT implements INavigation {
 	}
 
 	private void calculateLocationUsingCompass(double compassData) {
-
+		
 		xResult = 0;
 		yResult = 0;
 		angleResult = compassData;
 		sensor = 2;
 		this.fusionOfPoseData(sensor, (double) xResult, (double) yResult, (double) angleResult);
-
+		
 	}
 
 	/**
@@ -782,9 +785,7 @@ public class NavigationAT implements INavigation {
 		 */
 
 		if (!off_track) {
-			// this.ueberpruefenObAktuellInKurve(); //setzt aktuellInKurve auf true oder
-			// false
-			// this.PositionskorrekturAnEcken(); //wird jetzt in Guidance nach Kurve ausgefuehrt
+			//PositionskorrekturAnEcken() wird von Guidance nach Kurve aufgerufen
 			this.WinkelkorrekturZwischenEcken();
 			this.PositionFuerTabletMitPositionskorrekturAufGeraden(); // berechnet xResultMap und yResultMap
 		}
@@ -806,26 +807,6 @@ public class NavigationAT implements INavigation {
 		// (this.getPose().getHeading()/Math.PI*180), 0, 4);
 	}
 
-	/**
-	 * Um festzustellen ob sich der Roboter in einer Kurve befindet, gilt das
-	 * Kriterium, dass der aktuelle Winkel um mehr als 40 Grad vom Winkel der
-	 * Strecke vor der Kurvenabfahrt abweichen muss. Ob groeï¿½er oder kleiner wurde
-	 * nicht unterschieden, da nicht notwendig.
-	 */
-	// public void ueberpruefenObAktuellInKurve() {
-	// if(this.getPose().getHeading()/Math.PI*180 >
-	// Kurvenmatrix[aktuellerKurvenpunkt][7] +25 ||
-	// this.getPose().getHeading()/Math.PI*180 <
-	// Kurvenmatrix[aktuellerKurvenpunkt][7]-25) { //fusionMatrix[0][3];
-	// (this.getPose().getHeading()> 35) || (this.getPose().getHeading()< -35)
-	// aktuellInKurve = true; //aktuell hier noch ein Problem bei ueber einem
-	// Durchlauf, da bei ca. 340 Grad erste Bedingung sofort erfuellt -> Winkel
-	// nach Kurven entweder mit Methode korrigieren oder absolut (Kompass)
-	// }
-	// else {
-	// aktuellInKurve = false;
-	// }
-	// }
 
 	/**
 	 * Da Streckenkurs bekannt, wird an jeder Kurve des Parkours eine Korrektur der
@@ -893,102 +874,200 @@ public class NavigationAT implements INavigation {
 	// Werte gesetzt (was voellig ausreichend ist)
 	private void WinkelkorrekturZwischenEcken() {
 		if (!off_track) {
-			switch (aktuellerKurvenpunkt) {
-			case 0:
-				if (yResult * 100 > 10 && yResult * 100 < 30) { // waren 10, 30
-					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
-							/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
-					anzahlDurchlaufeMittelwert++;
+			if(!backwards) {
+				switch (aktuellerKurvenpunkt) {
+				case 0:
+					if (yResult * 100 > 10 && yResult * 100 < 15) { // waren 10, 30
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (yResult * 100 > 15 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (90 * Math.PI / 180 - angleResultAktuellerMittelwert); // 90 Grad muss in Einheit von angleResult geaendert werden
+						winkelSchonKorrigiert = true; // wird in PositionskorrekturAnEcken Methode auf false gesetzt
+					}
+					break;
+				case 1:
+					if (xResult * 100 < 175 && xResult * 100 > 170) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (xResult * 100 < 170 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (180 * Math.PI / 180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true;
+					}
+					break;
+				case 2:
+					if (yResult * 100 < 55 && yResult * 100 > 50) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (yResult * 100 < 50 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (270 * Math.PI / 180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true;
+					}
+					break;
+				case 3:
+					if (xResult*100 > 145) {
+						angleResult = 180* Math.PI/180;
+					}
+					if (xResult * 100 < 145 && xResult * 100 > 120) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (xResult * 100 < 120 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (180 * Math.PI / 180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true;
+					}
+					break;
+				case 4:
+					if (yResult * 100 > 35 && yResult * 100 < 40) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (yResult * 100 > 40 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (90 * Math.PI / 180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true;
+					}
+					break;
+				case 5:
+					if (xResult * 100 < 25 && xResult * 100 > 20) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (xResult * 100 < 20 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (180 * Math.PI / 180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true;
+					}
+					break;
+				case 6:
+					if (yResult * 100 < 55 && yResult * 100 > 45) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (yResult * 100 < 45 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (270 * Math.PI / 180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true;
+						anzahlRunde++;// nochmal ueberdenken ob hier richtiger Ort
+					}
+					break;
+				case 7:
+					if (xResult*100 < 5) {
+						angleResult = 0;
+					}
+					if (xResult * 100 > 5 && xResult * 100 < 50) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (xResult * 100 > 50 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult - angleResultAktuellerMittelwert;
+						winkelSchonKorrigiert = true;
+					}
+					break;
 				}
-				if (yResult * 100 > 15 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (90 * Math.PI / 180 - angleResultAktuellerMittelwert); // 90 Grad muss in Einheit von angleResult geaendert werden
-					winkelSchonKorrigiert = true; // wird in PositionskorrekturAnEcken Methode auf false gesetzt
+			}
+			else {
+				switch (aktuellerKurvenpunkt) {
+				case 0:
+					if (xResult * 100 < 170 && xResult * 100 > 140) { // waren 10, 30
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (xResult * 100 < 140 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (180 * Math.PI / 180 - angleResultAktuellerMittelwert); // 90 Grad muss in Einheit von angleResult geaendert werden
+						winkelSchonKorrigiert = true; // wird in PositionskorrekturAnEcken Methode auf false gesetzt
+					}
+					break;
+				case 1:
+					if (yResult * 100 < 55 && yResult * 100 > 35) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (yResult * 100 < 35 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (270 * Math.PI / 180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true;
+					}
+					break;
+				case 2:
+					if (xResult * 100 > 155 && xResult * 100 < 160) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (xResult * 100 > 160 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (0 * Math.PI / 180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true;
+					}
+					break;
+				case 3:
+					if (yResult * 100 > 35 && yResult * 100 < 40) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (yResult * 100 > 40 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (90 * Math.PI / 180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true;
+					}
+					break;
+				case 4:	//4 Sachen geandert, 2x xResult,yResult, 2xWerte, 1x xResult, 1x Winkelwert 
+					if (xResult * 100 > 130 && xResult * 100 < 140) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (xResult * 100 > 140 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (0 * Math.PI / 180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true;
+					}
+					break;
+				case 5://not needed
+					if (xResult * 100 < 25 && xResult * 100 > 20) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (xResult * 100 < 20 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (180 * Math.PI / 180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true;
+					}
+					break;
+				case 6://not needed
+					if (yResult * 100 < 55 && yResult * 100 > 45) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (yResult * 100 < 45 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult + (270 * Math.PI / 180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert = true;
+						anzahlRunde++;// nochmal ueberdenken ob hier richtiger Ort
+					}
+					break;
+				case 7://not needed
+					if (xResult*100 < 5) {
+						angleResult = 0;
+					}
+					if (xResult * 100 > 5 && xResult * 100 < 50) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (xResult * 100 > 50 && winkelSchonKorrigiert == false) {
+						angleResult = angleResult - angleResultAktuellerMittelwert;
+						winkelSchonKorrigiert = true;
+					}
+					break;
 				}
-				break;
-			case 1:
-				if (xResult * 100 < 175 && xResult * 100 > 170) {
-					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
-							/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
-					anzahlDurchlaufeMittelwert++;
-				}
-				if (xResult * 100 < 170 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (180 * Math.PI / 180 - angleResultAktuellerMittelwert);
-					winkelSchonKorrigiert = true;
-				}
-				break;
-			case 2:
-				if (yResult * 100 < 55 && yResult * 100 > 50) {
-					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
-							/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
-					anzahlDurchlaufeMittelwert++;
-				}
-				if (yResult * 100 < 50 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (270 * Math.PI / 180 - angleResultAktuellerMittelwert);
-					winkelSchonKorrigiert = true;
-				}
-				break;
-			case 3:
-				if (xResult*100 > 145) {
-					angleResult = 180* Math.PI/180;
-				}
-				if (xResult * 100 < 145 && xResult * 100 > 120) {
-					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
-							/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
-					anzahlDurchlaufeMittelwert++;
-				}
-				if (xResult * 100 < 120 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (180 * Math.PI / 180 - angleResultAktuellerMittelwert);
-					winkelSchonKorrigiert = true;
-				}
-				break;
-			case 4:
-				if (yResult * 100 > 35 && yResult * 100 < 40) {
-					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
-							/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
-					anzahlDurchlaufeMittelwert++;
-				}
-				if (yResult * 100 > 40 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (90 * Math.PI / 180 - angleResultAktuellerMittelwert);
-					winkelSchonKorrigiert = true;
-				}
-				break;
-			case 5:
-				if (xResult * 100 < 25 && xResult * 100 > 20) {
-					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
-							/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
-					anzahlDurchlaufeMittelwert++;
-				}
-				if (xResult * 100 < 20 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (180 * Math.PI / 180 - angleResultAktuellerMittelwert);
-					winkelSchonKorrigiert = true;
-				}
-				break;
-			case 6:
-				if (yResult * 100 < 55 && yResult * 100 > 45) {
-					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
-							/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
-					anzahlDurchlaufeMittelwert++;
-				}
-				if (yResult * 100 < 45 && winkelSchonKorrigiert == false) {
-					angleResult = angleResult + (270 * Math.PI / 180 - angleResultAktuellerMittelwert);
-					winkelSchonKorrigiert = true;
-					anzahlRunde++;// nochmal ueberdenken ob hier richtiger Ort
-				}
-				break;
-			case 7:
-//				if (xResult*100 < 5) {
-//					angleResult = 0;
-//				}
-//				if (xResult * 100 > 5 && xResult * 100 < 50) {
-//					angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
-//							/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
-//					anzahlDurchlaufeMittelwert++;
-//				}
-//				if (xResult * 100 > 50 && winkelSchonKorrigiert == false) {
-//					angleResult = angleResult - angleResultAktuellerMittelwert;
-//					winkelSchonKorrigiert = true;
-//				}
-				break;
 			}
 		}
 	}
@@ -1426,6 +1505,13 @@ public class NavigationAT implements INavigation {
 	}
 }
 /**
+ * 
+ * 
+ * TODO:
+ * Kompass checken + lÃ¶ten, evt. Aufrufe optimieren
+ * Rueckwaehrtsfahren muss laufen
+ * Was ueberlegen fuer Winkelfehler ab zweiter Runde
+ * Dokumentation
  * TODO: 
  * Aktuell:
  * Starker Rechtsdrift bei Positionsbestimmung zu beobachten
@@ -1439,7 +1525,7 @@ public class NavigationAT implements INavigation {
  * -> beheben, aber nicht hoechste Prio
  * 2. Bei Strecke mit KP 5 wird graues Kaestchen gezeichnet, liegt das an mir? Was schreibe ich in die Matrix? Wieso bei KP 5??
  *  3. Gregor Punkte liefern die 15 cm drinnen liegen 8. setParkingDetection auf false machen und ueberpruefen ob T
- * es aendern kann 10. Aktualisierenmethode rausnehmen und Array List komplett überschreiben in neuer Runde
+ * es aendern kann 10. Aktualisierenmethode rausnehmen und Array List komplett ï¿½berschreiben in neuer Runde
  * 11. Maussensor testen
  * 12. Kompassdaten reinkriegen, 3:30 Monday!
  * 
