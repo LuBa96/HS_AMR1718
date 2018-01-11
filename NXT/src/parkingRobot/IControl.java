@@ -156,6 +156,12 @@ public interface IControl {
 	public boolean getDemoStatus();
 	
 	/**
+	 * 
+	 * @param status
+	 */
+	public void setDemoStatus(boolean status);
+	
+	/**
 	 * set Distance for straight driving
 	 */
 	public void setGoalDistance(double dis);
