@@ -564,14 +564,14 @@ public class ControlRST implements IControl {
 			} else if ((eLeft <= 25) && (counter == 0)) {
 				boolTurnL = true;
 				boolTurn = true;
-				counter = 2;
+				//counter = 2;
 			}
 			if ((eRight <= 25) && (counter > 0)) {
 				counter = counter - 1;
 			} else if ((eRight <= 25) && (counter == 0)) {
 				boolTurnR = true;
 				boolTurn = true;
-				counter = 2;
+				//counter = 2;
 			}
 		} else {
 			boolTurnR = false;
