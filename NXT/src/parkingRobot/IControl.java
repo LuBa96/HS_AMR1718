@@ -18,19 +18,14 @@ public interface IControl {
 	public enum ControlMode {
 		
 		/**
-		 * Demo 1 Programm
+		 * folgt gerader Linie
 		 */
-		DEMO1_CTRL,
+		DEMO_STRAIGHT,
 		
 		/**
-		 * Demo 2 Programm
+		 * fährt Kurve
 		 */
-		DEMO2_CTRL,
-		
-		/**
-		 * Demo 3 Programm
-		 */
-		DEMO3_CTRL,
+		DEMO_TURN,
 		
 		/**
 		 * folgt schwarzer Linie
@@ -160,6 +155,27 @@ public interface IControl {
 	 */
 	public boolean getDemoStatus();
 	
+	/**
+	 * 
+	 * @param status
+	 */
+	public void setDemoStatus(boolean status);
+	
+	/**
+	 * set Distance for straight driving
+	 */
+	public void setGoalDistance(double dis);
+	
+	/**
+	 * set angle for turn
+	 */
+	public void setGoalAngle(double angle);
+	
+	/**
+	 * sets and rotates the new Coordinate System before next DEMO step
+	 * @param origin
+	 */
+	public void setCoSys(Pose origin);
 	
 	public double getYstrich();
 	public double getXstrich();

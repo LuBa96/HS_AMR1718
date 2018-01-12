@@ -84,6 +84,7 @@ public interface INavigation {
 	public ParkingSlot getParkplatz(int i);
 	public int getLineNumber();
 	public void setInTurn(boolean x);
+	public void setBackwards(boolean backwards);
 	// Outputs
 	
 	/**

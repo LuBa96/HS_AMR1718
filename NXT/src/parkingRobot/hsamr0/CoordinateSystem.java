@@ -4,20 +4,20 @@ import lejos.geom.Point;
 import lejos.robotics.navigation.Pose;
 
 public class CoordinateSystem {
-	private Pose pointOfOrigin = null;
+	private Pose pointOfOrigin = new Pose(0, 0, 0);
 
 	public void setPointOfOrigin(Pose poo) {
-		pointOfOrigin = poo;
+		pointOfOrigin.setLocation(poo.getLocation());
+		pointOfOrigin.setHeading(poo.getHeading());
 	}
 
 	public Pose getPointOfOrigin() {
 		return pointOfOrigin;
 	}
-	
+
 	/**
 	 * Compute the Pose of an input in respect to the point of origin of the
-	 * coordinate system.
-	 * See google "rotating points around an arbitrary center"
+	 * coordinate system. See google "rotating points around an arbitrary center"
 	 * 
 	 * @param inputPose
 	 * @return
@@ -26,9 +26,9 @@ public class CoordinateSystem {
 		return new Pose(
 				(float) ((inputPose.getLocation().getX() - pointOfOrigin.getLocation().getX())
 						* Math.cos(pointOfOrigin.getHeading())
-						- (inputPose.getLocation().getY() - pointOfOrigin.getLocation().getY())
+						+ (inputPose.getLocation().getY() - pointOfOrigin.getLocation().getY())
 								* Math.sin(pointOfOrigin.getHeading())),
-				(float) ((inputPose.getLocation().getX() - pointOfOrigin.getLocation().getX())
+				(float) (-(inputPose.getLocation().getX() - pointOfOrigin.getLocation().getX())
 						* Math.sin(pointOfOrigin.getHeading())
 						+ (inputPose.getLocation().getY() - pointOfOrigin.getLocation().getY())
 								* Math.cos(pointOfOrigin.getHeading())),
@@ -50,6 +50,13 @@ public class CoordinateSystem {
 	}
 
 	public Point getTransformedPoint(Point inputPoint) {
-		return inputPoint.subtract(pointOfOrigin.getLocation());
+		return new Point(
+				(float) ((inputPoint.getX() - pointOfOrigin.getLocation().getX()) * Math.cos(pointOfOrigin.getHeading())
+						+ (inputPoint.getY() - pointOfOrigin.getLocation().getY())
+								* Math.sin(pointOfOrigin.getHeading())),
+				(float) (-(inputPoint.getX() - pointOfOrigin.getLocation().getX())
+						* Math.sin(pointOfOrigin.getHeading())
+						+ (inputPoint.getY() - pointOfOrigin.getLocation().getY())
+								* Math.cos(pointOfOrigin.getHeading())));
 	}
 }

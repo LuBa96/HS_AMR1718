@@ -84,8 +84,8 @@ public class ControlRST implements IControl {
 
 	int lastTime = 0;
 
-	double currentDistance = 0.0;
 	double Distance = 0.0;
+	double Angle = 0.0;
 
 	double wheelD = 0; // wheeldiameter
 	double width = 0; // width of track
@@ -144,7 +144,6 @@ public class ControlRST implements IControl {
 	double phiRotKOS = 0;
 	boolean pathEnd = false;
 	CoordinateSystem CoSys = null;
-	Pose jetzt = null;
 
 	Line guideLine = null;
 
@@ -169,8 +168,6 @@ public class ControlRST implements IControl {
 	/**
 	 * variables for methods rotateXDeg() and driveXCm()
 	 */
-	boolean boolRotate = false;
-	boolean boolDrive = false;
 	int angleDeg = 0;
 	int startAngleDeg = 0;
 
@@ -239,7 +236,6 @@ public class ControlRST implements IControl {
 		startY = 0;
 
 		CoSys = new CoordinateSystem();
-		jetzt = new Pose();
 
 		// MONITOR (example)
 		monitor.addControlVar("RightSensor");
@@ -288,13 +284,31 @@ public class ControlRST implements IControl {
 	}
 
 	/**
+	 * Distance is set by guidance for regulated straight driving (DEMO)
+	 * 
+	 * @param dis
+	 */
+	public void setGoalDistance(double dis) {
+		this.Distance = dis;
+	}
+
+	/**
+	 * Angle is set by guidance for turn (DEMO)
+	 * 
+	 * @param angle
+	 */
+	public void setGoalAngle(double angle) {
+		this.Angle = angle;
+	}
+
+	/**
 	 * sets current pose
 	 * 
 	 * @see parkingRobot.IControl#setPose(Pose currentPosition)
 	 */
 	public void setPose(Pose currentPosition) {
 		// TODO Auto-generated method stub
-		this.currentPosition.setHeading((float) (currentPosition.getHeading()));
+		this.currentPosition.setHeading((currentPosition.getHeading()));
 		this.currentPosition.setLocation(currentPosition.getX() * 100,
 				currentPosition.getY() * 100);
 
@@ -325,6 +339,10 @@ public class ControlRST implements IControl {
 	public boolean getDemoStatus() {
 		return demoFin;
 	}
+	
+	public void setDemoStatus(boolean status){
+		this.demoFin = status;
+	}
 
 	/**
 	 * selection of control-mode
@@ -333,17 +351,13 @@ public class ControlRST implements IControl {
 	 */
 	public void exec_CTRL_ALGO() {
 		switch (currentCTRLMODE) {
-		case DEMO1_CTRL:
+		case DEMO_STRAIGHT:
 			update_SETPOSE_Parameter();
-			Control_Demo_1();
+			exec_DRIVESTRAIGHT_ALGO();
 			break;
-		case DEMO2_CTRL:
+		case DEMO_TURN:
 			update_SETPOSE_Parameter();
-			Control_Demo_2();
-			break;
-		case DEMO3_CTRL:
-			update_SETPOSE_Parameter();
-			Control_Demo_3();
+			exec_ROTATE_ALGO();
 			break;
 		case LINE_CTRL:
 			update_SETPOSE_Parameter();
@@ -425,6 +439,10 @@ public class ControlRST implements IControl {
 		esumR = 0;
 	}
 
+	public void setCoSys(Pose origin) {
+		CoSys.setPointOfOrigin(origin);
+	}
+
 	// Private methods
 
 	/**
@@ -439,7 +457,6 @@ public class ControlRST implements IControl {
 	 */
 	private void update_SETPOSE_Parameter() {
 		setPose(navigation.getPose());
-
 	}
 
 	/**
@@ -482,6 +499,14 @@ public class ControlRST implements IControl {
 		this.followPath(this.velocity);
 	}
 
+	private void exec_DRIVESTRAIGHT_ALGO() {
+		this.driveXCm(this.velocity, this.Distance);
+	}
+
+	private void exec_ROTATE_ALGO() {
+		this.rotateXDeg(this.angularVelocity, this.Angle);
+	}
+
 	/**
 	 * follow a straight line in respect to the start pose (heading)
 	 * 
@@ -493,18 +518,12 @@ public class ControlRST implements IControl {
 		/**
 		 * set start pose as origin for coordinate system and follow the path
 		 */
-		if (CoSys.getPointOfOrigin() == null || pathEnd) {
-			jetzt.setLocation(this.currentPosition.getX(),
-					this.currentPosition.getY());
-			jetzt.setHeading((float) (this.currentPosition.getHeading() / Math.PI * 180));
-			Sound.systemSound(true, 0);
-			CoSys.setPointOfOrigin(jetzt);
-			pathEnd = false;
-			errYAlt = 0;
-			errYSum = 0;
-		} else {
-			// do nothing
-		}
+		/*
+		 * if (CoSys.getPointOfOrigin() == null || pathEnd) {
+		 * Sound.systemSound(true, 0);
+		 * CoSys.setPointOfOrigin(this.currentPosition); pathEnd = false;
+		 * errYAlt = 0; errYSum = 0; } else { // do nothing }
+		 */
 		phiRotKOS = CoSys.getTransformedHeading(this.currentPosition) / Math.PI
 				* 180;
 		xRotKOS = CoSys.getTransformedPose(this.currentPosition).getX();
@@ -515,8 +534,8 @@ public class ControlRST implements IControl {
 		 */
 		errYAlt = yRotKOS - errYAlt;
 
-		y = 0.65 * yRotKOS + 0.00 * errYSum + 10 * lastError;
-		drive(vo, -y);
+		y = -0.65 * yRotKOS + 0 * errYSum + 0.3 * lastError;
+		drive(vo, y);
 
 		errYSum = errYSum + yRotKOS;
 	}
@@ -545,14 +564,14 @@ public class ControlRST implements IControl {
 			} else if ((eLeft <= 25) && (counter == 0)) {
 				boolTurnL = true;
 				boolTurn = true;
-				counter = 2;
+				//counter = 2;
 			}
 			if ((eRight <= 25) && (counter > 0)) {
 				counter = counter - 1;
 			} else if ((eRight <= 25) && (counter == 0)) {
 				boolTurnR = true;
 				boolTurn = true;
-				counter = 2;
+				//counter = 2;
 			}
 		} else {
 			boolTurnR = false;
@@ -706,14 +725,6 @@ public class ControlRST implements IControl {
 				break;
 			}
 		}
-	}
-
-	private void exec_advanceToTurn() {
-		driveXCm(5, 4);
-	}
-
-	private void exec_Turn() {
-		rotateXDeg(40, 90);
 	}
 
 	/**
@@ -902,36 +913,24 @@ public class ControlRST implements IControl {
 	 * 
 	 * @param omega
 	 */
-	private boolean rotateXDeg(double omega, double angle) {
-		boolRotate = false;
+	private void rotateXDeg(double omega, double angle) {
 		/*
 		 * error of angle
 		 */
-		double e = (this.currentPosition.getHeading() / Math.PI * 180 - startAngleDeg)
-				- angle;
-
-		/*
-		 * optional, rotate CoSys...
-		 */
-		drive(0, PID_control((int) e, 1, 0, 0, 1));
-		if (e < 5) {
-			boolRotate = true;
+		double e = (CoSys.getTransformedHeading(this.currentPosition)/Math.PI *180)
+				- angle * 0.85;
+		if (Math.abs(e) < 5) {
+			demoFin = true;
 			updateStartPose();
 			leftMotor.stop();
 			rightMotor.stop();
 			esumL = 0;
 			esumR = 0;
+		} else {
+			drive(0, -e);
+			demoFin = false;
 		}
-		/*
-		 * drive(0, omega); if ((int) (this.currentPosition.getHeading()) -
-		 * startAngleDeg >= angle) { updateStartPose(); leftMotor.stop();
-		 * rightMotor.stop(); // reset esumL and esumR, otherwise the
-		 * accumulated error for // straight driving would be used for turning
-		 * esumL = 0; esumR = 0; boolRotate = true; }
-		 */
-		return boolRotate;
 	}
-
 
 	/**
 	 * drive X cm with given translatory velocity
@@ -940,37 +939,33 @@ public class ControlRST implements IControl {
 	 * @param dis
 	 * @return
 	 */
-	private boolean driveXCm(double vo, double dis) {
+	private void driveXCm(double vo, double dis) {
 		/*
 		 * navigation (currentPosition) returns value in cm
 		 */
 		double disMomentary = 0;
-		boolDrive = false;
-		followPath(vo);
-		if (CoSys.getPointOfOrigin() == null)
-			disMomentary = 0;
-		else {
-			/*
-			 * CoSys.getPointofOrigin.getX() returns value in cm
-			 */
-			disMomentary = CoSys.getTransformedPoint(this.currentPosition)
-					.distance(0, 0);
-		}
+		/*
+		 * CoSys.getPointofOrigin.getX() returns value in cm
+		 */
+		disMomentary = CoSys.getTransformedPoint(this.currentPosition)
+				.getX();
 		if (disMomentary >= dis) {
-			boolDrive = true;
+			demoFin = true;
 			leftMotor.stop();
 			rightMotor.stop();
+		} else {
+			followPath(vo);
+			demoFin = false;
 		}
-		return boolDrive;
 	}
 
-	/**
+/*	*//**
 	 * Method for first presentation; follow a given routine and continue in
 	 * Line Control Mode at last; sound a beep sequence after each finished step
-	 */
+	 *//*
 	private void Control_Demo_1() {
 		if (demo5) {
-			counter = 50;
+			// counter = 50;
 			demo1 = true;
 			demo5 = false;
 			demoFin = true;
@@ -980,10 +975,10 @@ public class ControlRST implements IControl {
 
 	}
 
-	/**
+	*//**
 	 * Method for second presentation; follow a given routine and continue in
 	 * Line Control Mode at last; sound a beep sequence after each finished step
-	 */
+	 *//*
 	private void Control_Demo_2() {
 		if ((demo5 && (Math.abs((float) (navigation.getPose().getX())) <= 5) && (Math
 				.abs((float) (navigation.getPose().getY())) <= 5))) {
@@ -991,9 +986,10 @@ public class ControlRST implements IControl {
 			if (rotateXDeg(30, 180))
 				demoFin = true;
 
-		} else if (demo5) {
-			// TODO Guidance has to put control into line control mode
-		} else
+			
+			 * } else if (demo5) { // TODO Guidance has to put control into line
+			 * control mode
+			 } else
 			Control_Demo();
 
 	}
@@ -1002,15 +998,15 @@ public class ControlRST implements IControl {
 
 	}
 
+	*//**
+	 * method that implements DEMO 1 and the beginning of DEMO 2
+	 *//*
 	private void Control_Demo() {
-		double x = this.currentPosition.getX();
-		double y = this.currentPosition.getY();
-		double dis = Math.sqrt(x * x + y * y);
-		/**
+		*//**
 		 * 120 cm with 10 cm/s straight driving
-		 */
+		 *//*
 		if (demo1) {
-			if (!driveXCm(10, 120)) {
+			if (!driveXCm(10, 1)) {
 				// drive
 			} else {
 				Sound.systemSound(true, 0);
@@ -1023,33 +1019,18 @@ public class ControlRST implements IControl {
 				pathEnd = true;
 				updateStartPose();
 			}
-			// if (dis >= 120) {
-			// Sound.systemSound(true, 0);
-			// demo2 = true;
-			// demo1 = false;
-			// updateStartPose();
-			// leftMotor.stop();
-			// rightMotor.stop();
-			// // reset esumL and esumR, otherwise the accumulated error for
-			// // straight driving would be used for turning
-			// esumL = 0;
-			// esumR = 0;
-			// }
 		}
 
-		/**
+		*//**
 		 * 90 deg turn with 15deg/sec
-		 */
+		 *//*
 		else if (demo2) {
-			// drive(0, 15);
-			if (!rotateXDeg(15, 90)) {
+			if (!rotateXDeg(15, 360)) {
 				// rotate
 			} else {
 				Sound.systemSound(true, 1);
 				demo3 = true;
 				demo2 = false;
-				// reset esumL and esumR, otherwise the accumulated error for
-				// straight driving would be used for turning
 				esumL = 0;
 				esumR = 0;
 				pathEnd = true;
@@ -1057,9 +1038,9 @@ public class ControlRST implements IControl {
 			}
 		}
 
-		/**
+		*//**
 		 * 30 cm with 5 cm/s straight driving
-		 */
+		 *//*
 		else if (demo3) {
 			if (!driveXCm(5, 30)) {
 				// drive
@@ -1068,35 +1049,16 @@ public class ControlRST implements IControl {
 				Sound.systemSound(true, 1);
 				demo4 = true;
 				demo3 = false;
-				// reset esumL and esumR, otherwise the accumulated error for
-				// straight driving would be used for turning
 				esumL = 0;
 				esumR = 0;
 				pathEnd = true;
 				updateStartPose();
 			}
-			// drive(5, 0);
-			// // driveStraight(5, 0);
-			// double disMomentary = Math.sqrt(Math.pow((x - startX), 2)
-			// + Math.pow((y - startY), 2));
-			// if (disMomentary >= 33) {
-			// Sound.systemSound(true, 0);
-			// Sound.systemSound(true, 1);
-			// demo4 = true;
-			// demo3 = false;
-			// updateStartPose();
-			// leftMotor.stop();
-			// rightMotor.stop();
-			// // reset esumL and esumR, otherwise the accumulated error for
-			// // straight driving would be used for turning
-			// esumL = 0;
-			// esumR = 0;
-			// }
 		}
 
-		/**
+		*//**
 		 * -90 deg turn with 30deg/sec
-		 */
+		 *//*
 		else if (demo4) {
 
 			if (!rotateXDeg(-30, -90)) {
@@ -1107,7 +1069,7 @@ public class ControlRST implements IControl {
 				demo5 = true;
 				pathEnd = true;
 				demo4 = false;
-				counter = 8;
+				// counter = 8;
 				esumL = 0;
 				esumR = 0;
 				updateStartPose();
@@ -1115,20 +1077,7 @@ public class ControlRST implements IControl {
 				rightMotor.stop();
 			}
 
-			/*drive(0, -30);
-			if ((int) (this.currentPosition.getHeading() / Math.PI * 180)
-					- startAngleDeg <= -80) {
-				Sound.systemSound(true, 1);
-				Sound.systemSound(true, 1);
-				demo5 = true;
-				counter = 8;
-				demo4 = false;
-				leftMotor.stop();
-				rightMotor.stop();
-				esumL = 0;
-				esumR = 0;
-			}*/
 		}
 
-	}
+	}*/
 }

@@ -20,9 +20,24 @@ public interface INxtHmi {
 		SCOUT,
 		
 		/**
-		 * Find the next free parking slot and park
+		 * Reset the parcour
 		 */
-		PARK_NOW,
+		RESET,
+		
+		/**
+		 * Start DEMO1
+		 */
+		DEMO1,
+		
+		/**
+		 * Start DEMO2
+		 */
+		DEMO2,
+		
+		/**
+		 * Start DEMO3
+		 */
+		DEMO3,
 		
 		/**
 		 * Park in a selected slot
