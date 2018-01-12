@@ -1195,6 +1195,12 @@ public class NavigationAT implements INavigation {
 		}
 		return robotCloseToCurve;
 	}
+	
+	public void reset() {
+		this.pose.setLocation(0, 0);
+		this.pose.setHeading(0);
+		aktuellerKurvenpunkt = 7;
+	}
 
 	/**
 	 * Methode um Winkel durch Mittelwertbildung zwischen den Kurven zu optimieren.
@@ -1509,8 +1515,8 @@ public class NavigationAT implements INavigation {
  * 
  * TODO:
  * Kompass checken + löten, evt. Aufrufe optimieren
- * Rueckwaehrtsfahren muss laufen
- * Was ueberlegen fuer Winkelfehler ab zweiter Runde
+ * Rueckwaehrtsfahren muss laufen -> ersten Versuch committed
+ * Was ueberlegen fuer Winkelfehler ab zweiter Runde -> erledigt
  * Dokumentation
  * TODO: 
  * Aktuell:
