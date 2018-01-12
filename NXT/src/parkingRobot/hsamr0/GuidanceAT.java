@@ -146,7 +146,7 @@ public class GuidanceAT {
 	}
 
 	public enum demo1Status {
-		DEMO_FIRST_LINE, DEMO_FIRST_TURN, DEMO_SECOND_LINE, DEMO_SECOND_TURN, DEMO_LINE_CONTROL, DEMO_INACTIVE
+		DEMO_FIRST_LINE, DEMO_FIRST_TURN, DEMO_SECOND_LINE, DEMO_SECOND_TURN, DEMO_LINE_CONTROL, DEMO_CORRECTING, DEMO_INACTIVE
 	}
 
 	protected static demo1Status currDemo1Status = demo1Status.DEMO_INACTIVE;
@@ -270,6 +270,7 @@ public class GuidanceAT {
 	static double distToMidMax;
 	static double distToMid;
 	static Point vectorA;
+	static int counter;
 	/**
 	 * Robot moves forward if 1, backwards if -1
 	 */
@@ -591,8 +592,9 @@ public class GuidanceAT {
 		LCD.drawString("line nr: " + navigation.getLineNumber(), 0, 3);
 		LCD.drawString("Quotient: " + currPose.getLocation().distance(map[navigation.getLineNumber()].getP2())
 				/ map[navigation.getLineNumber()].length(), 0, 4);
-		LCD.drawString("Quotient zurueck: " + currPose.getLocation().distance(map[navigation.getLineNumber()].getP1())
+		LCD.drawString("zurueck: " + currPose.getLocation().distance(map[navigation.getLineNumber()].getP1())
 				/ map[navigation.getLineNumber()].length(), 0, 5);
+		LCD.drawString("backwards:" + navigation.getBackwards(), 0, 6);
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
 		// }else if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE ){
@@ -1032,6 +1034,29 @@ public class GuidanceAT {
 			// state transition
 			lastDemo1Status = currDemo1Status;
 			if (control.getDemoStatus()) {
+				currDemo1Status = demo1Status.DEMO_CORRECTING;
+			}
+			// leave action
+			if (currDemo1Status != lastDemo1Status) {
+				control.setVelocity(0);
+				control.setAngularVelocity(0);
+				control.setCtrlMode(ControlMode.INACTIVE);
+			}
+			break;
+		case DEMO_CORRECTING:
+			// into action
+			if (lastDemo1Status != currDemo1Status) {
+				counter = 0;
+				control.resetIntegralPID();
+				control.resetIntegralRWD();
+				control.setVelocity(vLine0);
+				control.setCtrlMode(ControlMode.LINE_CTRL);
+			}
+			// while action
+			counter++;
+			// state transition
+			lastDemo1Status = currDemo1Status;
+			if (counter >= 3) {
 				currDemo1Status = demo1Status.DEMO_LINE_CONTROL;
 			}
 			// leave action
@@ -1053,7 +1078,7 @@ public class GuidanceAT {
 			followLineSubStateMachine(control, navigation);
 			// state transition
 			lastDemo1Status = currDemo1Status;
-			if(currPose.getLocation().distance(map[0].getP1()) <= 5) {
+			if (currPose.getLocation().distance(map[0].getP1()) <= 5) {
 				demo1Fin = true;
 			}
 			// leave action

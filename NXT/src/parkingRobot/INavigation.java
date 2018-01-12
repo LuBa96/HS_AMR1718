@@ -85,6 +85,8 @@ public interface INavigation {
 	public int getLineNumber();
 	public void setInTurn(boolean x);
 	public void setBackwards(boolean backwards);
+	public void reset();
+	public boolean getBackwards();
 	// Outputs
 	
 	/**

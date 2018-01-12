@@ -608,9 +608,15 @@ public class NavigationAT implements INavigation {
 	
 	public void setBackwards(boolean backwards) {
 		this.backwards = backwards;
-		this.aktuellerKurvenpunkt = 4;
-		this.pose.setLocation(120/100, 30/100);
-		this.pose.setHeading(0);
+		if (backwards) {
+			this.aktuellerKurvenpunkt = 4;
+//			this.pose.setLocation(120/100, 30/100);
+			this.pose.setHeading(0);
+		}
+	}
+	
+	public boolean getBackwards() {
+		return this.backwards;
 	}
 	
 	/**
@@ -878,6 +884,14 @@ public class NavigationAT implements INavigation {
 			if(!backwards) {
 				switch (aktuellerKurvenpunkt) {
 				case 0:
+					if(backwards) {
+						if (xResult*100 > 175) {
+							angleResult = 0;
+						}
+						else {
+							
+						}
+					}
 					if (yResult * 100 > 10 && yResult * 100 < 15) { // waren 10, 30
 						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
 								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
@@ -959,8 +973,13 @@ public class NavigationAT implements INavigation {
 					}
 					break;
 				case 7:
-					if (xResult*100 < 5) {
-						angleResult = 0;
+					if(!backwards) {
+						if (xResult*100 < 5) {
+							angleResult = 0;
+						}
+						else {
+							
+						}						
 					}
 					if (xResult * 100 > 5 && xResult * 100 < 50) {
 						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
@@ -1195,6 +1214,12 @@ public class NavigationAT implements INavigation {
 			break;
 		}
 		return robotCloseToCurve;
+	}
+	
+	public void reset() {
+		this.pose.setLocation(0, 0);
+		this.pose.setHeading(0);
+		aktuellerKurvenpunkt = 7;
 	}
 
 	/**
