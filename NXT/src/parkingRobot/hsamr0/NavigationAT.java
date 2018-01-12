@@ -966,9 +966,9 @@ public class NavigationAT implements INavigation {
 					}
 					break;
 				case 7:
-					if (xResult*100 < 5) {
-						angleResult = 0;
-					}
+//					if (xResult*100 < 5) {
+//						angleResult = 0;
+//					}
 					if (xResult * 100 > 5 && xResult * 100 < 50) {
 						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
 								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
@@ -984,9 +984,9 @@ public class NavigationAT implements INavigation {
 			else {
 				switch (aktuellerKurvenpunkt) {
 				case 0:
-					if (xResult*100 > 175) {
-						angleResult = 0;
-					}
+//					if (xResult*100 > 175) {
+//						angleResult = 0;
+//					}
 					if (xResult * 100 < 170 && xResult * 100 > 140) { // waren 10, 30
 						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
 								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
@@ -1030,7 +1030,7 @@ public class NavigationAT implements INavigation {
 						winkelSchonKorrigiert = true;
 					}
 					break;
-				case 4:	//4 Sachen geandert, 2x xResult,yResult, 2xWerte, 1x xResult, 1x Winkelwert 
+				case 4:	
 					if (xResult * 100 > 130 && xResult * 100 < 140) {
 						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
 								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
@@ -1065,9 +1065,6 @@ public class NavigationAT implements INavigation {
 					}
 					break;
 				case 7://not needed
-					if (xResult*100 < 5) {
-						angleResult = 0;
-					}
 					if (xResult * 100 > 5 && xResult * 100 < 50) {
 						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
 								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;

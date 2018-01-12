@@ -250,7 +250,7 @@ public class GuidanceAT {
 	 * This tells us how far away from the mapGoal the robot will stop and start
 	 * following a path into a parking slot. Needs to be tested.
 	 */
-	static final double mapGoalDist = 45;
+	static final double mapGoalDist = 30;
 	static final double slotGoalDist = 1;
 	static final double slotDegTol = 5;
 	static final double offTrackDist = 2;
@@ -367,6 +367,8 @@ public class GuidanceAT {
 
 					// activate parking slot detection, setOffTrack() in navigation has to be done
 					// at some point too, probably when we change it
+					currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+					lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
 					navigation.setDetectionState(true);
 				}
 
@@ -519,6 +521,8 @@ public class GuidanceAT {
 				// Into action
 				if (lastStatus != CurrentStatus.INACTIVE) {
 					control.setCtrlMode(ControlMode.INACTIVE);
+					currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+					lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
 				}
 
 			// While action
@@ -598,10 +602,10 @@ public class GuidanceAT {
 		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0, 0);
 		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0, 1);
 		LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
-		LCD.drawString(Double.toString(selectedParkingSlot.getBackBoundaryPositionM().getX())
-				+ selectedParkingSlot.getBackBoundaryPositionM().getY(), 0, 3);
-		LCD.drawString(Double.toString(selectedParkingSlot.getFrontBoundaryPositionM().getX())
-				+ selectedParkingSlot.getFrontBoundaryPositionM().getY(), 0, 4);
+		LCD.drawString(Boolean.toString(goalReached), 0, 3);
+		LCD.drawString(Double.toString(goalPose.getHeading()), 0, 4);
+		LCD.drawString(Double.toString(offTrackPose.getX()), 0, 5);
+		LCD.drawString(Double.toString(offTrackPose.getY()), 0, 6);
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
 		// }else if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE ){
@@ -814,6 +818,8 @@ public class GuidanceAT {
 			lastLineStatus = currLineStatus;
 			if ((currPose.getHeading() - offTrackPose.getHeading()) * (180 / Math.PI) <= offTrackDeg) {
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
+				offTrack = false;
+				navigation.setOffTrack(false);
 			}
 
 			// leave action
