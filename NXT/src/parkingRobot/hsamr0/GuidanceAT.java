@@ -11,6 +11,7 @@ import parkingRobot.IControl.*;
 import parkingRobot.INxtHmi;
 import parkingRobot.INavigation;
 import parkingRobot.INavigation.ParkingSlot;
+import parkingRobot.INavigation.ParkingSlot.ParkingSlotStatus;
 import parkingRobot.IPerception;
 import parkingRobot.IMonitor;
 
@@ -263,6 +264,8 @@ public class GuidanceAT {
 	 */
 	static final double vParkMax = 15;
 	static double vPark;
+	// number of the line in map with the shortest distance to goal
+	static int lineNo = 0;
 
 	static final double vLineMax = 40;
 	static final double vLine0 = 10;
@@ -327,6 +330,8 @@ public class GuidanceAT {
 		offTrackPose = new Pose(0, 0, 0);
 		goalPose = new Pose(0, 0, 0);
 		currPose = new Pose(0, 0, 0);
+		selectedParkingSlot = new ParkingSlot(0, mapGoal, mapGoal, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0,
+				mapGoal, mapGoal);
 		navigation.reset();
 
 		// öffnen per cmd-Befehl: nxjconsole
@@ -410,7 +415,7 @@ public class GuidanceAT {
 					goalReached = false;
 					// calculate our goal on the line-map and in the ParkingSlot
 					selectedParkingSlotNo = hmi.getSelectedParkingSlot();
-					selectedParkingSlot = navigation.getParkingSlots()[selectedParkingSlotNo];
+					selectedParkingSlot = navigation.getParkingSlots()[selectedParkingSlotNo - 1];
 					slotDir = selectedParkingSlot.getFrontBoundaryPositionM()
 							.subtract(selectedParkingSlot.getBackBoundaryPositionM());
 
@@ -775,7 +780,7 @@ public class GuidanceAT {
 			// TODO change transition accordingly
 			computePhiDot(coSys.getTransformedPose(currPose), coEffs);
 			// velocity control, the straighter the path the faster the robot
-			vPark = vParkMax * (1 - Math.abs(deltaPhiDeg) / 7.5);
+			vPark = vParkMax * (1 - Math.abs(deltaPhiDeg) / 15);
 			if (vPark < 0)
 				vPark = 0.5;
 			phiDot = phiDot * (vPark / vParkMax);
@@ -852,7 +857,7 @@ public class GuidanceAT {
 			RConsole.println(Double.toString(currPose.getLocation().distance(mapGoal)));
 			// state transition
 			lastParkStatus = currParkStatus;
-			if (currPose.getLocation().distance(mapGoal) <= mapGoalDist) {
+			if ((currPose.getLocation().distance(mapGoal) <= mapGoalDist) && (navigation.getLineNumber() == lineNo)) {
 				currParkStatus = CurrentParkStatus.PARK_PATH_FOLLOW;
 			}
 
@@ -1115,8 +1120,6 @@ public class GuidanceAT {
 	 */
 	private static Point getClosestPointToGoal(Point l_goal) {
 		double a = 0;
-		// number of the line in map with the shortest distance to goal
-		int lineNo = 0;
 		// vector from starting point of desired line to goal
 		Point vectorR0;
 		// vector from starting point of desired line to point of shortest distance to
