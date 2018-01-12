@@ -602,10 +602,17 @@ public class GuidanceAT {
 		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0, 0);
 		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0, 1);
 		LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
-		LCD.drawString(Boolean.toString(goalReached), 0, 3);
-		LCD.drawString(Double.toString(goalPose.getHeading()), 0, 4);
-		LCD.drawString(Double.toString(offTrackPose.getX()), 0, 5);
-		LCD.drawString(Double.toString(offTrackPose.getY()), 0, 6);
+		// LCD.drawString(Boolean.toString(goalReached), 0, 3);
+		// LCD.drawString(Double.toString(goalPose.getHeading()), 0, 4);
+		// LCD.drawString(Double.toString(offTrackPose.getX()), 0, 5);
+		// LCD.drawString(Double.toString(offTrackPose.getY()), 0, 6);
+		LCD.drawString("Back X: " + Double.toString(navigation.getParkplatz(4).getBackBoundaryPosition().getX()), 0, 3);
+		LCD.drawString("Back Y: " + Double.toString(navigation.getParkplatz(4).getBackBoundaryPosition().getY()), 0, 4);
+		LCD.drawString("Front X: " + Double.toString(navigation.getParkplatz(4).getFrontBoundaryPosition().getX()), 0,
+				5);
+		LCD.drawString("Front Y:" + Double.toString(navigation.getParkplatz(4).getFrontBoundaryPosition().getY()), 0,
+				6);
+
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
 		// }else if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE ){
@@ -786,7 +793,7 @@ public class GuidanceAT {
 			// velocity control, the straighter the path the faster the robot
 			vPark = vParkMax * (1 - Math.abs(deltaPhiDeg) / 15);
 			if (vPark < 0)
-				vPark = 0.5;
+				vPark = 2;
 			phiDot = phiDot * (vPark / vParkMax);
 			control.setAngularVelocity(phiDot);
 			control.setVelocity(-vPark);
@@ -806,24 +813,27 @@ public class GuidanceAT {
 			break;
 		case FOLLOW_LINE_CORRECT:
 			// into action
-			control.setAngularVelocity(0);
-			control.setVelocity(0);
-			control.setCtrlMode(ControlMode.VW_CTRL);
+			if (lastLineStatus != currLineStatus) {
+				counter = 0;
+				control.resetIntegralPID();
+				control.resetIntegralRWD();
+				control.setVelocity(vLine0);
+				control.setCtrlMode(ControlMode.LINE_CTRL);
+			}
 
 			// while action
-			control.setAngularVelocity(
-					(currPose.getHeading() - offTrackPose.getHeading()) * (180 / Math.PI) / (8 * timePeriod * 0.001));
+			counter++;
 
 			// state transition
 			lastLineStatus = currLineStatus;
-			if ((currPose.getHeading() - offTrackPose.getHeading()) * (180 / Math.PI) <= offTrackDeg) {
+			if (counter >= 10) {
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
-				offTrack = false;
-				navigation.setOffTrack(false);
 			}
 
 			// leave action
 			if (currLineStatus != lastLineStatus) {
+				control.setVelocity(0);
+				control.setAngularVelocity(0);
 				control.setCtrlMode(ControlMode.INACTIVE);
 				direction = 1;
 			}
@@ -901,7 +911,7 @@ public class GuidanceAT {
 			// velocity control, the straighter the path the faster the robot
 			vPark = vParkMax * (1 - Math.abs(deltaPhiDeg) / 15);
 			if (vPark < 0)
-				vPark = 0.5;
+				vPark = 2;
 			phiDot = phiDot * (vPark / vParkMax);
 			control.setAngularVelocity(phiDot);
 			control.setVelocity(vPark);
@@ -925,7 +935,7 @@ public class GuidanceAT {
 
 			// while action
 			control.setAngularVelocity(
-					(currPose.getHeading() - goalPose.getHeading()) * (180 / Math.PI) / (8 * timePeriod * 0.001));
+					(currPose.getHeading() - goalPose.getHeading()) * (180 / Math.PI) / (4 * timePeriod * 0.001));
 
 			// state transition
 			lastParkStatus = currParkStatus;

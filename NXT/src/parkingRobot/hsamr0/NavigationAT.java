@@ -178,7 +178,7 @@ public class NavigationAT implements INavigation {
 
 	static final double MIN_SLOT_DISTANCE = 45;
 	
-	static final float MIDPOINT_OFFSET = 0;
+	static final float MIDPOINT_OFFSET = 5;
 
 	/**
 	 * map array of line references, whose corresponding lines form a closed chain
@@ -808,6 +808,12 @@ public class NavigationAT implements INavigation {
 
 		this.pose.setLocation((float) xResult, (float) yResult); // x und y werden bereits in
 																	// setPoseMitPositionskorrektur gesetzt
+		while(heading > 2*Math.PI) {
+			heading-= 2*Math.PI;
+		}
+		while(heading < 0) {
+			heading += 2*Math.PI;
+		}
 		this.pose.setHeading((float) angleResult);
 		// LCD.drawString("Fusinoniert: " + (this.getPose().getX()*100) + "/" +
 		// (this.getPose().getY()*100) +
@@ -918,9 +924,6 @@ public class NavigationAT implements INavigation {
 					}
 					break;
 				case 3:
-					if (xResult*100 > 145) {
-						angleResult = 180* Math.PI/180;
-					}
 					if (xResult * 100 < 145 && xResult * 100 > 120) {
 						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
 								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
