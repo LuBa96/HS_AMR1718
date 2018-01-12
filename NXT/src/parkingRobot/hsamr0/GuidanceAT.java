@@ -588,10 +588,11 @@ public class GuidanceAT {
 		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0, 0);
 		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0, 1);
 		LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
-		LCD.drawString("trans phi: " + Double.toString(coSys.getTransformedPose(currPose).getHeading() * 180 / Math.PI),
-				0, 4);
-		LCD.drawString("trans x: " + Double.toString(coSys.getTransformedPose(currPose).getX()), 0, 5);
-		LCD.drawString("trans y: " + Double.toString(coSys.getTransformedPose(currPose).getY()), 0, 6);
+		LCD.drawString("line nr: " + navigation.getLineNumber(), 0, 3);
+		LCD.drawString("Quotient: " + currPose.getLocation().distance(map[navigation.getLineNumber()].getP2())
+				/ map[navigation.getLineNumber()].length(), 0, 4);
+		LCD.drawString("Quotient zurueck: " + currPose.getLocation().distance(map[navigation.getLineNumber()].getP1())
+				/ map[navigation.getLineNumber()].length(), 0, 5);
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
 		// }else if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE ){
@@ -615,6 +616,7 @@ public class GuidanceAT {
 				control.resetIntegralRWD();
 				control.setVelocity(0);
 				control.setCtrlMode(ControlMode.LINE_CTRL);
+				vLine = vLine0;
 			}
 			// while action
 			// TODO: control velocity
@@ -1133,10 +1135,10 @@ public class GuidanceAT {
 	private static boolean nearTurn(INavigation navigation) {
 		if (wrongDir) {
 			return (currPose.getLocation().distance(map[navigation.getLineNumber()].getP1())
-					/ map[navigation.getLineNumber()].length() <= 0.50);
+					/ map[navigation.getLineNumber()].length() <= 0.4);
 		} else {
 			return (currPose.getLocation().distance(map[navigation.getLineNumber()].getP2())
-					/ map[navigation.getLineNumber()].length() <= 0.50);
+					/ map[navigation.getLineNumber()].length() <= 0.4);
 		}
 	}
 }

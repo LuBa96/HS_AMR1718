@@ -593,11 +593,12 @@ public class NavigationAT implements INavigation {
 	}
 	
 	public int getLineNumber() {
+		if(!backwards){
 		switch(aktuellerKurvenpunkt) {
-		case 0: case 1: case 2: case 3: case 4: case 5: case 6: 
-			return aktuellerKurvenpunkt++;
 		case 7: return 0;
-		default: return 0;
+		default:return aktuellerKurvenpunkt+1;
+		}}else{
+			return aktuellerKurvenpunkt; 
 		}
 	}
 	
