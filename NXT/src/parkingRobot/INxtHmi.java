@@ -25,6 +25,11 @@ public interface INxtHmi {
 		RESET,
 		
 		/**
+		 * Wait until parked
+		 */
+		WAIT,
+		
+		/**
 		 * Start DEMO1
 		 */
 		DEMO1,

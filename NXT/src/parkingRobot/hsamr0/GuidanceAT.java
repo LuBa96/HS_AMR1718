@@ -255,7 +255,7 @@ public class GuidanceAT {
 	static final double slotDegTol = 5;
 	static final double offTrackDist = 2;
 	static final double offTrackDeg = 2;
-	static final double turnDist = 4.5;
+	static final double turnDist = 4.9;
 	static final double turnDeg = 65;
 
 	/**
