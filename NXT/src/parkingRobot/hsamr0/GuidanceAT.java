@@ -480,12 +480,12 @@ public class GuidanceAT {
 			IPerception perception, IControl control) {
 		LCD.clear();
 
-//		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0,
-//				0);
-//		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 1,
-//				1);
-//		LCD.drawString("Phi (grd): "
-//				+ (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
+		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0,
+				0);
+		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 1,
+				1);
+		LCD.drawString("Phi (grd): "
+				+ (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
 //
 //		// LCD.drawString("left: " + (perception.getLeftLineSensorValue()), 0,
 //		// 3);
@@ -498,13 +498,13 @@ public class GuidanceAT {
 //		LCD.drawString("Mode: " + currentStatus, 0, 5);
 //		LCD.drawString("UMode: " + currLineStatus, 0, 6);
 //		LCD.drawString("KP: " + navigation.getAktuellenKurvenpunkt(), 0, 3);
-		LCD.drawString("Compass:" + navigation.getPose().getHeading(), 0, 1);
-		LCD.drawString("CTC: " + navigation.getRobotCloseToCurve(), 0, 7);
-//		
-		LCD.drawString("B:" + Integer.toString((int)perception.getBackSensorDistance()),0,2);
-		LCD.drawString("F:" + Integer.toString((int)perception.getFrontSensorDistance()),0,3);
-		LCD.drawString("FS:" + Integer.toString((int)perception.getFrontSideSensorDistance()),0,4);
-		LCD.drawString("BS:" + Integer.toString((int)perception.getBackSideSensorDistance()),0,5);
+//		LCD.drawString("Compass:" + navigation.getPose().getHeading(), 0, 1);
+//		LCD.drawString("CTC: " + navigation.getRobotCloseToCurve(), 0, 7);
+////		
+//		LCD.drawString("B:" + Integer.toString((int)perception.getBackSensorDistance()),0,2);
+//		LCD.drawString("F:" + Integer.toString((int)perception.getFrontSensorDistance()),0,3);
+//		LCD.drawString("FS:" + Integer.toString((int)perception.getFrontSideSensorDistance()),0,4);
+//		LCD.drawString("Compass:" + Integer.toString((int)perception.getBackSideSensorDistance()),0,5);
 //		
 //		LCD.drawString("BBx: " + navigation.getAktuellstenParkplatz().getBackBoundaryPosition().getX(),0,0);
 //		LCD.drawString("BBy: " + navigation.getAktuellstenParkplatz().getBackBoundaryPosition().getY(),0,1);
