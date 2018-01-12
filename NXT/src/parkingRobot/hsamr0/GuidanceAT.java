@@ -327,6 +327,7 @@ public class GuidanceAT {
 		offTrackPose = new Pose(0, 0, 0);
 		goalPose = new Pose(0, 0, 0);
 		currPose = new Pose(0, 0, 0);
+		navigation.reset();
 
 		// öffnen per cmd-Befehl: nxjconsole
 		// RConsole.openUSB(15000);
@@ -384,6 +385,8 @@ public class GuidanceAT {
 					while (Button.ESCAPE.isDown()) {
 						Thread.sleep(1);
 					} // wait for button release
+				} else if (hmi.getMode() == parkingRobot.INxtHmi.Mode.PARK_THIS) {
+					currentStatus = CurrentStatus.PARK_THIS;
 				} else if (hmi.getMode() == parkingRobot.INxtHmi.Mode.DISCONNECT) {
 					currentStatus = CurrentStatus.EXIT;
 				}
@@ -406,19 +409,20 @@ public class GuidanceAT {
 					RConsole.println("PARK_THIS startet");
 					goalReached = false;
 					// calculate our goal on the line-map and in the ParkingSlot
-					// selectedParkingSlotNo = hmi.getSelectedParkingSlot();
-					// selectedParkingSlot = navigation.getParkingSlots()[selectedParkingSlotNo];
-					// slotDir = selectedParkingSlot.getFrontBoundaryPosition()
-					// .subtract(selectedParkingSlot.getBackBoundaryPosition());
+					selectedParkingSlotNo = hmi.getSelectedParkingSlot();
+					selectedParkingSlot = navigation.getParkingSlots()[selectedParkingSlotNo];
+					slotDir = selectedParkingSlot.getFrontBoundaryPositionM()
+							.subtract(selectedParkingSlot.getBackBoundaryPositionM());
+
 					// // TODO:
 					// calculate goalPose from angle of slotDir here, before manipulating the
 					// slotDir
-					RConsole.println("PARK_THIS startet immernoch");
-					slotDir.setLocation(30, 0);
+					// RConsole.println("PARK_THIS startet immernoch");
+					// slotDir.setLocation(30, 0);
 					goalPose.setHeading(slotDir.angle());
-					// slotDir.multiplyBy((float) 0.5);
-					// slotGoal = selectedParkingSlot.getBackBoundaryPosition().add(slotDir);
-					slotGoal.setLocation(100, -30);
+					slotDir.multiplyBy((float) 0.5);
+					slotGoal = selectedParkingSlot.getBackBoundaryPositionM().add(slotDir);
+					// slotGoal.setLocation(100, -30);
 					mapGoal = getClosestPointToGoal(slotGoal);
 					goalPose.setLocation(slotGoal);
 					// currParkStatus = CurrentParkStatus.PARK_LINE_FOLLOW;
@@ -453,8 +457,8 @@ public class GuidanceAT {
 					// deactivate the underlying state machine
 					currParkStatus = CurrentParkStatus.PARK_INACTIVE;
 					lastParkStatus = CurrentParkStatus.PARK_INACTIVE;
-					// currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
-					// lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+					currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+					lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
 					control.setCtrlMode(ControlMode.INACTIVE);
 				}
 				break;
@@ -538,7 +542,7 @@ public class GuidanceAT {
 					while (Button.RIGHT.isDown()) {
 						Thread.sleep(1);
 					} // wait for button release
-				} else if (Button.LEFT.isDown()) {
+				} else if (Button.LEFT.isDown() || hmi.getMode() == parkingRobot.INxtHmi.Mode.PARK_THIS) {
 					currentStatus = CurrentStatus.PARK_THIS;
 					while (Button.LEFT.isDown()) {
 						Thread.sleep(1);
@@ -589,12 +593,10 @@ public class GuidanceAT {
 		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0, 0);
 		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0, 1);
 		LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
-		LCD.drawString("line nr: " + navigation.getLineNumber(), 0, 3);
-		LCD.drawString("Quotient: " + currPose.getLocation().distance(map[navigation.getLineNumber()].getP2())
-				/ map[navigation.getLineNumber()].length(), 0, 4);
-		LCD.drawString("zurueck: " + currPose.getLocation().distance(map[navigation.getLineNumber()].getP1())
-				/ map[navigation.getLineNumber()].length(), 0, 5);
-		LCD.drawString("backwards:" + navigation.getBackwards(), 0, 6);
+		LCD.drawString(Double.toString(selectedParkingSlot.getBackBoundaryPositionM().getX())
+				+ selectedParkingSlot.getBackBoundaryPositionM().getY(), 0, 3);
+		LCD.drawString(Double.toString(selectedParkingSlot.getFrontBoundaryPositionM().getX())
+				+ selectedParkingSlot.getFrontBoundaryPositionM().getY(), 0, 4);
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
 		// }else if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE ){
@@ -886,7 +888,7 @@ public class GuidanceAT {
 			RConsole.println("Folge Pfad");
 			computePhiDot(coSys.getTransformedPose(currPose), coEffs);
 			// velocity control, the straighter the path the faster the robot
-			vPark = vParkMax * (1 - Math.abs(deltaPhiDeg) / 7.5);
+			vPark = vParkMax * (1 - Math.abs(deltaPhiDeg) / 15);
 			if (vPark < 0)
 				vPark = 0.5;
 			phiDot = phiDot * (vPark / vParkMax);
@@ -1056,7 +1058,7 @@ public class GuidanceAT {
 			counter++;
 			// state transition
 			lastDemo1Status = currDemo1Status;
-			if (counter >= 3) {
+			if (counter >= 10) {
 				currDemo1Status = demo1Status.DEMO_LINE_CONTROL;
 			}
 			// leave action

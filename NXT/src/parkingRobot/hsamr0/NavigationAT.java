@@ -178,7 +178,7 @@ public class NavigationAT implements INavigation {
 
 	static final double MIN_SLOT_DISTANCE = 45;
 	
-	static final float MIDPOINT_OFFSET = 10;
+	static final float MIDPOINT_OFFSET = 0;
 
 	/**
 	 * map array of line references, whose corresponding lines form a closed chain
@@ -833,11 +833,12 @@ public class NavigationAT implements INavigation {
 		xResult = Kurvenmatrix[aktuellerKurvenpunkt][5] / 100; // xResult hat Einheit von m, Kurvenmatrix hat bereits
 																// Einheit mm
 		yResult = Kurvenmatrix[aktuellerKurvenpunkt][6] / 100;
+		angleResult = Kurvenmatrix[aktuellerKurvenpunkt][7]* Math.PI / 180;
 		winkelSchonKorrigiert = false;
 		angleResultAktuellerMittelwert = 0;
 		anzahlDurchlaufeMittelwert = 1;
-		this.pose.setLocation((float) xResult, (float) yResult); // x und y werden bereits in
-																	// setPoseMitPositionskorrektur gesetzt
+		this.pose.setLocation((float) xResult, (float) yResult); // x und y werden bereits in setPoseMitPositionskorrektur gesetzt
+		this.pose.setHeading((float)angleResult);
 		// frontBoundaryDetektiert = false;
 
 		/**
