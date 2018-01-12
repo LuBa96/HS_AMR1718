@@ -73,7 +73,7 @@ public class GuidanceAT {
 		 * Indicates the robot is performing a demo as part of the assignment for
 		 * control
 		 */
-		DEMO1, DEMO2, DEMO3,
+		DEMO1, DEMO2, DEMO3, RESET,
 		/**
 		 * Indicates that the robot is currently standing still
 		 */
@@ -427,6 +427,8 @@ public class GuidanceAT {
 					// RConsole.println("PARK_THIS startet immernoch");
 					// slotDir.setLocation(30, 0);
 					goalPose.setHeading(slotDir.angle());
+					while(goalPose.getHeading() < 0)
+						goalPose.rotateUpdate((float)(2*Math.PI));
 					slotDir.multiplyBy((float) 0.5);
 					slotGoal = selectedParkingSlot.getBackBoundaryPositionM().add(slotDir);
 					// slotGoal.setLocation(100, -30);
@@ -935,11 +937,11 @@ public class GuidanceAT {
 
 			// while action
 			control.setAngularVelocity(
-					(currPose.getHeading() - goalPose.getHeading()) * (180 / Math.PI) / (4 * timePeriod * 0.001));
+					(currPose.getHeading() - goalPose.getHeading()) * (180 / Math.PI) / (8 * timePeriod * 0.001));
 
 			// state transition
 			lastParkStatus = currParkStatus;
-			if ((currPose.getHeading() - goalPose.getHeading()) * (180 / Math.PI) <= slotDegTol) {
+			if (Math.abs((currPose.getHeading() - goalPose.getHeading()) * (180 / Math.PI)) <= slotDegTol) {
 				currParkStatus = CurrentParkStatus.PARK_INACTIVE;
 				goalReached = true;
 			}
@@ -1079,7 +1081,7 @@ public class GuidanceAT {
 			counter++;
 			// state transition
 			lastDemo1Status = currDemo1Status;
-			if (counter >= 10) {
+			if (counter >= 20) {
 				currDemo1Status = demo1Status.DEMO_LINE_CONTROL;
 			}
 			// leave action
