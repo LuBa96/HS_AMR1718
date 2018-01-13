@@ -722,49 +722,17 @@ public class GuidanceAT {
 			IPerception perception, IControl control) {
 		LCD.clear();
 
-		// LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100),
-		// 0, 0);
-		// LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100),
-		// 0, 1);
-		// LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading() /
-		// Math.PI *
-		// 180), 0, 2);
-		// LCD.drawString(Boolean.toString(goalReached), 0, 3);
-		// LCD.drawString(Double.toString(goalPose.getHeading()), 0, 4);
-		// LCD.drawString(Double.toString(offTrackPose.getX()), 0, 5);
-		// LCD.drawString(Double.toString(offTrackPose.getY()), 0, 6);
-		LCD.drawString(
-				"Back X8: "
-						+ Double.toString(navigation.getParkplatz(8)
-								.getBackBoundaryPosition().getX()), 0, 0);
-		LCD.drawString(
-				"Front X8: "
-						+ Double.toString(navigation.getParkplatz(8)
-								.getFrontBoundaryPosition().getX()), 0, 1);
-		LCD.drawString(
-				"Back X9: "
-						+ Double.toString(navigation.getParkplatz(9)
-								.getBackBoundaryPosition().getX()), 0, 2);
-		LCD.drawString(
-				"Front X9: "
-						+ Double.toString(navigation.getParkplatz(9)
-								.getFrontBoundaryPosition().getX()), 0, 3);
-		LCD.drawString(
-				"Back X10: "
-						+ Double.toString(navigation.getParkplatz(10)
-								.getBackBoundaryPosition().getX()), 0, 4);
-		LCD.drawString(
-				"Front X10: "
-						+ Double.toString(navigation.getParkplatz(10)
-								.getFrontBoundaryPosition().getX()), 0, 5);
-		LCD.drawString(
-				"Back X11: "
-						+ Double.toString(navigation.getParkplatz(11)
-								.getBackBoundaryPosition().getX()), 0, 6);
-		LCD.drawString(
-				"Front X11: "
-						+ Double.toString(navigation.getParkplatz(11)
-								.getFrontBoundaryPosition().getX()), 0, 7);
+		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0,
+				0);
+		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0,
+				1);
+		LCD.drawString("Phi (grd): "
+				+ (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
+		LCD.drawString(Boolean.toString(goalReached), 0, 3);
+		LCD.drawString(Double.toString(goalPose.getX()), 0, 4);
+		LCD.drawString(Double.toString(goalPose.getY()), 0, 5);
+		LCD.drawString(Double.toString(mapGoal.getX()), 0, 6);
+		LCD.drawString(Double.toString(mapGoal.getY()), 0, 7);
 
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
@@ -1145,7 +1113,7 @@ public class GuidanceAT {
 				else if (phiDot > 45)
 					phiDot = 45;
 				control.setAngularVelocity(phiDot);
-				control.setGoalAngle(90);
+				control.setGoalAngle(0);
 				control.setVelocity(0);
 				control.setCoSys(currPose);
 				control.setDemoStatus(false);
@@ -1392,6 +1360,10 @@ public class GuidanceAT {
 			if (control.getDemoStatus()) {
 				demo2Fin = true;
 				wrongDir = false;
+				rightTurn = false;
+				leftTurn = false;
+				turnFin = true;
+				turnStraightFin = true;
 				navigation.reset();
 			}
 			// leave action
@@ -1453,7 +1425,7 @@ public class GuidanceAT {
 				RConsole.println("PARK_THIS startet");
 				goalReached = false;
 				// calculate our goal on the line-map and in the ParkingSlot
-				goalPose.setHeading(slotDir.angle());
+				goalPose.setHeading((float) Math.PI);
 				slotGoal.setLocation(210, 35);
 				mapGoal = getClosestPointToGoal(slotGoal);
 				goalPose.setLocation(slotGoal);
