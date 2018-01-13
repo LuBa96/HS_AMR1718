@@ -384,8 +384,7 @@ public class GuidanceAT {
 
 				// Into action
 				if (currentStatus != lastStatus) {
-					currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
-					lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+					
 				}
 
 				// While action
@@ -494,6 +493,7 @@ public class GuidanceAT {
 				// Into Action
 				if (lastStatus != currentStatus) {
 					demo1Fin = false;
+					offTrack = true;
 					navigation.setOffTrack(true);
 					currDemo1Status = demo1Status.DEMO_FIRST_LINE;
 				}
@@ -525,6 +525,7 @@ public class GuidanceAT {
 				// into action
 				if (currentStatus != lastStatus) {
 					demo2Fin = false;
+					offTrack = true;
 					navigation.setOffTrack(true);
 					currDemo2Status = demo2Status.DEMO_DEMO1;
 				}
@@ -557,7 +558,7 @@ public class GuidanceAT {
 				// into action
 				if (currentStatus != lastStatus) {
 					demo3Fin = false;
-					currDemo3Status = demo3Status.DEMO_FIRST_SLOT;
+					//currDemo3Status = demo3Status.DEMO_FIRST_SLOT;
 				}
 				// while action
 				demo3SubStateMachine(control, navigation);
@@ -585,8 +586,8 @@ public class GuidanceAT {
 				break;
 			// TODO
 			case RESET:
-				// does not need any transition checks, only does the routine
-				// once per call
+				//into action
+				if(currentStatus != lastStatus){
 				navigation.reset();
 				coSys = new CoordinateSystem();
 				mapGoal = new Point(0, 0);
@@ -611,7 +612,25 @@ public class GuidanceAT {
 				demo3Fin = false;
 				wrongDir = false;
 				offTrack = false;
+				
+				currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+				lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+				currParkStatus = CurrentParkStatus.PARK_INACTIVE;
+				lastParkStatus = CurrentParkStatus.PARK_INACTIVE;
+				currDemo1Status = demo1Status.DEMO_INACTIVE;
+				lastDemo1Status = demo1Status.DEMO_INACTIVE;
+				currDemo2Status = demo2Status.DEMO_INACTIVE;
+				lastDemo2Status = demo2Status.DEMO_INACTIVE;
+				currDemo3Status = demo3Status.DEMO_INACTIVE;
+				lastDemo3Status = demo3Status.DEMO_INACTIVE;
+				}
+				
+				//while action
+				//state transition
+				lastStatus = currentStatus;
+				if(hmi.getMode() == parkingRobot.INxtHmi.Mode.DEMO2)
 				currentStatus = CurrentStatus.INACTIVE;
+				//leave action
 				break;
 			case INACTIVE:
 				// Into action
@@ -821,11 +840,15 @@ public class GuidanceAT {
 			// into action
 			if (currLineStatus != lastLineStatus) {
 				if (turnStraightFin) {
-					startPose.setLocation(currPose.getLocation());
-					startPose.setHeading(currPose.getHeading());
-					turnStraightFin = false;
-					turnFin = false;
-					navigation.setDetectionState(false);
+//					startPose.setLocation(currPose.getLocation());
+//					startPose.setHeading(currPose.getHeading());
+//					turnStraightFin = false;
+//					turnFin = false;
+//					navigation.setDetectionState(false);
+					control.setGoalDistance(turnDist);
+					control.setCoSys(currPose);
+					control.setDemoStatus(false);
+					control.setCtrlMode(ControlMode.DEMO_STRAIGHT);
 				}
 				control.setAngularVelocity(0);
 				control.setVelocity(4);
@@ -835,7 +858,14 @@ public class GuidanceAT {
 
 			// state transitions
 			lastLineStatus = currLineStatus;
-			if (currPose.getLocation().distance(startPose.getLocation()) >= turnDist) {
+//			if (currPose.getLocation().distance(startPose.getLocation()) >= turnDist) {
+//				if (rightTurn) {
+//					currLineStatus = CurrentLineStatus.FOLLOW_LINE_RIGHT;
+//				} else if (leftTurn) {
+//					currLineStatus = CurrentLineStatus.FOLLOW_LINE_LEFT;
+//				}
+//			}
+			if(control.getDemoStatus()){
 				if (rightTurn) {
 					currLineStatus = CurrentLineStatus.FOLLOW_LINE_RIGHT;
 				} else if (leftTurn) {
@@ -1001,7 +1031,7 @@ public class GuidanceAT {
 			if (offTrack) {
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_OFF;
 			} else if (!turnStraightFin) {
-				currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
+				currLineStatus = CurrentLineStatus.FOLLOW_LINE_TURN_STRAIGHT;
 			} else if (!turnFin) {
 				if (rightTurn) {
 					currLineStatus = CurrentLineStatus.FOLLOW_LINE_RIGHT;
@@ -1009,7 +1039,7 @@ public class GuidanceAT {
 					currLineStatus = CurrentLineStatus.FOLLOW_LINE_LEFT;
 				}
 			} else {
-
+				currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
 			}
 			break;
 		}
@@ -1376,7 +1406,6 @@ public class GuidanceAT {
 				slotGoal.setLocation(50, -30);
 				mapGoal = getClosestPointToGoal(slotGoal);
 				goalPose.setLocation(slotGoal);
-				// currParkStatus = CurrentParkStatus.PARK_LINE_FOLLOW;
 			}
 
 			// while action
@@ -1436,9 +1465,14 @@ public class GuidanceAT {
 			}
 			break;
 		case DEMO_INACTIVE:
+			//into action
+			//while acton
+			//state transitions
+			lastDemo3Status = currDemo3Status;
+			currDemo3Status = demo3Status.DEMO_FIRST_SLOT;
+			//leave action
 			break;
 		}
-
 	}
 
 	/**
