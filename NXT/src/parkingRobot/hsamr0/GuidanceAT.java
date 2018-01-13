@@ -518,7 +518,8 @@ public class GuidanceAT {
 				}
 				// leave action
 				if (currentStatus != lastStatus) {
-
+					currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+					lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
 				}
 				break;
 			case DEMO2:
@@ -551,13 +552,15 @@ public class GuidanceAT {
 				}
 				// leave action
 				if (currentStatus != lastStatus) {
-
+					currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+					lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
 				}
 				break;
 			case DEMO3:
 				// into action
 				if (currentStatus != lastStatus) {
 					demo3Fin = false;
+					goalReached = false;
 					currDemo3Status = demo3Status.DEMO_INACTIVE;
 				}
 				// while action
@@ -1404,7 +1407,7 @@ public class GuidanceAT {
 			}
 
 			// state transition
-			currDemo3Status = lastDemo3Status;
+			lastDemo3Status = currDemo3Status;
 			if (goalReached = true) {
 				currDemo3Status = demo3Status.DEMO_SECOND_SLOT;
 			}
@@ -1438,7 +1441,7 @@ public class GuidanceAT {
 			}
 
 			// state transition
-			currDemo3Status = lastDemo3Status;
+			lastDemo3Status = currDemo3Status;
 			if (goalReached = true) {
 				demo3Fin = true;
 			}
