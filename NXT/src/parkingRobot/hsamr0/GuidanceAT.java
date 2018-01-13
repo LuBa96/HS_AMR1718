@@ -628,7 +628,8 @@ public class GuidanceAT {
 				// while action
 				// state transition
 				lastStatus = currentStatus;
-				if ((hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE) || hmi.isUseHMI())
+				if ((hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE)
+						|| hmi.isUseHMI())
 					currentStatus = CurrentStatus.INACTIVE;
 				// leave action
 				break;
@@ -900,9 +901,12 @@ public class GuidanceAT {
 			}
 
 			// while action
-			control.setAngularVelocity((-90 - (currPose.getHeading() - startPose
-					.getHeading()) * (180 / Math.PI))
-					/ (8 * timePeriod * 0.001));
+			phiDot = (-90 - (currPose.getHeading() - startPose.getHeading())
+					* (180 / Math.PI))
+					/ (8 * timePeriod * 0.001);
+			if (phiDot > -10)
+				phiDot = -10;
+			control.setAngularVelocity(phiDot);
 
 			// state transitions
 			lastLineStatus = currLineStatus;
@@ -936,9 +940,12 @@ public class GuidanceAT {
 			}
 
 			// while action
-			control.setAngularVelocity((90 - (currPose.getHeading() - startPose
-					.getHeading()) * (180 / Math.PI))
-					/ (8 * timePeriod * 0.001));
+			phiDot = (90 - (currPose.getHeading() - startPose.getHeading())
+					* (180 / Math.PI))
+					/ (8 * timePeriod * 0.001);
+			if (phiDot < 10)
+				phiDot = 10;
+			control.setAngularVelocity(phiDot);
 			// state transitions
 			lastLineStatus = currLineStatus;
 			if ((currPose.getHeading() - startPose.getHeading())
@@ -1314,9 +1321,8 @@ public class GuidanceAT {
 			// state transition
 			lastDemo1Status = currDemo1Status;
 			if (control.getRightTurn()) {
-				if ((currPose.getLocation().distance(
-						map[navigation.getLineNumber()].getP1())
-						/ map[navigation.getLineNumber()].length() <= 0.4)) {
+				if ((currPose.getLocation().distance(map[0].getP1())
+						/ map[0].length() <= 0.4)) {
 					demo1Fin = true;
 				}
 			}
@@ -1372,7 +1378,7 @@ public class GuidanceAT {
 		case DEMO_FIRST_TURN:
 			// into action
 			if (lastDemo2Status != currDemo2Status) {
-				control.setAngularVelocity(45);
+				control.setAngularVelocity(30);
 				control.setGoalAngle(180);
 				control.setVelocity(0);
 				control.setCoSys(currPose);
@@ -1385,6 +1391,7 @@ public class GuidanceAT {
 			lastDemo2Status = currDemo2Status;
 			if (control.getDemoStatus()) {
 				demo2Fin = true;
+				wrongDir = false;
 				navigation.reset();
 			}
 			// leave action
