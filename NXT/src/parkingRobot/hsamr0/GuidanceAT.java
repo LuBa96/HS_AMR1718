@@ -383,22 +383,9 @@ public class GuidanceAT {
 				// monitor.writeGuidanceComment("Guidance_Driving");
 
 				// Into action
-				if (lastStatus != CurrentStatus.SCOUT) {
-					// this does not need to be here because of the transition
-					// check in the
-					// SubStateMachine, but this way we save the time of one
-					// cycle
-					// if (offTrack)
-					// currLineStatus = CurrentLineStatus.FOLLOW_LINE_OFF;
-					// else
-					// currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
-
-					// activate parking slot detection, setOffTrack() in
-					// navigation has to be done
-					// at some point too, probably when we change it
+				if (currentStatus != lastStatus) {
 					currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
 					lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
-					// navigation.setDetectionState(true);
 				}
 
 				// While action
@@ -589,7 +576,7 @@ public class GuidanceAT {
 				} else if (hmi.getMode() == parkingRobot.INxtHmi.Mode.DISCONNECT) {
 					currentStatus = CurrentStatus.EXIT;
 				} else if (demo3Fin) {
-					currentStatus = CurrentStatus.INACTIVE;
+					currentStatus = CurrentStatus.SCOUT;
 				}
 				// leave action
 				if (currentStatus != lastStatus) {
@@ -784,6 +771,7 @@ public class GuidanceAT {
 				control.setVelocity(0);
 				control.setCtrlMode(ControlMode.LINE_CTRL);
 				vLine = vLine0;
+				if(currentStatus == CurrentStatus.SCOUT)
 				navigation.setDetectionState(true);
 			}
 			// while action
@@ -837,6 +825,7 @@ public class GuidanceAT {
 					startPose.setHeading(currPose.getHeading());
 					turnStraightFin = false;
 					turnFin = false;
+					navigation.setDetectionState(false);
 				}
 				control.setAngularVelocity(0);
 				control.setVelocity(4);
@@ -977,6 +966,7 @@ public class GuidanceAT {
 				control.resetIntegralRWD();
 				control.setVelocity(vLine0);
 				control.setCtrlMode(ControlMode.LINE_CTRL);
+				if(currentStatus == CurrentStatus.SCOUT)
 				navigation.setDetectionState(true);
 			}
 
@@ -1381,9 +1371,9 @@ public class GuidanceAT {
 				RConsole.println("PARK_THIS startet");
 				goalReached = false;
 				// calculate our goal on the line-map and in the ParkingSlot
-				slotDir.setLocation(30, 0);
-				goalPose.setHeading(slotDir.angle());
-				// slotGoal.setLocation(100, -30);
+				goalPose.setHeading(0);
+				//TODO
+				slotGoal.setLocation(50, -30);
 				mapGoal = getClosestPointToGoal(slotGoal);
 				goalPose.setLocation(slotGoal);
 				// currParkStatus = CurrentParkStatus.PARK_LINE_FOLLOW;
@@ -1417,12 +1407,10 @@ public class GuidanceAT {
 				RConsole.println("PARK_THIS startet");
 				goalReached = false;
 				// calculate our goal on the line-map and in the ParkingSlot
-				slotDir.setLocation(30, 0);
 				goalPose.setHeading(slotDir.angle());
-				// slotGoal.setLocation(100, -30);
+				slotGoal.setLocation(210, 35);
 				mapGoal = getClosestPointToGoal(slotGoal);
 				goalPose.setLocation(slotGoal);
-				// currParkStatus = CurrentParkStatus.PARK_LINE_FOLLOW;
 			}
 
 			// while action
