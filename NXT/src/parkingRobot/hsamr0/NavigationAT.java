@@ -136,7 +136,7 @@ public class NavigationAT implements INavigation {
 	static final double CIRCUMFERENCE_OF_MOUSE_NXT_FULL_TURN = 0; // noch
 																	// ausmessen!!
 
-	static final double DISTANCE_FrontSideSensorToRobotCenter = 0; // in cm,
+	static final double DISTANCE_FrontSideSensorToRobotCenter = 6; // in cm,
 																	// noch
 																	// ausmessen!
 																	// (TODO) ->
@@ -178,7 +178,7 @@ public class NavigationAT implements INavigation {
 
 	static final double MIN_SLOT_DISTANCE = 45;
 	
-	static final float MIDPOINT_OFFSET = 5;
+	static final float MIDPOINT_OFFSET = 10;
 
 	/**
 	 * map array of line references, whose corresponding lines form a closed chain
@@ -327,6 +327,7 @@ public class NavigationAT implements INavigation {
 												// des Mittelwertes an
 	private double angleResultAktuellerMittelwert = 0;
 	private boolean winkelSchonKorrigiert = false;
+	private boolean winkelSchonKorrigiert2 = false;
 
 	/** folgende Variable wird fuer closeToCurve Methode fuer Luke (Control) benoetigt **/
 	public boolean robotCloseToCurve = false;
@@ -808,12 +809,12 @@ public class NavigationAT implements INavigation {
 
 		this.pose.setLocation((float) xResult, (float) yResult); // x und y werden bereits in
 																	// setPoseMitPositionskorrektur gesetzt
-		while(heading > 2*Math.PI) {
-			heading-= 2*Math.PI;
-		}
-		while(heading < 0) {
-			heading += 2*Math.PI;
-		}
+//		while(angleResult > 2*Math.PI) {
+//			angleResult-= 2*Math.PI;
+//		}
+//		while(angleResult < 0) {
+//			angleResult += 2*Math.PI;
+//		}
 		this.pose.setHeading((float) angleResult);
 		// LCD.drawString("Fusinoniert: " + (this.getPose().getX()*100) + "/" +
 		// (this.getPose().getY()*100) +
@@ -924,15 +925,27 @@ public class NavigationAT implements INavigation {
 					}
 					break;
 				case 3:
-					if (xResult * 100 < 145 && xResult * 100 > 120) {
+					if (xResult * 100 < 145 && xResult * 100 > 120 ) {
 						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
 								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
 						anzahlDurchlaufeMittelwert++;
 					}
-					if (xResult * 100 < 120 && winkelSchonKorrigiert == false) {
+					if (xResult * 100 < 120 && winkelSchonKorrigiert == false  && winkelSchonKorrigiert2 == false) {
 						angleResult = angleResult + (180 * Math.PI / 180 - angleResultAktuellerMittelwert);
 						winkelSchonKorrigiert = true;
+						angleResultAktuellerMittelwert = 0;
+						anzahlDurchlaufeMittelwert = 1;
 					}
+					if (xResult * 100 < 120 && xResult * 100 > 105 && winkelSchonKorrigiert == true) {
+						angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+								/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+						anzahlDurchlaufeMittelwert++;
+					}
+					if (xResult * 100 < 105 && winkelSchonKorrigiert == true  && winkelSchonKorrigiert2 == false) {
+						angleResult = angleResult + (180 * Math.PI / 180 - angleResultAktuellerMittelwert);
+						winkelSchonKorrigiert2 = true;
+					}
+					
 					break;
 				case 4:
 					if (yResult * 100 > 35 && yResult * 100 < 40) {
@@ -1273,7 +1286,7 @@ public class NavigationAT implements INavigation {
 		switch (aktuellerKurvenpunkt) {
 		case 0:
 			backBoundarxFrontSensor = this.pose.getX() * 100 + DISTANCE_RobotCenterToBarrierK0K7; // y Position gut, fuer x Position evt. ein spaeteren Wert nehmen, da zu frueh ermittelt und evt noch an Kante
-			backBoundaryFrontSensor = this.pose.getY() * 100 + DISTANCE_FrontSideSensorToRobotCenter;
+			backBoundaryFrontSensor = this.pose.getY() * 100;
 			Point backBoundarPoint = new Point((float) backBoundarxFrontSensor, (float) backBoundaryFrontSensor);
 			currentParkingSlot.setBackBoundaryPosition(backBoundarPoint); // diesen Umweg damit Punkt nicht global gespeichert sondern in currentParkingSlot als Attribut gespeichert wird
 			break;
@@ -1289,14 +1302,14 @@ public class NavigationAT implements INavigation {
 			LCD.drawString("Auf unerwartetem Streckenabschnitt Parkluecke entdeckt", 0, 5);
 			break;
 		case 3:
-			backBoundarxFrontSensor = this.pose.getX() * 100 - DISTANCE_FrontSideSensorToRobotCenter;
-			backBoundaryFrontSensor = this.pose.getY() * 100 + DISTANCE_RobotCenterToBarrierK3;
+			backBoundarxFrontSensor = this.pose.getX() * 100; // - DISTANCE_FrontSideSensorToRobotCenter
+			backBoundaryFrontSensor = this.pose.getY() * 100 ; //+ DISTANCE_RobotCenterToBarrierK3
 			Point backBoundarPoint1 = new Point((float) backBoundarxFrontSensor, (float) backBoundaryFrontSensor);
 			currentParkingSlot.setBackBoundaryPosition(backBoundarPoint1);
 			break;
 		case 7:
-			backBoundarxFrontSensor = this.pose.getX() * 100 + DISTANCE_FrontSideSensorToRobotCenter;
-			backBoundaryFrontSensor = this.pose.getY() * 100 - DISTANCE_RobotCenterToBarrierK0K7;
+			backBoundarxFrontSensor = this.pose.getX() * 100; // + DISTANCE_FrontSideSensorToRobotCenter
+			backBoundaryFrontSensor = this.pose.getY() * 100 ; //- DISTANCE_RobotCenterToBarrierK0K7
 			Point backBoundarPoint2 = new Point((float) backBoundarxFrontSensor, (float) backBoundaryFrontSensor);
 			currentParkingSlot.setBackBoundaryPosition(backBoundarPoint2);
 			break;
@@ -1312,7 +1325,7 @@ public class NavigationAT implements INavigation {
 		case 1: case 2: case 4: case 5: case 6: // break, da es keine Parkluecken auf diesen Strecken gibt
 			break;
 		case 3:
-			frontBoundarxFrontSensorAktuell = this.pose.getX() * 100 - DISTANCE_FrontSideSensorToRobotCenter;
+			frontBoundarxFrontSensorAktuell = this.pose.getX() * 100 - DISTANCE_FrontSideSensorToRobotCenter + 2;
 			frontBoundaryFrontSensorAktuell = this.pose.getY() * 100 + DISTANCE_RobotCenterToBarrierK3;
 			break;
 		case 7:

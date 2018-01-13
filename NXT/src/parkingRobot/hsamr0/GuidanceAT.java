@@ -427,8 +427,6 @@ public class GuidanceAT {
 					// RConsole.println("PARK_THIS startet immernoch");
 					// slotDir.setLocation(30, 0);
 					goalPose.setHeading(slotDir.angle());
-					while(goalPose.getHeading() < 0)
-						goalPose.rotateUpdate((float)(2*Math.PI));
 					slotDir.multiplyBy((float) 0.5);
 					slotGoal = selectedParkingSlot.getBackBoundaryPositionM().add(slotDir);
 					// slotGoal.setLocation(100, -30);
@@ -601,19 +599,30 @@ public class GuidanceAT {
 	protected static void showData(INavigation navigation, IPerception perception, IControl control) {
 		LCD.clear();
 
-		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0, 0);
-		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0, 1);
-		LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
+		// LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0, 0);
+		// LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0, 1);
+		// LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading() / Math.PI *
+		// 180), 0, 2);
 		// LCD.drawString(Boolean.toString(goalReached), 0, 3);
 		// LCD.drawString(Double.toString(goalPose.getHeading()), 0, 4);
 		// LCD.drawString(Double.toString(offTrackPose.getX()), 0, 5);
 		// LCD.drawString(Double.toString(offTrackPose.getY()), 0, 6);
-		LCD.drawString("Back X: " + Double.toString(navigation.getParkplatz(4).getBackBoundaryPosition().getX()), 0, 3);
-		LCD.drawString("Back Y: " + Double.toString(navigation.getParkplatz(4).getBackBoundaryPosition().getY()), 0, 4);
-		LCD.drawString("Front X: " + Double.toString(navigation.getParkplatz(4).getFrontBoundaryPosition().getX()), 0,
+		LCD.drawString("Back X8: " + Double.toString(navigation.getParkplatz(8).getBackBoundaryPosition().getX()), 0,
+				0);
+		LCD.drawString("Front X8: " + Double.toString(navigation.getParkplatz(8).getFrontBoundaryPosition().getX()), 0,
+				1);
+		LCD.drawString("Back X9: " + Double.toString(navigation.getParkplatz(9).getBackBoundaryPosition().getX()), 0,
+				2);
+		LCD.drawString("Front X9: " + Double.toString(navigation.getParkplatz(9).getFrontBoundaryPosition().getX()), 0,
+				3);
+		LCD.drawString("Back X10: " + Double.toString(navigation.getParkplatz(10).getBackBoundaryPosition().getX()), 0,
+				4);
+		LCD.drawString("Front X10: " + Double.toString(navigation.getParkplatz(10).getFrontBoundaryPosition().getX()), 0,
 				5);
-		LCD.drawString("Front Y:" + Double.toString(navigation.getParkplatz(4).getFrontBoundaryPosition().getY()), 0,
+		LCD.drawString("Back X11: " + Double.toString(navigation.getParkplatz(11).getBackBoundaryPosition().getX()), 0,
 				6);
+		LCD.drawString("Front X11: " + Double.toString(navigation.getParkplatz(11).getFrontBoundaryPosition().getX()), 0,
+				7);
 
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
@@ -794,8 +803,8 @@ public class GuidanceAT {
 			computePhiDot(coSys.getTransformedPose(currPose), coEffs);
 			// velocity control, the straighter the path the faster the robot
 			vPark = vParkMax * (1 - Math.abs(deltaPhiDeg) / 15);
-			if (vPark < 0)
-				vPark = 2;
+			if (vPark < 5)
+				vPark = 5;
 			phiDot = phiDot * (vPark / vParkMax);
 			control.setAngularVelocity(phiDot);
 			control.setVelocity(-vPark);
@@ -912,8 +921,8 @@ public class GuidanceAT {
 			computePhiDot(coSys.getTransformedPose(currPose), coEffs);
 			// velocity control, the straighter the path the faster the robot
 			vPark = vParkMax * (1 - Math.abs(deltaPhiDeg) / 15);
-			if (vPark < 0)
-				vPark = 2;
+			if (vPark < 5)
+				vPark = 5;
 			phiDot = phiDot * (vPark / vParkMax);
 			control.setAngularVelocity(phiDot);
 			control.setVelocity(vPark);
@@ -931,17 +940,18 @@ public class GuidanceAT {
 			break;
 		case PARK_CORRECTING:
 			// into action
-			control.setAngularVelocity(0);
-			control.setVelocity(0);
-			control.setCtrlMode(ControlMode.VW_CTRL);
+			if (currParkStatus != lastParkStatus) {
+				control.setAngularVelocity(0);
+				control.setVelocity(0);
+				control.setCtrlMode(ControlMode.VW_CTRL);
+			}
 
 			// while action
-			control.setAngularVelocity(
-					(currPose.getHeading() - goalPose.getHeading()) * (180 / Math.PI) / (8 * timePeriod * 0.001));
+			control.setAngularVelocity(-coSys.getTransformedHeading(currPose) / (8 * timePeriod * 0.001));
 
 			// state transition
 			lastParkStatus = currParkStatus;
-			if (Math.abs((currPose.getHeading() - goalPose.getHeading()) * (180 / Math.PI)) <= slotDegTol) {
+			if (Math.abs((currPose.getHeading() - goalPose.getHeading() * (180 / Math.PI))) <= slotDegTol) {
 				currParkStatus = CurrentParkStatus.PARK_INACTIVE;
 				goalReached = true;
 			}
