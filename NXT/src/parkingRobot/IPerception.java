@@ -1,5 +1,7 @@
 package parkingRobot;
 
+import lejos.nxt.LCD;
+
 /**
  * interface for the main module 'Perception', providing methods for getting all
  * measuring data from the robot sensors

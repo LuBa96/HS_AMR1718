@@ -1297,6 +1297,7 @@ public class NavigationAT implements INavigation {
 		this.pose.setHeading(0);
 		aktuellerKurvenpunkt = 7;
 		this.off_track = false;
+		this.backwards = false;
 		//hier noch alles wichtige auf Null setzen
 	}
 
@@ -1444,7 +1445,7 @@ public class NavigationAT implements INavigation {
 				Point Point1 = new Point(0, 0);
 				Point Point2 = new Point(0, 0);
 				for (int i = 4; i<8; i++) {
-					parkingSlots[i] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0, Point1, Point2);
+					parkingSlots[i] = new ParkingSlot(i+1, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0, Point1, Point2);
 				}
 			}
 			backMidpoint.setLocation(currentParkingSlot.getBackBoundaryPosition().getX() + MIDPOINT_OFFSET, currentParkingSlot.getBackBoundaryPosition().getY()); 
@@ -1471,7 +1472,7 @@ public class NavigationAT implements INavigation {
 				Point Point1 = new Point(0, 0);
 				Point Point2 = new Point(0, 0);
 				for (int i = 8; i<12; i++) {
-					parkingSlots[i] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0, Point1, Point2);
+					parkingSlots[i] = new ParkingSlot(i+1, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0, Point1, Point2);
 				}
 			}
 			backMidpoint.setLocation(currentParkingSlot.getBackBoundaryPosition().getX(), currentParkingSlot.getBackBoundaryPosition().getY() + MIDPOINT_OFFSET); 
@@ -1496,7 +1497,7 @@ public class NavigationAT implements INavigation {
 				Point Point1 = new Point(0, 0);
 				Point Point2 = new Point(0, 0);
 				for (int i = 0; i<4; i++) {
-					parkingSlots[i] = new ParkingSlot(0, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0, Point1, Point2);
+					parkingSlots[i] = new ParkingSlot(i+1, Point1, Point2, ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0, Point1, Point2);
 				}
 			}
 			backMidpoint.setLocation(currentParkingSlot.getBackBoundaryPosition().getX(), currentParkingSlot.getBackBoundaryPosition().getY() - MIDPOINT_OFFSET); 
@@ -1618,6 +1619,14 @@ public class NavigationAT implements INavigation {
 	
 	public int getAnzahlParkluecken() {
 		return anzahlParklueckenAktuelleRunde;
+	}
+	
+	public double getxAusparken() {
+		return xNachAusparken;
+	}
+	
+	public double getyAusparken() {
+		return yNachAusparken;
 	}
 }
 /**

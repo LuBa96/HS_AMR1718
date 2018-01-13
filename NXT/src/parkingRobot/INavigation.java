@@ -90,6 +90,8 @@ public interface INavigation {
 	public int getAnzahlParkluecken();
 	public void setParkingDone();
 	public boolean getParkingDone();
+	public double getxAusparken();
+	public double getyAusparken();
 	// Outputs
 	
 	/**

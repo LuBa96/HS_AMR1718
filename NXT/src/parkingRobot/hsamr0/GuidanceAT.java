@@ -273,7 +273,7 @@ public class GuidanceAT {
 	 * following a path into a parking slot. Needs to be tested.
 	 */
 	static final double mapGoalDist = 30;
-	static final double slotGoalDist = 1;
+	static final double slotGoalDist = 2;
 	static final double slotDegTol = 5;
 	static final double offTrackDist = 2;
 	static final double offTrackDeg = 2;
@@ -358,7 +358,7 @@ public class GuidanceAT {
 				ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0, mapGoal, mapGoal);
 		navigation.reset();
 
-		// ï¿½ffnen per cmd-Befehl: nxjconsole
+		// öffnen per cmd-Befehl: nxjconsole
 		// RConsole.openUSB(15000);
 		RConsole.println("Konsole initialisiert");
 
@@ -384,7 +384,7 @@ public class GuidanceAT {
 
 				// Into action
 				if (currentStatus != lastStatus) {
-					
+
 				}
 
 				// While action
@@ -518,7 +518,8 @@ public class GuidanceAT {
 				}
 				// leave action
 				if (currentStatus != lastStatus) {
-
+					currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+					lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
 				}
 				break;
 			case DEMO2:
@@ -527,7 +528,7 @@ public class GuidanceAT {
 					demo2Fin = false;
 					offTrack = true;
 					navigation.setOffTrack(true);
-					currDemo2Status = demo2Status.DEMO_DEMO1;
+					currDemo2Status = demo2Status.DEMO_INACTIVE;
 				}
 				// while action
 				demo2SubStateMachine(control, navigation);
@@ -551,14 +552,16 @@ public class GuidanceAT {
 				}
 				// leave action
 				if (currentStatus != lastStatus) {
-
+					currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+					lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
 				}
 				break;
 			case DEMO3:
 				// into action
 				if (currentStatus != lastStatus) {
 					demo3Fin = false;
-					//currDemo3Status = demo3Status.DEMO_FIRST_SLOT;
+					goalReached = false;
+					currDemo3Status = demo3Status.DEMO_INACTIVE;
 				}
 				// while action
 				demo3SubStateMachine(control, navigation);
@@ -586,51 +589,52 @@ public class GuidanceAT {
 				break;
 			// TODO
 			case RESET:
-				//into action
-				if(currentStatus != lastStatus){
-				navigation.reset();
-				coSys = new CoordinateSystem();
-				mapGoal = new Point(0, 0);
-				slotGoal = new Point(0, 0);
-				slotDir = new Point(0, 0);
-				vectorA = new Point(0, 0);
-				startPose = new Pose(0, 0, 0);
-				offTrackPose = new Pose(0, 0, 0);
-				goalPose = new Pose(0, 0, 0);
-				currPose = new Pose(0, 0, 0);
-				selectedParkingSlot = new ParkingSlot(0, mapGoal, mapGoal,
-						ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0, mapGoal,
-						mapGoal);
+				// into action
+				if (currentStatus != lastStatus) {
+					navigation.reset();
+					coSys = new CoordinateSystem();
+					mapGoal = new Point(0, 0);
+					slotGoal = new Point(0, 0);
+					slotDir = new Point(0, 0);
+					vectorA = new Point(0, 0);
+					startPose = new Pose(0, 0, 0);
+					offTrackPose = new Pose(0, 0, 0);
+					goalPose = new Pose(0, 0, 0);
+					currPose = new Pose(0, 0, 0);
+					selectedParkingSlot = new ParkingSlot(0, mapGoal, mapGoal,
+							ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0,
+							mapGoal, mapGoal);
 
-				goalReached = false;
-				rightTurn = false;
-				leftTurn = false;
-				turnStraightFin = true;
-				turnFin = true;
-				demo1Fin = false;
-				demo2Fin = false;
-				demo3Fin = false;
-				wrongDir = false;
-				offTrack = false;
-				
-				currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
-				lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
-				currParkStatus = CurrentParkStatus.PARK_INACTIVE;
-				lastParkStatus = CurrentParkStatus.PARK_INACTIVE;
-				currDemo1Status = demo1Status.DEMO_INACTIVE;
-				lastDemo1Status = demo1Status.DEMO_INACTIVE;
-				currDemo2Status = demo2Status.DEMO_INACTIVE;
-				lastDemo2Status = demo2Status.DEMO_INACTIVE;
-				currDemo3Status = demo3Status.DEMO_INACTIVE;
-				lastDemo3Status = demo3Status.DEMO_INACTIVE;
+					goalReached = false;
+					rightTurn = false;
+					leftTurn = false;
+					turnStraightFin = true;
+					turnFin = true;
+					demo1Fin = false;
+					demo2Fin = false;
+					demo3Fin = false;
+					wrongDir = false;
+					offTrack = false;
+
+					currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+					lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
+					currParkStatus = CurrentParkStatus.PARK_INACTIVE;
+					lastParkStatus = CurrentParkStatus.PARK_INACTIVE;
+					currDemo1Status = demo1Status.DEMO_INACTIVE;
+					lastDemo1Status = demo1Status.DEMO_INACTIVE;
+					currDemo2Status = demo2Status.DEMO_INACTIVE;
+					lastDemo2Status = demo2Status.DEMO_INACTIVE;
+					currDemo3Status = demo3Status.DEMO_INACTIVE;
+					lastDemo3Status = demo3Status.DEMO_INACTIVE;
 				}
-				
-				//while action
-				//state transition
+
+				// while action
+				// state transition
 				lastStatus = currentStatus;
-				if(hmi.getMode() == parkingRobot.INxtHmi.Mode.DEMO2)
-				currentStatus = CurrentStatus.INACTIVE;
-				//leave action
+				if ((hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE)
+						|| hmi.isUseHMI())
+					currentStatus = CurrentStatus.INACTIVE;
+				// leave action
 				break;
 			case INACTIVE:
 				// Into action
@@ -721,49 +725,17 @@ public class GuidanceAT {
 			IPerception perception, IControl control) {
 		LCD.clear();
 
-		// LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100),
-		// 0, 0);
-		// LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100),
-		// 0, 1);
-		// LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading() /
-		// Math.PI *
-		// 180), 0, 2);
-		// LCD.drawString(Boolean.toString(goalReached), 0, 3);
-		// LCD.drawString(Double.toString(goalPose.getHeading()), 0, 4);
-		// LCD.drawString(Double.toString(offTrackPose.getX()), 0, 5);
-		// LCD.drawString(Double.toString(offTrackPose.getY()), 0, 6);
-		LCD.drawString(
-				"Back X8: "
-						+ Double.toString(navigation.getParkplatz(8)
-								.getBackBoundaryPosition().getX()), 0, 0);
-		LCD.drawString(
-				"Front X8: "
-						+ Double.toString(navigation.getParkplatz(8)
-								.getFrontBoundaryPosition().getX()), 0, 1);
-		LCD.drawString(
-				"Back X9: "
-						+ Double.toString(navigation.getParkplatz(9)
-								.getBackBoundaryPosition().getX()), 0, 2);
-		LCD.drawString(
-				"Front X9: "
-						+ Double.toString(navigation.getParkplatz(9)
-								.getFrontBoundaryPosition().getX()), 0, 3);
-		LCD.drawString(
-				"Back X10: "
-						+ Double.toString(navigation.getParkplatz(10)
-								.getBackBoundaryPosition().getX()), 0, 4);
-		LCD.drawString(
-				"Front X10: "
-						+ Double.toString(navigation.getParkplatz(10)
-								.getFrontBoundaryPosition().getX()), 0, 5);
-		LCD.drawString(
-				"Back X11: "
-						+ Double.toString(navigation.getParkplatz(11)
-								.getBackBoundaryPosition().getX()), 0, 6);
-		LCD.drawString(
-				"Front X11: "
-						+ Double.toString(navigation.getParkplatz(11)
-								.getFrontBoundaryPosition().getX()), 0, 7);
+		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0,
+				0);
+		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0,
+				1);
+		LCD.drawString("Phi (grd): "
+				+ (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
+		LCD.drawString(Boolean.toString(goalReached), 0, 3);
+		LCD.drawString(Double.toString(goalPose.getX()), 0, 4);
+		LCD.drawString(Double.toString(goalPose.getY()), 0, 5);
+		LCD.drawString(Double.toString(mapGoal.getX()), 0, 6);
+		LCD.drawString(Double.toString(mapGoal.getY()), 0, 7);
 
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
@@ -790,33 +762,40 @@ public class GuidanceAT {
 				control.setVelocity(0);
 				control.setCtrlMode(ControlMode.LINE_CTRL);
 				vLine = vLine0;
-				if(currentStatus == CurrentStatus.SCOUT)
-				navigation.setDetectionState(true);
+				if (currentStatus == CurrentStatus.SCOUT)
+					navigation.setDetectionState(true);
 			}
 			// while action
 			// TODO: control velocity
 			// navigation.getLineNumber()
 			// distToMid = 0;
-			if (wrongDir)
+			if (wrongDir) {
 				vectorA = map[navigation.getLineNumber()].getP1().subtract(
 						map[navigation.getLineNumber()].getP2());
-			else
+				vectorA.multiplyBy((float) 0.5);
+				distToMidMax = vectorA.length();
+				if (map[navigation.getLineNumber()].getP1().distance(
+						currPose.getLocation()) > distToMidMax)
+					vLine += 0.2;
+				else
+					vLine -= 0.2;
+			} else {
 				vectorA = map[navigation.getLineNumber()].getP2().subtract(
 						map[navigation.getLineNumber()].getP1());
-			vectorA.multiplyBy((float) 0.5);
-			distToMidMax = vectorA.length();
-			if (map[navigation.getLineNumber()].getP2().distance(
-					currPose.getLocation()) > distToMidMax)
-				vLine += 0.2;
-			else
-				vLine -= 0.2;
+				vectorA.multiplyBy((float) 0.5);
+				distToMidMax = vectorA.length();
+				if (map[navigation.getLineNumber()].getP2().distance(
+						currPose.getLocation()) > distToMidMax)
+					vLine += 0.2;
+				else
+					vLine -= 0.2;
+			}
 			if (vLine < vLine0)
 				vLine = vLine0;
 			control.setVelocity(vLine);
 
 			// state transitions
 			lastLineStatus = currLineStatus;
-
 			if (control.getRightTurn()) {
 				if (nearTurn(navigation)) {
 					currLineStatus = CurrentLineStatus.FOLLOW_LINE_TURN_STRAIGHT;
@@ -842,30 +821,30 @@ public class GuidanceAT {
 				if (turnStraightFin) {
 					startPose.setLocation(currPose.getLocation());
 					startPose.setHeading(currPose.getHeading());
-//					turnStraightFin = false;
-//					turnFin = false;
-//					navigation.setDetectionState(false);
+					// turnStraightFin = false;
+					// turnFin = false;
+					// navigation.setDetectionState(false);
 					control.setGoalDistance(turnDist);
 					control.setCoSys(currPose);
 					control.setDemoStatus(false);
-					control.setCtrlMode(ControlMode.DEMO_STRAIGHT);
 				}
 				control.setAngularVelocity(0);
 				control.setVelocity(4);
-				//control.setCtrlMode(ControlMode.VW_CTRL);
+				control.setCtrlMode(ControlMode.DEMO_STRAIGHT);
 			}
 			// while action
 
 			// state transitions
 			lastLineStatus = currLineStatus;
-//			if (currPose.getLocation().distance(startPose.getLocation()) >= turnDist) {
-//				if (rightTurn) {
-//					currLineStatus = CurrentLineStatus.FOLLOW_LINE_RIGHT;
-//				} else if (leftTurn) {
-//					currLineStatus = CurrentLineStatus.FOLLOW_LINE_LEFT;
-//				}
-//			}
-			if(control.getDemoStatus()){
+			// if (currPose.getLocation().distance(startPose.getLocation()) >=
+			// turnDist) {
+			// if (rightTurn) {
+			// currLineStatus = CurrentLineStatus.FOLLOW_LINE_RIGHT;
+			// } else if (leftTurn) {
+			// currLineStatus = CurrentLineStatus.FOLLOW_LINE_LEFT;
+			// }
+			// }
+			if (control.getDemoStatus()) {
 				if (rightTurn) {
 					currLineStatus = CurrentLineStatus.FOLLOW_LINE_RIGHT;
 				} else if (leftTurn) {
@@ -893,9 +872,12 @@ public class GuidanceAT {
 			}
 
 			// while action
-			control.setAngularVelocity((-90 - (currPose.getHeading() - startPose
-					.getHeading()) * (180 / Math.PI))
-					/ (8 * timePeriod * 0.001));
+			phiDot = (-90 - (currPose.getHeading() - startPose.getHeading())
+					* (180 / Math.PI))
+					/ (8 * timePeriod * 0.001);
+			if (phiDot > -10)
+				phiDot = -10;
+			control.setAngularVelocity(phiDot);
 
 			// state transitions
 			lastLineStatus = currLineStatus;
@@ -929,9 +911,12 @@ public class GuidanceAT {
 			}
 
 			// while action
-			control.setAngularVelocity((90 - (currPose.getHeading() - startPose
-					.getHeading()) * (180 / Math.PI))
-					/ (8 * timePeriod * 0.001));
+			phiDot = (90 - (currPose.getHeading() - startPose.getHeading())
+					* (180 / Math.PI))
+					/ (8 * timePeriod * 0.001);
+			if (phiDot < 10)
+				phiDot = 10;
+			control.setAngularVelocity(phiDot);
 			// state transitions
 			lastLineStatus = currLineStatus;
 			if ((currPose.getHeading() - startPose.getHeading())
@@ -996,8 +981,8 @@ public class GuidanceAT {
 				control.resetIntegralRWD();
 				control.setVelocity(vLine0);
 				control.setCtrlMode(ControlMode.LINE_CTRL);
-				if(currentStatus == CurrentStatus.SCOUT)
-				navigation.setDetectionState(true);
+				if (currentStatus == CurrentStatus.SCOUT)
+					navigation.setDetectionState(true);
 			}
 
 			// while action
@@ -1131,7 +1116,7 @@ public class GuidanceAT {
 				else if (phiDot > 45)
 					phiDot = 45;
 				control.setAngularVelocity(phiDot);
-				control.setGoalAngle(90);
+				control.setGoalAngle(0);
 				control.setVelocity(0);
 				control.setCoSys(currPose);
 				control.setDemoStatus(false);
@@ -1307,7 +1292,8 @@ public class GuidanceAT {
 			// state transition
 			lastDemo1Status = currDemo1Status;
 			if (control.getRightTurn()) {
-				if (nearTurn(navigation)) {
+				if ((currPose.getLocation().distance(map[0].getP1())
+						/ map[0].length() <= 0.4)) {
 					demo1Fin = true;
 				}
 			}
@@ -1324,6 +1310,7 @@ public class GuidanceAT {
 			// while action
 			// state transition
 			lastDemo1Status = currDemo1Status;
+			currDemo1Status = demo1Status.DEMO_FIRST_LINE;
 			// leave action
 			if (currDemo1Status != lastDemo1Status) {
 
@@ -1362,7 +1349,7 @@ public class GuidanceAT {
 		case DEMO_FIRST_TURN:
 			// into action
 			if (lastDemo2Status != currDemo2Status) {
-				control.setAngularVelocity(45);
+				control.setAngularVelocity(30);
 				control.setGoalAngle(180);
 				control.setVelocity(0);
 				control.setCoSys(currPose);
@@ -1375,6 +1362,11 @@ public class GuidanceAT {
 			lastDemo2Status = currDemo2Status;
 			if (control.getDemoStatus()) {
 				demo2Fin = true;
+				wrongDir = false;
+				rightTurn = false;
+				leftTurn = false;
+				turnFin = true;
+				turnStraightFin = true;
 				navigation.reset();
 			}
 			// leave action
@@ -1402,7 +1394,7 @@ public class GuidanceAT {
 				goalReached = false;
 				// calculate our goal on the line-map and in the ParkingSlot
 				goalPose.setHeading(0);
-				//TODO
+				// TODO
 				slotGoal.setLocation(50, -30);
 				mapGoal = getClosestPointToGoal(slotGoal);
 				goalPose.setLocation(slotGoal);
@@ -1415,7 +1407,7 @@ public class GuidanceAT {
 			}
 
 			// state transition
-			currDemo3Status = lastDemo3Status;
+			lastDemo3Status = currDemo3Status;
 			if (goalReached = true) {
 				currDemo3Status = demo3Status.DEMO_SECOND_SLOT;
 			}
@@ -1436,7 +1428,7 @@ public class GuidanceAT {
 				RConsole.println("PARK_THIS startet");
 				goalReached = false;
 				// calculate our goal on the line-map and in the ParkingSlot
-				goalPose.setHeading(slotDir.angle());
+				goalPose.setHeading((float) Math.PI);
 				slotGoal.setLocation(210, 35);
 				mapGoal = getClosestPointToGoal(slotGoal);
 				goalPose.setLocation(slotGoal);
@@ -1449,7 +1441,7 @@ public class GuidanceAT {
 			}
 
 			// state transition
-			currDemo3Status = lastDemo3Status;
+			lastDemo3Status = currDemo3Status;
 			if (goalReached = true) {
 				demo3Fin = true;
 			}
@@ -1465,12 +1457,12 @@ public class GuidanceAT {
 			}
 			break;
 		case DEMO_INACTIVE:
-			//into action
-			//while acton
-			//state transitions
+			// into action
+			// while acton
+			// state transitions
 			lastDemo3Status = currDemo3Status;
 			currDemo3Status = demo3Status.DEMO_FIRST_SLOT;
-			//leave action
+			// leave action
 			break;
 		}
 	}
