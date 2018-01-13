@@ -607,23 +607,24 @@ public class GuidanceAT {
 		// LCD.drawString(Double.toString(goalPose.getHeading()), 0, 4);
 		// LCD.drawString(Double.toString(offTrackPose.getX()), 0, 5);
 		// LCD.drawString(Double.toString(offTrackPose.getY()), 0, 6);
-		LCD.drawString("Back X8: " + Double.toString(navigation.getParkplatz(8).getBackBoundaryPosition().getX()), 0,
-				0);
-		LCD.drawString("Front X8: " + Double.toString(navigation.getParkplatz(8).getFrontBoundaryPosition().getX()), 0,
-				1);
-		LCD.drawString("Back X9: " + Double.toString(navigation.getParkplatz(9).getBackBoundaryPosition().getX()), 0,
-				2);
-		LCD.drawString("Front X9: " + Double.toString(navigation.getParkplatz(9).getFrontBoundaryPosition().getX()), 0,
-				3);
-		LCD.drawString("Back X10: " + Double.toString(navigation.getParkplatz(10).getBackBoundaryPosition().getX()), 0,
-				4);
-		LCD.drawString("Front X10: " + Double.toString(navigation.getParkplatz(10).getFrontBoundaryPosition().getX()), 0,
-				5);
-		LCD.drawString("Back X11: " + Double.toString(navigation.getParkplatz(11).getBackBoundaryPosition().getX()), 0,
-				6);
-		LCD.drawString("Front X11: " + Double.toString(navigation.getParkplatz(11).getFrontBoundaryPosition().getX()), 0,
-				7);
-
+	//		LCD.drawString("Back X8: " + Double.toString(navigation.getParkplatz(8).getBackBoundaryPosition().getX()), 0,
+	//				0);
+	//		LCD.drawString("Front X8: " + Double.toString(navigation.getParkplatz(8).getFrontBoundaryPosition().getX()), 0,
+	//				1);
+	//		LCD.drawString("Back X9: " + Double.toString(navigation.getParkplatz(9).getBackBoundaryPosition().getX()), 0,
+	//				2);
+	//		LCD.drawString("Front X9: " + Double.toString(navigation.getParkplatz(9).getFrontBoundaryPosition().getX()), 0,
+	//				3);
+	//		LCD.drawString("Back X10: " + Double.toString(navigation.getParkplatz(10).getBackBoundaryPosition().getX()), 0,
+	//				4);
+	//		LCD.drawString("Front X10: " + Double.toString(navigation.getParkplatz(10).getFrontBoundaryPosition().getX()), 0,
+	//				5);
+	//		LCD.drawString("Back X11: " + Double.toString(navigation.getParkplatz(11).getBackBoundaryPosition().getX()), 0,
+	//				6);
+	//		LCD.drawString("Front X11: " + Double.toString(navigation.getParkplatz(11).getFrontBoundaryPosition().getX()), 0,
+	//				7);
+			LCD.drawString(Double.toString(navigation.getLineNumber()), 0, 1);
+			LCD.drawString(Double.toString(navigation.getAktuellenKurvenpunkt()), 0, 2);
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
 		// }else if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE ){

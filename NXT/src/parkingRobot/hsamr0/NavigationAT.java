@@ -255,9 +255,9 @@ public class NavigationAT implements INavigation {
 	 * Spaltenformat: Kurvenindex(beginnend bei 0), xminBereich, xmaxBereich,
 	 * yminBereich, ymaxBereich, xKurvenpunkt, yKurvenpunkt, Einfahrtwinkel in die
 	 * nach dem aktuellen Kurvenpunkt folgende Kurve, (CloseToCurve auf schon mal
-	 * auf true = 1, noch nicht auf true = 0)
+	 * auf true = 1, noch nicht auf true = 0), Einfahrtwinkel für Backwards in die nach dem aktuellen Kurvenpunkt einfahrende Kurve
 	 **/
-	double[][] Kurvenmatrix = new double[8][9];
+	double[][] Kurvenmatrix = new double[8][10];
 
 	/**
 	 * parkingSlots enthaelt alle erfassten Parkluecken Der Konstruktor jeder
@@ -355,7 +355,10 @@ public class NavigationAT implements INavigation {
 	private double parklueckenLaenge = 0;
 	/**lokale Punkte, benoetigt um Mittelpunkte der Parkluecken zu setzen**/
 	private boolean inTurn;
-	
+	public boolean parkingDone = false;
+	private double xNachAusparken = 0;
+	private double yNachAusparken = 0;
+	private boolean positionGespeichert = false;
 	
 
 	/**
@@ -397,6 +400,7 @@ public class NavigationAT implements INavigation {
 		Kurvenmatrix[0][6] = 0;
 		Kurvenmatrix[0][7] = 90;
 		Kurvenmatrix[0][8] = 1;
+		Kurvenmatrix[0][9] = 180;
 		Kurvenmatrix[1][1] = 165;
 		Kurvenmatrix[1][2] = 195;
 		Kurvenmatrix[1][3] = 15;
@@ -405,6 +409,7 @@ public class NavigationAT implements INavigation {
 		Kurvenmatrix[1][6] = 60;
 		Kurvenmatrix[1][7] = 180;
 		Kurvenmatrix[1][8] = 1;
+		Kurvenmatrix[1][9] = 270;
 		Kurvenmatrix[2][0] = 2;
 		Kurvenmatrix[2][1] = 120;
 		Kurvenmatrix[2][2] = 165;
@@ -414,6 +419,7 @@ public class NavigationAT implements INavigation {
 		Kurvenmatrix[2][6] = 60;
 		Kurvenmatrix[2][7] = 270;
 		Kurvenmatrix[2][8] = 1;
+		Kurvenmatrix[2][9] = 0;
 		Kurvenmatrix[3][0] = 3;
 		Kurvenmatrix[3][1] = 90;
 		Kurvenmatrix[3][2] = 165;
@@ -423,6 +429,7 @@ public class NavigationAT implements INavigation {
 		Kurvenmatrix[3][6] = 30;
 		Kurvenmatrix[3][7] = 180;
 		Kurvenmatrix[3][8] = 1;
+		Kurvenmatrix[3][9] = 90;
 		Kurvenmatrix[4][0] = 4;
 		Kurvenmatrix[4][1] = 15;
 		Kurvenmatrix[4][2] = 90;
@@ -432,6 +439,7 @@ public class NavigationAT implements INavigation {
 		Kurvenmatrix[4][6] = 30;
 		Kurvenmatrix[4][7] = 90;
 		Kurvenmatrix[4][8] = 1;
+		Kurvenmatrix[4][9] = 0;
 		Kurvenmatrix[5][0] = 5;
 		Kurvenmatrix[5][1] = 15;
 		Kurvenmatrix[5][2] = 50;
@@ -441,6 +449,7 @@ public class NavigationAT implements INavigation {
 		Kurvenmatrix[5][6] = 60;
 		Kurvenmatrix[5][7] = 180;
 		Kurvenmatrix[5][8] = 1;
+		Kurvenmatrix[5][9] = 270;
 		Kurvenmatrix[6][0] = 6;
 		Kurvenmatrix[6][1] = -20;
 		Kurvenmatrix[6][2] = 15;
@@ -450,6 +459,7 @@ public class NavigationAT implements INavigation {
 		Kurvenmatrix[6][6] = 60;
 		Kurvenmatrix[6][7] = 270;
 		Kurvenmatrix[6][8] = 1;
+		Kurvenmatrix[6][9] = 0;
 		Kurvenmatrix[7][0] = 7;
 		Kurvenmatrix[7][1] = -20;
 		Kurvenmatrix[7][2] = 90;
@@ -459,6 +469,7 @@ public class NavigationAT implements INavigation {
 		Kurvenmatrix[7][6] = 0;
 		Kurvenmatrix[7][7] = 0;
 		Kurvenmatrix[7][8] = 1;
+		Kurvenmatrix[7][9] = 90;
 	}
 
 	// Inputs
@@ -612,7 +623,7 @@ public class NavigationAT implements INavigation {
 		if (backwards) {
 			this.aktuellerKurvenpunkt = 4;
 //			this.pose.setLocation(120/100, 30/100);
-			this.pose.setHeading(0);
+			this.pose.setHeading(0);			
 		}
 	}
 	
@@ -794,8 +805,19 @@ public class NavigationAT implements INavigation {
 
 		if (!off_track) {
 			//PositionskorrekturAnEcken() wird von Guidance nach Kurve aufgerufen
-			this.WinkelkorrekturZwischenEcken();
 			this.PositionFuerTabletMitPositionskorrekturAufGeraden(); // berechnet xResultMap und yResultMap
+			
+			if (!parkingDone) {
+				this.WinkelkorrekturZwischenEcken();
+			}
+			else {
+				if (!positionGespeichert) {
+					xNachAusparken = this.pose.getLocation().getX()*100;
+					yNachAusparken = this.pose.getLocation().getY()*100;
+					positionGespeichert = true;
+				}
+				this.WinkelkorrekturZwischenEckenNachAusparken();
+			}
 		}
 
 		/**
@@ -840,7 +862,12 @@ public class NavigationAT implements INavigation {
 		xResult = Kurvenmatrix[aktuellerKurvenpunkt][5] / 100; // xResult hat Einheit von m, Kurvenmatrix hat bereits
 																// Einheit mm
 		yResult = Kurvenmatrix[aktuellerKurvenpunkt][6] / 100;
-		angleResult = Kurvenmatrix[aktuellerKurvenpunkt][7]* Math.PI / 180;
+		if(!backwards) {
+			angleResult = Kurvenmatrix[aktuellerKurvenpunkt][7]* Math.PI / 180;
+		}
+		else {
+			angleResult = Kurvenmatrix[aktuellerKurvenpunkt][9]* Math.PI /180;
+		}
 		winkelSchonKorrigiert = false;
 		angleResultAktuellerMittelwert = 0;
 		anzahlDurchlaufeMittelwert = 1;
@@ -1095,6 +1122,50 @@ public class NavigationAT implements INavigation {
 			}
 		}
 	}
+	
+	private void WinkelkorrekturZwischenEckenNachAusparken() {
+		switch (aktuellerKurvenpunkt) {
+		case 0:
+			if (this.pose.getY() * 100 > (yNachAusparken + 5) && this.pose.getY() * 100 < (yNachAusparken + 15)) { // waren 10, 30
+				angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+						/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+				anzahlDurchlaufeMittelwert++;
+			}
+			if (this.pose.getY() * 100 > (yNachAusparken + 15) && winkelSchonKorrigiert == false) {
+				angleResult = angleResult + (90 * Math.PI / 180 - angleResultAktuellerMittelwert); // 90 Grad muss in Einheit von angleResult geaendert werden
+				winkelSchonKorrigiert = true; // wird in PositionskorrekturAnEcken Methode auf false gesetzt
+				parkingDone = false;
+				positionGespeichert = false;
+			}
+			break;
+		case 3:
+			if (this.pose.getX()*100 < (xNachAusparken - 5) && this.pose.getX()*100 > (xNachAusparken -10)) {
+				angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+						/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+				anzahlDurchlaufeMittelwert++;
+			}
+			if (this.pose.getX()*100 < (xNachAusparken - 10) && winkelSchonKorrigiert == false) {
+				angleResult = angleResult - angleResultAktuellerMittelwert;
+				winkelSchonKorrigiert = true;
+				parkingDone = false;
+				positionGespeichert = false;
+			}
+			break;
+		case 7:
+			if (this.pose.getX()*100 > (xNachAusparken + 5) && this.pose.getX()*100 < (xNachAusparken + 10)) {
+				angleResultAktuellerMittelwert = angleResultAktuellerMittelwert * (anzahlDurchlaufeMittelwert - 1)
+						/ anzahlDurchlaufeMittelwert + angleResult / anzahlDurchlaufeMittelwert;
+				anzahlDurchlaufeMittelwert++;
+			}
+			if (this.pose.getX()*100 > (xNachAusparken + 10) && winkelSchonKorrigiert == false) {
+				angleResult = angleResult - angleResultAktuellerMittelwert;
+				winkelSchonKorrigiert = true;
+				parkingDone = false;
+				positionGespeichert = false;
+			}
+			break;
+		}		
+	}
 
 	/**
 	 * xResultMap und yResultMap werden berechnet: Auf gerader Strecke wird
@@ -1224,6 +1295,8 @@ public class NavigationAT implements INavigation {
 		this.pose.setLocation(0, 0);
 		this.pose.setHeading(0);
 		aktuellerKurvenpunkt = 7;
+		this.off_track = false;
+		//hier noch alles wichtige auf Null setzen
 	}
 
 	/**
@@ -1532,6 +1605,10 @@ public class NavigationAT implements INavigation {
 	
 	public ParkingSlot getParkplatz(int i) {
 		return parkingSlots[i];
+	}
+	
+	public void setParkingDone() {
+		parkingDone = true;
 	}
 }
 /**
