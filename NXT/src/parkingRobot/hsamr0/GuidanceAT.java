@@ -158,7 +158,7 @@ public class GuidanceAT {
 	protected static demo1Status lastDemo1Status = demo1Status.DEMO_INACTIVE;
 
 	public enum demo2Status {
-		DEMO_FIRST_TURN, DEMO_INACTIVE
+		DEMO_DEMO1, DEMO_FIRST_TURN, DEMO_INACTIVE
 	}
 
 	protected static demo2Status currDemo2Status = demo2Status.DEMO_INACTIVE;
@@ -524,9 +524,7 @@ public class GuidanceAT {
 				}
 				// leave action
 				if (currentStatus != lastStatus) {
-					currDemo1Status = demo1Status.DEMO_INACTIVE;
-					lastDemo1Status = demo1Status.DEMO_INACTIVE;
-					navigation.setOffTrack(false);
+
 				}
 				break;
 			case DEMO2:
@@ -539,6 +537,19 @@ public class GuidanceAT {
 				// while action
 				// transition check
 				lastStatus = currentStatus;
+				if (Button.ENTER.isDown() || demo2Fin) {
+					currentStatus = CurrentStatus.INACTIVE;
+					while (Button.ENTER.isDown()) {
+						Thread.sleep(1);
+					} // wait for button release
+				} else if (Button.ESCAPE.isDown()) {
+					currentStatus = CurrentStatus.EXIT;
+					while (Button.ESCAPE.isDown()) {
+						Thread.sleep(1);
+					} // wait for button release
+				} else if (hmi.getMode() == parkingRobot.INxtHmi.Mode.DISCONNECT) {
+					currentStatus = CurrentStatus.EXIT;
+				}
 				// leave action
 				if (currentStatus != lastStatus) {
 
@@ -957,7 +968,7 @@ public class GuidanceAT {
 				direction = 1;
 				offTrack = false;
 				navigation.setOffTrack(false);
-				//TODO navigation.setausgeparkt;
+				// TODO navigation.setausgeparkt;
 			}
 			break;
 		// this state is only executed once after the LINE_FOLLOW is set active
@@ -970,12 +981,12 @@ public class GuidanceAT {
 			lastLineStatus = currLineStatus;
 			if (offTrack) {
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_OFF;
-			} else if(!turnStraightFin){
+			} else if (!turnStraightFin) {
 				currLineStatus = CurrentLineStatus.FOLLOW_LINE_STRAIGHT;
-			} else if(!turnFin){
-				
-			} else{
-				
+			} else if (!turnFin) {
+
+			} else {
+
 			}
 			break;
 		}
@@ -1263,6 +1274,66 @@ public class GuidanceAT {
 			if (currDemo1Status != lastDemo1Status) {
 
 			}
+			break;
+		}
+	}
+
+	private static void demo2SubStateMachine(IControl control,
+			INavigation navigation) {
+		switch (currDemo2Status) {
+		case DEMO_DEMO1:
+			// Into Action
+			if (lastDemo2Status != currDemo2Status) {
+				demo1Fin = false;
+				navigation.setOffTrack(true);
+				currDemo1Status = demo1Status.DEMO_FIRST_LINE;
+			}
+
+			// While Action
+			demo1SubStateMachine(control, navigation);
+
+			// State transition check
+			lastDemo2Status = currDemo2Status;
+			if (demo1Fin) {
+				currDemo2Status = demo2Status.DEMO_FIRST_TURN;
+			}
+			// leave action
+			if (currDemo2Status != lastDemo2Status) {
+				currDemo1Status = demo1Status.DEMO_INACTIVE;
+				lastDemo1Status = demo1Status.DEMO_INACTIVE;
+				navigation.setOffTrack(false);
+			}
+
+			break;
+		case DEMO_FIRST_TURN:
+			// into action
+			if (lastDemo2Status != currDemo2Status) {
+				control.setAngularVelocity(45);
+				control.setGoalAngle(180);
+				control.setVelocity(0);
+				control.setCoSys(currPose);
+				coSys.setPointOfOrigin(currPose);
+				control.setDemoStatus(false);
+				control.setCtrlMode(ControlMode.DEMO_TURN);
+			}
+			// while action
+			// state transition
+			lastDemo2Status = currDemo2Status;
+			if (control.getDemoStatus()) {
+				demo2Fin = true;
+				navigation.reset();
+			}
+			// leave action
+			if (currDemo2Status != lastDemo2Status) {
+				control.setVelocity(0);
+				control.setAngularVelocity(0);
+				control.setCtrlMode(ControlMode.INACTIVE);
+			}
+			break;
+		case DEMO_INACTIVE:
+			// state transition
+			lastDemo2Status = currDemo2Status;
+			currDemo2Status = demo2Status.DEMO_DEMO1;
 			break;
 		}
 	}
