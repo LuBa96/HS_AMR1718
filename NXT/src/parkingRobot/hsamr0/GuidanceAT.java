@@ -955,6 +955,9 @@ public class GuidanceAT {
 				control.setAngularVelocity(0);
 				control.setCtrlMode(ControlMode.INACTIVE);
 				direction = 1;
+				offTrack = false;
+				navigation.setOffTrack(false);
+				//TODO navigation.setausgeparkt;
 			}
 			break;
 		// this state is only executed once after the LINE_FOLLOW is set active
@@ -1238,8 +1241,10 @@ public class GuidanceAT {
 			followLineSubStateMachine(control, navigation);
 			// state transition
 			lastDemo1Status = currDemo1Status;
-			if (currPose.getLocation().distance(map[0].getP1()) <= 5) {
-				demo1Fin = true;
+			if (control.getRightTurn()) {
+				if (nearTurn(navigation)) {
+					demo1Fin = true;
+				}
 			}
 			// leave action
 			if (currDemo1Status != lastDemo1Status) {
