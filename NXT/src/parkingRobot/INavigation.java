@@ -87,6 +87,7 @@ public interface INavigation {
 	public void setBackwards(boolean backwards);
 	public void reset();
 	public boolean getBackwards();
+	public void setParkingDone();
 	// Outputs
 	
 	/**

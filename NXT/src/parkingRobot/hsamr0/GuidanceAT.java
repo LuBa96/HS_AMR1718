@@ -535,6 +535,8 @@ public class GuidanceAT {
 					currDemo2Status = demo2Status.DEMO_FIRST_TURN;
 				}
 				// while action
+				demo2SubStateMachine(control,navigation);
+				
 				// transition check
 				lastStatus = currentStatus;
 				if (Button.ENTER.isDown() || demo2Fin) {
@@ -968,7 +970,7 @@ public class GuidanceAT {
 				direction = 1;
 				offTrack = false;
 				navigation.setOffTrack(false);
-				// TODO navigation.setausgeparkt;
+				navigation.setParkingDone();
 			}
 			break;
 		// this state is only executed once after the LINE_FOLLOW is set active
