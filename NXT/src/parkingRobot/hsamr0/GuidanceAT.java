@@ -852,7 +852,7 @@ public class GuidanceAT {
 				}
 				control.setAngularVelocity(0);
 				control.setVelocity(4);
-				control.setCtrlMode(ControlMode.VW_CTRL);
+				//control.setCtrlMode(ControlMode.VW_CTRL);
 			}
 			// while action
 
