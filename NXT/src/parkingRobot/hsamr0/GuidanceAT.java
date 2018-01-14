@@ -352,7 +352,7 @@ public class GuidanceAT {
 		navigation.reset();
 
 		// �ffnen per cmd-Befehl: nxjconsole
-		RConsole.openUSB(15000);
+		//RConsole.openUSB(15000);
 
 		monitor.startLogging();
 
