@@ -352,8 +352,7 @@ public class GuidanceAT {
 		navigation.reset();
 
 		// �ffnen per cmd-Befehl: nxjconsole
-		//RConsole.openUSB(15000);
-		RConsole.println("Konsole initialisiert");
+		RConsole.openUSB(15000);
 
 		monitor.startLogging();
 
@@ -573,52 +572,6 @@ public class GuidanceAT {
 				}
 				break;
 			// TODO
-			case RESET:
-				// into action
-				if (currentStatus != lastStatus) {
-//					navigation.reset();
-//					coSys = new CoordinateSystem();
-//					mapGoal = new Point(0, 0);
-//					slotGoal = new Point(0, 0);
-//					slotDir = new Point(0, 0);
-//					vectorA = new Point(0, 0);
-//					startPose = new Pose(0, 0, 0);
-//					offTrackPose = new Pose(0, 0, 0);
-//					goalPose = new Pose(0, 0, 0);
-//					currPose = new Pose(0, 0, 0);
-//					selectedParkingSlot = new ParkingSlot(0, mapGoal, mapGoal,
-//							ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING, 0, mapGoal, mapGoal);
-//
-//					goalReached = false;
-//					rightTurn = false;
-//					leftTurn = false;
-//					turnStraightFin = true;
-//					turnFin = true;
-//					demo1Fin = false;
-//					demo2Fin = false;
-//					demo3Fin = false;
-//					wrongDir = false;
-//					offTrack = false;
-//
-//					currLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
-//					lastLineStatus = CurrentLineStatus.FOLLOW_LINE_INACTIVE;
-//					currParkStatus = CurrentParkStatus.PARK_INACTIVE;
-//					lastParkStatus = CurrentParkStatus.PARK_INACTIVE;
-//					currDemo1Status = demo1Status.DEMO_INACTIVE;
-//					lastDemo1Status = demo1Status.DEMO_INACTIVE;
-//					currDemo2Status = demo2Status.DEMO_INACTIVE;
-//					lastDemo2Status = demo2Status.DEMO_INACTIVE;
-//					currDemo3Status = demo3Status.DEMO_INACTIVE;
-//					lastDemo3Status = demo3Status.DEMO_INACTIVE;
-				}
-
-				// while action
-				// state transition
-				lastStatus = currentStatus;
-				if ((hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE) || hmi.isUseHMI())
-					currentStatus = CurrentStatus.INACTIVE;
-				// leave action
-				break;
 			case INACTIVE:
 				// Into action
 				if (lastStatus != CurrentStatus.INACTIVE) {
@@ -709,11 +662,6 @@ public class GuidanceAT {
 		LCD.drawString("X (in cm): " + (navigation.getPose().getX() * 100), 0, 0);
 		LCD.drawString("Y (in cm): " + (navigation.getPose().getY() * 100), 0, 1);
 		LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
-		LCD.drawString(Boolean.toString(goalReached), 0, 3);
-		LCD.drawString(Double.toString(goalPose.getX()), 0, 4);
-		LCD.drawString(Double.toString(goalPose.getY()), 0, 5);
-		LCD.drawString(Double.toString(mapGoal.getX()), 0, 6);
-		LCD.drawString(Double.toString(mapGoal.getY()), 0, 7);
 
 		// if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 		// LCD.drawString("HMI Mode SCOUT", 0, 3);
@@ -979,7 +927,6 @@ public class GuidanceAT {
 			// into action
 
 			// while action
-			RConsole.println("Status PARK INACTIVE");
 
 			// state transition check
 			lastLineStatus = currLineStatus;
@@ -1316,7 +1263,6 @@ public class GuidanceAT {
 				control.setGoalAngle(180);
 				control.setVelocity(0);
 				control.setCoSys(currPose);
-				coSys.setPointOfOrigin(currPose);
 				control.setDemoStatus(false);
 				control.setCtrlMode(ControlMode.DEMO_TURN);
 			}
@@ -1360,7 +1306,6 @@ public class GuidanceAT {
 				mapGoal = getClosestPointToGoal(slotGoal);
 				goalPose.setLocation(slotGoal);
 				RConsole.println("goalPose: " + goalPose.getX() + " , " + goalPose.getY());
-				RConsole.println("mapGoal: " + mapGoal.getX() + " , " + mapGoal.getY());
 				RConsole.println("slotGoal: " + slotGoal.getX() + " , " + slotGoal.getY());
 			}
 
@@ -1372,7 +1317,7 @@ public class GuidanceAT {
 
 			// state transition
 			lastDemo3Status = currDemo3Status;
-			if (goalReached = true) {
+			if (goalReached) {
 				currDemo3Status = demo3Status.DEMO_SECOND_SLOT;
 			}
 
@@ -1405,7 +1350,7 @@ public class GuidanceAT {
 
 			// state transition
 			lastDemo3Status = currDemo3Status;
-			if (goalReached = true) {
+			if (goalReached) {
 				demo3Fin = true;
 			}
 

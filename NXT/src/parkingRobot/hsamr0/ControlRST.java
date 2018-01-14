@@ -366,11 +366,11 @@ public class ControlRST implements IControl {
 			break;
 		case LEFT_CRV_CTRL:
 			update_SETPOSE_Parameter();
-			exec_driveCurve90();
+			//exec_driveCurve90();
 			break;
 		case RIGHT_CRV_CTRL:
 			update_SETPOSE_Parameter();
-			exec_driveCurve90();
+			//exec_driveCurve90();
 			break;
 		case VW_CTRL:
 			update_VWCTRL_Parameter();
@@ -686,7 +686,7 @@ public class ControlRST implements IControl {
 	 * @param direction
 	 *            > 0 right curve
 	 */
-	private void exec_driveCurve90() {
+	/*private void exec_driveCurve90() {
 		double xMomentary = this.currentPosition.getX();
 		double yMomentary = this.currentPosition.getY();
 		angleDeg = (int) (this.currentPosition.getHeading() / Math.PI * 180);
@@ -726,7 +726,7 @@ public class ControlRST implements IControl {
 			}
 		}
 	}
-
+*/
 	/**
 	 * calculates the left and right angle speed of the both motors with given
 	 * velocity and angle velocity of the robot
